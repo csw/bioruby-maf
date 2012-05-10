@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+
+  <title><![CDATA[BioRuby MAF blog]]></title>
+  <link href="http://csw.github.com/bioruby-maf/atom.xml" rel="self"/>
+  <link href="http://csw.github.com/bioruby-maf/"/>
+  <updated>2012-05-09T20:43:54-04:00</updated>
+  <id>http://csw.github.com/bioruby-maf/</id>
+  <author>
+    <name><![CDATA[Clayton Wheeler]]></name>
+    
+  </author>
+  <generator uri="http://octopress.org/">Octopress</generator>
+
+  
+  <entry>
+    <title type="html"><![CDATA[Hello World]]></title>
+    <link href="http://csw.github.com/bioruby-maf/blog/2012/05/09/hello-world/"/>
+    <updated>2012-05-09T19:33:00-04:00</updated>
+    <id>http://csw.github.com/bioruby-maf/blog/2012/05/09/hello-world</id>
+    <content type="html"><![CDATA[<p>Hello World! This blog will be tracking the development of <a href="https://github.com/csw/bioruby-maf">bio-maf</a>, a <a href="https://cgwb.nci.nih.gov/FAQ/FAQformat.html#format5">Multiple Alignment Format</a> (MAF) parser for the Ruby bioinformatics library <a href="http://bioruby.open-bio.org/">BioRuby</a>, as part of the Google Summer of Code 2012. I&#8217;m Clayton Wheeler, a programmer and a biology student at the University of Michigan. This is exciting for me as my first substantial open source project, and as a way to write hopefully-useful bioinformatics software. And thanks, Google, for making this possible.</p>
+
+<p>In my next post I&#8217;ll discuss what MAF is, what it&#8217;s useful for, and how I&#8217;m planning to approach the project. I&#8217;ll be making weekly status posts, plus others as inspiration strikes.</p>
+]]></content>
+  </entry>
+  
+</feed>
