@@ -4,7 +4,7 @@
   <title><![CDATA[BioRuby MAF blog]]></title>
   <link href="http://csw.github.com/bioruby-maf/atom.xml" rel="self"/>
   <link href="http://csw.github.com/bioruby-maf/"/>
-  <updated>2012-05-09T20:43:54-04:00</updated>
+  <updated>2012-05-14T23:28:55-04:00</updated>
   <id>http://csw.github.com/bioruby-maf/</id>
   <author>
     <name><![CDATA[Clayton Wheeler]]></name>
@@ -12,6 +12,77 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[GSoC Week 1]]></title>
+    <link href="http://csw.github.com/bioruby-maf/blog/2012/05/13/progress/"/>
+    <updated>2012-05-13T18:14:00-04:00</updated>
+    <id>http://csw.github.com/bioruby-maf/blog/2012/05/13/progress</id>
+    <content type="html"><![CDATA[<p>This has been my first half-week of work on my Google Summer of Code
+project, and it&#8217;s off to an exciting start. The first order of
+business has been to get my development environment together; since
+I&#8217;ve been a microbiology student instead of a programmer for the last
+year, it&#8217;s taken some work. In that process, I&#8217;ve ended up making a
+few <a href="https://github.com/michaelklishin/cucumber.el/pull/21">open</a>
+<a href="https://github.com/nibrahim/Hyde/pull/6">source</a>
+<a href="https://github.com/nibrahim/Hyde/pull/7">contributions</a> just to get
+my tools working the way I want. I&#8217;m running GNU Emacs 24 and trying
+to take more advantage of it than I have in the past. I&#8217;ll have much
+more to say about this in a future post.</p>
+
+<p>I&#8217;ve also started working on the BioRuby unit test
+<a href="http://travis-ci.org/#!/bioruby/bioruby/jobs/1296529">failures</a> under
+JRuby, as a way of familiarizing myself with the BioRuby code base as
+well as the community and its development processes. Right now, JRuby
+in 1.8 mode is showing 6 failures and 126 errors, which is hardly
+confidence-inspiring for people considering using JRuby with
+BioRuby. This is too bad, since JRuby has some definite advantages as
+a Ruby implementation. After looking into these failures, I&#8217;ve broken them
+down into a few categories:</p>
+
+<ul>
+<li>temporary file permissions problems, likely due to some sort of Travis-CI
+environment issue</li>
+<li>a bug in JRuby&#8217;s implementation of
+<a href="http://ruby-doc.org/stdlib-1.8.7/libdoc/open3/rdoc/Open3.html#method-c-popen3">Open3.popen3</a>
+which I&#8217;m working up a bug report for</li>
+<li>an odd autoload problem I&#8217;ve filed
+<a href="https://jira.codehaus.org/browse/JRUBY-6658">JRUBY-6658</a> for and
+sent an accompanying
+<a href="https://github.com/rubyspec/rubyspec/pull/136">RubySpec patch</a>
+for</li>
+<li>a problem with libxml-jruby, which appears unmaintained, for which
+I&#8217;ve submitted a
+<a href="https://github.com/bioruby/bioruby/pull/55">BioRuby patch</a> plus
+<a href="http://jira.codehaus.org/browse/JRUBY-6662">JRUBY-6662</a></li>
+<li>and a small test case bug relating to floating point handling,
+which I&#8217;ve submitted a
+<a href="https://github.com/bioruby/bioruby/pull/54">patch</a> for.</li>
+</ul>
+
+
+<p>Once these are resolved, JRuby should be passing the BioRuby unit
+tests in 1.8 mode, and closer to passing in 1.9 mode. (There are a few
+extra failures under 1.9 that I haven&#8217;t sorted through yet.)</p>
+
+<p>I&#8217;ve also gotten a start on my project itself, creating the
+<a href="https://github.com/csw/bioruby-maf">bioruby-maf</a> Github repository
+with a project skeleton and writing my
+<a href="https://github.com/csw/bioruby-maf/blob/79004f9b75c1e33f9b265a1a97241d3c9d382997/features/maf-to-fasta.feature">first Cucumber feature</a>
+for it. This is, in fact, my first Cucumber feature ever. However, I
+did spend a few cross-country flights reading the
+<a href="http://pragprog.com/book/achbd/the-rspec-book">RSpec</a> and
+<a href="http://pragprog.com/book/hwcuc/the-cucumber-book">Cucumber</a> books
+last week; between that and cribbing from
+<a href="https://github.com/pjotrp/bioruby-alignment/tree/master/features">Pjotr&#8217;s code</a>
+I feel like I have some idea what I&#8217;m doing. Just assembling that
+feature has been useful, too, since I&#8217;ve had to get several of the
+existing MAF tools running on my machine. In fact, my test MAF data and
+the FASTA version of it are courtesy of
+<a href="https://bitbucket.org/james_taylor/bx-python/wiki/Home">bx-python</a>,
+which will be my reference implementation in many respects.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Hello World]]></title>
