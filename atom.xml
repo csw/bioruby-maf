@@ -4,7 +4,7 @@
   <title><![CDATA[BioRuby MAF blog]]></title>
   <link href="http://csw.github.com/bioruby-maf/atom.xml" rel="self"/>
   <link href="http://csw.github.com/bioruby-maf/"/>
-  <updated>2012-05-21T11:44:08-04:00</updated>
+  <updated>2012-05-21T13:57:32-04:00</updated>
   <id>http://csw.github.com/bioruby-maf/</id>
   <author>
     <name><![CDATA[Clayton Wheeler]]></name>
@@ -12,6 +12,52 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Basic MAF parsing]]></title>
+    <link href="http://csw.github.com/bioruby-maf/blog/2012/05/21/basic-maf-parsing/"/>
+    <updated>2012-05-21T13:43:00-04:00</updated>
+    <id>http://csw.github.com/bioruby-maf/blog/2012/05/21/basic-maf-parsing</id>
+    <content type="html"><![CDATA[<p>Today is the official start of coding for GSoC. Following my
+<a href="https://github.com/csw/bioruby-maf/wiki/Original-proposal">initial plan</a>,
+I&#8217;m going to begin by implementing the basics of MAF parsing in
+Ruby. I&#8217;ve already got Cucumber features defined for
+<a href="https://github.com/csw/bioruby-maf/blob/master/features/maf-parsing.feature">basic MAF parsing</a>
+and
+<a href="https://github.com/csw/bioruby-maf/blob/master/features/maf-to-fasta.feature">conversion to FASTA</a>,
+along with
+<a href="https://github.com/csw/bioruby-maf/tree/master/test/data">reference data</a>
+as processed by bx-python.</p>
+
+<p>This should be fairly straightforward to implement, but I&#8217;m going to
+wait until I&#8217;ve got this basic functionality running before I define
+anything else in detail. I&#8217;m still weighing whether it will make sense
+to have a &#8216;raw&#8217; representation of sequences and alignment blocks
+rather than just using (and presumably subclassing) the
+<a href="https://github.com/pjotrp/bioruby-alignment">bio-alignment</a>
+representations.</p>
+
+<p>Once basic MAF parsing works, my next area to focus on will be indexed
+access. Many use cases for MAF involve pulling a few alignments out of
+very large data files, rather than batch-processing the whole
+file. I&#8217;ll be focusing on the indexed-access API at first, and
+building a simple interim indexing scheme similar to that used by
+Biopython, probably using SQLite in a similar way. In developing the
+API, I&#8217;ll study those provided by bx-python and Biopython, the two
+other MAF implementations providing persistent indexing.</p>
+
+<p>Ultimately, I plan to revisit my actual indexing method, and
+potentially implement support for bx-python&#8217;s
+<a href="https://bitbucket.org/james_taylor/bx-python/src/07aca5a9f6fc/lib/bx/interval_index_file.py">interval index files</a>. I&#8217;ll
+also take a careful look at other database alternatives such as
+Berkeley DB and Tokyo Cabinet.</p>
+
+<p>P.S. For my next blog post, I think I will try using Markdown&#8217;s
+<a href="http://daringfireball.net/projects/markdown/syntax#link">reference-style links</a>,
+since the raw source for these posts is getting unwieldy with inline
+links.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[GSoC Week 2]]></title>
@@ -49,7 +95,7 @@ JRuby.</p>
 
 <p>I identified another JRuby bug,
 <a href="http://jira.codehaus.org/browse/JRUBY-6666">JRUBY-6666</a>, causing
-quite several unit test failures. This one affects BioRuby&#8217;s code for
+several unit test failures. This one affects BioRuby&#8217;s code for
 running external commands, so it would be likely to be encountered in
 production use. For this one, I also worked up a
 <a href="https://github.com/jruby/jruby/pull/173">patch</a>.</p>
