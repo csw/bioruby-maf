@@ -1,3 +1,5 @@
+require 'bigbio'                # FASTA support
+
 Given /^a MAF source file "(.*?)"$/ do |src|
   @src = $test_data + src
   @src.exist?.should be_true
@@ -8,17 +10,18 @@ Given /^MAF data:$/ do |string|
 end
 
 When /^I select FASTA output$/ do
-  @out_fmt = :fasta
+  @dst = Tempfile.new(['cuke', ".#{@out_fmt.to_s}"])
+  @dst.close
+  @writer = FastaWriter.new(@dst.path)
 end
 
 When /^process the file$/ do
-  @dst = Tempfile.new(['cuke', ".#{@out_fmt.to_s}"])
-  proc = MAFProcessor.new
-  # src can be a Pathname or a String with MAF data
-  proc.src = @src
-  proc.output_format = format
-  proc.dst = @dst
-  proc.process()
+  @reader.each_block do |block|
+    block.each_raw_seq do |seq|
+      @writer.write("#{seq.source}.#{seq.start}",
+                    seq.text)
+    end
+  end
 end
 
 Then /^the output should match "(.*?)"$/ do |ref|
