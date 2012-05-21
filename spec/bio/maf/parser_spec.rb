@@ -57,7 +57,6 @@ module Bio
 
       describe "#parse_block" do
         it "returns an alignment block" do
-          pending
           p = Parser.new(TestData + 't1.maf')
           b = p.parse_block()
           b.should_not be_nil

@@ -1,8 +1,8 @@
 require 'bigbio'                # FASTA support
 
 Given /^a MAF source file "(.*?)"$/ do |src|
-  @src = $test_data + src
-  @src.exist?.should be_true
+  @src_f = $test_data + src
+  @src_f.exist?.should be_true
 end
 
 Given /^MAF data:$/ do |string|
@@ -16,18 +16,19 @@ When /^I select FASTA output$/ do
 end
 
 When /^process the file$/ do
-  @reader.each_block do |block|
+  @parser.each_block do |block|
     block.each_raw_seq do |seq|
-      @writer.write("#{seq.source}.#{seq.start}",
-                    seq.text)
+      seq.write_fasta(@writer)
     end
   end
+  @writer.close
 end
 
 Then /^the output should match "(.*?)"$/ do |ref|
   ref_p = $test_data + ref
-  ref.p.exist?.should be_true
-  system("diff #{ref} #{@dst.path} >/dev/null 2>&1").should be_true
+  ref_p.exist?.should be_true
+  #system("diff #{ref} #{@dst.path} >/dev/null 2>&1").should be_true
+  File.read(@dst.path).should == File.read(ref_p)
 end
 
 Then /^the output should be:$/ do |string|

@@ -37,9 +37,9 @@ Feature: Parse MAF files
     Then an alignment block can be obtained
     And the alignment block has 3 sequences
     And sequence 0 has source "human_hoxa"
-    And sequence 0 has start "100"
+    And sequence 0 has start 100
     And sequence 0 has size 8
-    And sequence 0 has strand "positive"
+    And sequence 0 has strand "+"
     And sequence 0 has source size 100257
     And sequence 0 has text "ACA-TTACT"
-    And sequence 1 has strand "negative"
+    And sequence 1 has strand "-"

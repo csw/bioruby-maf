@@ -5,6 +5,7 @@ Feature: Convert MAF file to FASTA
   Scenario: Convert simple MAF file
     Given a MAF source file "t1.maf"
     When I select FASTA output
+    And I open it with a MAF reader
     And process the file
     Then the output should match "t1.fasta"
 
@@ -45,5 +46,6 @@ Feature: Convert MAF file to FASTA
     ACA--ATT
     >fugu_unc:4000-4004
     AC----TT
+    
     """
 
