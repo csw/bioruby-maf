@@ -8,5 +8,5 @@
 #
 # In this file only require other files. Avoid other source code.
 
-require 'bio-maf/maf.rb'
+require 'bio/maf'
 
