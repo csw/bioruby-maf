@@ -7,6 +7,11 @@ Feature: Parse MAF files
     """
     ##maf version=1 scoring=humor.v4
     # humor.v4 R=30 M=10 /cluster/data/hg15/bed/blastz.mm3/axtNet25/chr22.maf /cluster/data/hg15/bed/blastz.rn3/axtNet25/chr22.maf
+
+    a score=0.128
+    s human_hoxa 100  8 + 100257 ACA-TTACT
+    s horse_hoxa 120  9 -  98892 ACAATTGCT
+    s fugu_hoxa   88  7  + 90788 ACA--TGCT
     """
     And in a temp file
     When I open it with a MAF reader

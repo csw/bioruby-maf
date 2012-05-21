@@ -1,26 +1,27 @@
 Given /^in a temp file$/ do
   @src_f = Tempfile.new(['rspec', '.maf'])
   @src_f.write(@src)
+  @src_f.close
 end
 
 When /^I open it with a MAF reader$/ do
-  @reader = Bio::MAF.open_file(@src_f)
+  @parser = Bio::MAF::Parser.new(@src_f)
 end
 
 Then /^the MAF version should be "(.*?)"$/ do |v_spec|
-  @reader.header.version.to_s.should == v_spec
+  @parser.header.version.to_s.should == v_spec
 end
 
 Then /^the scoring scheme should be "(.*?)"$/ do |s_spec|
-  @reader.header.scoring.should == s_spec
+  @parser.header.scoring.should == s_spec
 end
 
 Then /^the alignment parameters should be "(.*?)"$/ do |a_spec|
-  @reader.header.align_params.should == a_spec
+  @parser.header.alignment_params.should == a_spec
 end
 
 Then /^an alignment block can be obtained$/ do
-  @reader.each_block do |block|
+  @parser.each_block do |block|
     @block = block unless @block
   end
   @block.should_not be_nil
