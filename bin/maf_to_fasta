@@ -1,0 +1,56 @@
+#!/usr/bin/env ruby
+
+require 'bio-maf'
+require 'bigbio'
+require 'optparse'
+require 'ostruct'
+
+options = OpenStruct.new
+options.parser = Bio::MAF::Parser
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: maf_to_fasta [options] <maf> <fasta>"
+  opts.separator ""
+  opts.separator "Options:"
+  opts.on("-p", "--profile PROF", "Profile with PerfTools") do |prof|
+    options.prof = prof
+  end
+  opts.on("--profile-gc", "Profile GC") do |prof|
+    options.profile_gc = true
+  end
+  opts.on("--parser PARSER", "parser") do |name|
+    options.parser = Bio::MAF.const_get(name)
+  end
+end.parse!(ARGV)
+
+src_path = ARGV.shift
+dst_path = ARGV.shift
+
+if options.prof
+  require 'perftools'
+  PerfTools::CpuProfiler.start(options.prof)
+end
+
+if options.profile_gc
+  GC::Profiler.enable
+end
+
+parser = options.parser.new(src_path)
+writer = FastaWriter.new(dst_path)
+
+parser.each_block do |block|
+  block.each_raw_seq do |seq|
+    seq.write_fasta(writer)
+  end
+end
+
+writer.close
+
+if options.profile_gc
+  $stderr.puts GC::Profiler.result
+  GC::Profiler.disable
+end
+
+if options.prof
+  PerfTools::CpuProfiler.stop
+end
