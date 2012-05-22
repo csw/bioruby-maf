@@ -25,26 +25,26 @@ module Bio
       it "provides arbitrary parameters"
     end
 
-    describe Parser do
-
-      describe "creation" do
+    shared_examples "parsers" do
+      
+       describe "creation" do
         it "opens a file specified as a String argument"
         it "takes an IO object as an open file"
-        it "raises an error when the filfe does not exist" do
+        it "raises an error when the file does not exist" do
           expect {
-            Parser.new("/doesnotexist")
+            described_class.new("/doesnotexist")
           }.to raise_error(Errno::ENOENT)
         end
         it "raises an error when the file is not in MAF format" do
           expect {
-            Parser.new(TestData + '../../Rakefile')
+            described_class.new(TestData + '../../Rakefile')
           }.to raise_error
         end
       end
 
       describe "#header" do
         it "parses the MAF header" do
-          p = Parser.new(TestData + 't1.maf')
+          p = described_class.new(TestData + 't1.maf')
           p.header.should_not be_nil
         end
       end
@@ -57,13 +57,23 @@ module Bio
 
       describe "#parse_block" do
         it "returns an alignment block" do
-          p = Parser.new(TestData + 't1.maf')
+          p = described_class.new(TestData + 't1.maf')
           b = p.parse_block()
           b.should_not be_nil
         end
         it "raises an exception for malformed data"
       end
 
+    end
+
+    describe Parser do
+      include_examples "parsers"
+    end
+
+    describe ChunkParser do
+      include_examples "parsers"
+
+      
     end
 
     describe LineReader do

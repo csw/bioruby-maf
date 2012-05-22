@@ -1,3 +1,5 @@
+require 'strscan'
+
 module Bio
   module MAF
 
@@ -39,7 +41,8 @@ module Bio
       def each_raw_seq
         sequences.each { |s| yield s }
       end
-    end
+
+   end
 
     class Sequence
       attr_reader :source, :start, :size, :strand, :src_size, :text
@@ -118,7 +121,7 @@ module Bio
       def parse_block
         skip_empty_lines
         a_line = r.next_line
-        raise ParseError, "expected 'a'' line" unless a_line =~ /^a/
+        raise ParseError, "expected 'a' line" unless a_line =~ /^a/
         vars = parse_maf_vars(a_line)
         seqs = []
         while true do
@@ -162,6 +165,162 @@ module Bio
 
       def each_block
         until f.eof?
+          yield parse_block()
+        end
+      end
+
+    end
+
+    class ChunkParser
+
+      ## Parses alignment blocks by reading a chunk of the file at a time.
+
+     attr_reader :header, :file_spec, :f, :s, :at_end
+
+      CHUNK_SIZE = 8 * 1024 * 1024
+
+      def initialize(file_spec)
+        @file_spec = file_spec
+        @f = File.open(file_spec)
+        @s = StringScanner.new(read_chunk())
+        @at_end = false
+        _parse_header()
+      end
+
+      BLOCK_START = /^(?=a)/
+
+      def read_chunk
+        f.read(CHUNK_SIZE)
+      end
+
+      def _parse_header
+        parse_error("not a MAF file") unless s.scan(/##maf\s*/)
+        vars = parse_maf_vars()
+        align_params = nil
+        while s.scan(/^#\s*(.+?)\n/)
+          if align_params == nil
+            align_params = s[1]
+          else
+            align_params << ' ' << s[1]
+          end
+        end
+        @header = Header.new(vars, align_params)
+        s.skip_until BLOCK_START || parse_error("Cannot find block start!")
+      end
+
+      ## Invariants:
+      ##
+      ## cur_chunk: current chunk
+      ## s: StringScanner, positioned at start of the block to parse
+      ##   (start_pos = s.pos)
+      ##
+      ## On finding the start of a block:
+      ## Look for the start of the next block.
+      ##   If not found, see whether we are at EOF.
+      ##     If at EOF: last block.
+      ##     If not:
+      ##       Read the next chunk
+      ##       Find the start of the next block in that chunk
+      ##       Concatenate the two block fragments
+      ##       Parse the resulting block
+      ##       Promote the next scanner, positioned
+
+      def peek_for_next_block
+        start_pos = s.pos
+        s.pos += 1
+        next_block_offset = s.search_full(BLOCK_START, false, false)
+        next_block_pos = s.pos + next_block_offset if next_block_offset
+        s.pos = start_pos
+        return next_block_pos
+      end
+
+      def parse_block
+        return nil if at_end
+        block = nil
+        next_block_pos = peek_for_next_block()
+        if next_block_pos
+          # in non-trailing block
+          block = parse_block_data
+          s.pos = next_block_pos
+        else
+          # in trailing block fragment
+          if f.eof?
+            # last block, parse it as is
+            block = parse_block_data
+            @at_end = true
+          else
+            next_chunk = read_chunk
+            next_scanner = StringScanner.new(next_chunk)
+            leading_frag = next_scanner.scan_until(BLOCK_START)
+            joined_block = s.rest + leading_frag
+            @s = StringScanner.new(joined_block)
+            block = parse_block_data
+            @s = next_scanner
+          end
+        end
+        return block
+      end
+
+      def rest_of_line
+        s.scan_until(/\n|$/) || parse_error("Cannot scan to newline")
+      end
+
+      def parse_error(msg)
+        s_start = [s.pos - 10, 0].max
+        s_end = [s.pos + 10, s.string.length].min
+        left = s.string[s_start..s.pos]
+        right = s.string[s.pos..s_end]
+
+        raise ParseError, "#{msg} at: '>><<#{right}'"
+      end
+
+      def parse_block_data
+        s.scan(/^a\s*/) || parse_error("bad a line")
+        block_vars = parse_maf_vars()
+        seqs = []
+        while s.scan(/([sieqa])\s+/)
+          case s[1]
+          when 's'
+            seqs << parse_seq
+          when 'i', 'e', 'q'
+            # ignore
+          when 'a'
+            parse_error "unexpectedly reached next block"
+          end
+        end
+        return Block.new(block_vars, seqs)
+      end
+
+      def parse_maf_vars
+        vars = {}
+        while s.scan(/(\w+)=(\S*)\s+/) do
+          vars[s[1].to_sym] = s[2]
+        end
+        vars
+      end
+
+      def parse_seq
+        src, start, size, strand, src_size, text = rest_of_line.split
+        # TODO: Hash
+        strand_sym =
+          case strand
+          when '+'
+            :+
+          when '-'
+            :-
+          else
+            parse_error "invalid strand #{strand}"
+          end
+        return Sequence.new(src,
+                            start.to_i,
+                            size.to_i,
+                            strand_sym,
+                            src_size.to_i,
+                            text)
+      end
+
+      def each_block
+        until at_end
           yield parse_block()
         end
       end
