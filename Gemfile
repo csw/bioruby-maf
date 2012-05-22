@@ -16,3 +16,7 @@ group :development do
   gem "cucumber", ">= 0"
   gem "rspec", "~> 2.10.0"
 end
+
+group :test do
+  gem "rake", ">= 0.9"
+end
