@@ -218,15 +218,9 @@ module Bio
         s.skip_until BLOCK_START || parse_error("Cannot find block start!")
       end
 
-      ## Invariants:
-      ##
-      ## cur_chunk: current chunk
-      ## s: StringScanner, positioned at start of the block to parse
-      ##   (start_pos = s.pos)
-      ##
       ## On finding the start of a block:
-      ## Look for the start of the next block.
-      ##   If not found, see whether we are at EOF.
+      ## See whether we are at the last block in the chunk.
+      ##   If at the last block:
       ##     If at EOF: last block.
       ##     If not:
       ##       Read the next chunk
@@ -235,24 +229,13 @@ module Bio
       ##       Parse the resulting block
       ##       Promote the next scanner, positioned
 
-      def peek_for_next_block
-        start_pos = s.pos
-        s.pos += 1
-        next_block_offset = s.search_full(BLOCK_START, false, false)
-        next_block_pos = s.pos + next_block_offset if next_block_offset
-        s.pos = start_pos
-        return next_block_pos
-      end
-
       def parse_block
         return nil if at_end
         block = nil
-        #next_block_pos = peek_for_next_block()
         s.skip_until BLOCK_START
         if s.pos != last_block_pos
           # in non-trailing block
           block = parse_block_data
-          #s.pos = next_block_pos
         else
           # in trailing block fragment
           if f.eof?
@@ -326,24 +309,6 @@ module Bio
             next
           else
             parse_error "unexpected line: '#{line}'"
-          end
-        end
-        return Block.new(block_vars, seqs)
-      end
-
-      def parse_block_data_old
-        s.scan(/^a\s*/) || parse_error("bad a line")
-        block_vars = parse_maf_vars()
-        seqs = []
-        while s.scan(/^([sieqa])\s+/)
-          case s[1]
-          when 's'
-            seqs << parse_seq
-          when 'i', 'e', 'q'
-            # ignore
-            s.skip_until(EOL_OR_EOF)
-          when 'a'
-            parse_error "unexpectedly reached next block"
           end
         end
         return Block.new(block_vars, seqs)
