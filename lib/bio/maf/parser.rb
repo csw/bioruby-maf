@@ -329,22 +329,17 @@ module Bio
         vars
       end
 
+      STRAND_SYM = {
+        '+' => :+,
+        '-' => :-
+      }
+
       def parse_seq
         src, start, size, strand, src_size, text = rest_of_line.split
-        # TODO: Hash
-        strand_sym =
-          case strand
-          when '+'
-            :+
-          when '-'
-            :-
-          else
-            parse_error "invalid strand #{strand}"
-          end
         return Sequence.new(src,
                             start.to_i,
                             size.to_i,
-                            strand_sym,
+                            STRAND_SYM.fetch(strand),
                             src_size.to_i,
                             text)
       end
