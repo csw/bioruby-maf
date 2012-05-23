@@ -8,15 +8,27 @@ require 'ostruct'
 options = OpenStruct.new
 options.parser = Bio::MAF::Parser
 
+PRINTERS = {
+  'flat' => :FlatPrinter,
+  'stack' => :CallStackPrinter
+}
+
 OptionParser.new do |opts|
-  opts.banner = "Usage: maf_to_fasta [options] <maf> <fasta>"
+  opts.banner = "Usage: maf_count [options] <maf>"
   opts.separator ""
   opts.separator "Options:"
   opts.on("-p", "--profile PROF", "Profile with PerfTools") do |prof|
     options.prof = prof
   end
-  opts.on("--ruby-prof PATH", "Profile with ruby-prof") do |path|
-    options.ruby_prof = path
+  opts.on("--ruby-prof PATH", "Profile with ruby-prof") do |pspec|
+    if pspec =~ /(\w+):(.+)/
+      require 'ruby-prof'
+      options.ruby_prof_printer = RubyProf.const_get(PRINTERS.fetch($1))
+      options.ruby_prof_path = $2
+    else
+      options.ruby_prof_printer = :FlatPrinter
+      options.ruby_prof_path = pspec
+    end
   end
   opts.on("--profile-gc", "Profile GC") do |prof|
     options.profile_gc = true
@@ -27,12 +39,11 @@ OptionParser.new do |opts|
 end.parse!(ARGV)
 
 src_path = ARGV.shift
-dst_path = ARGV.shift
 
 if options.prof
   require 'perftools'
   PerfTools::CpuProfiler.start(options.prof)
-elsif options.ruby_prof
+elsif options.ruby_prof_path
   require 'ruby-prof'
   RubyProf.start
 end
@@ -42,15 +53,12 @@ if options.profile_gc
 end
 
 parser = options.parser.new(src_path)
-writer = FastaWriter.new(dst_path)
 
+n = 0
 parser.each_block do |block|
-  block.each_raw_seq do |seq|
-    seq.write_fasta(writer)
-  end
+  n += 1
 end
-
-writer.close
+puts "Parsed #{n} MAF alignment blocks."
 
 if options.profile_gc
   $stderr.puts GC::Profiler.result
@@ -59,10 +67,10 @@ end
 
 if options.prof
   PerfTools::CpuProfiler.stop
-elsif options.ruby_prof
+elsif options.ruby_prof_path
   res = RubyProf.stop
-  printer = RubyProf::FlatPrinter.new(res)
-  File.open(options.ruby_prof, 'w') do |f|
+  printer = options.ruby_prof_printer.new(res)
+  File.open(options.ruby_prof_path, 'w') do |f|
     printer.print(f)
   end
 end
