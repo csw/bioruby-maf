@@ -107,18 +107,19 @@ module Bio
       it "yields the correct number of blocks over chunk boundaries" do
         with_const_value(Bio::MAF::ChunkParser, :CHUNK_SIZE, 2048) do
           p = ChunkParser.new(TestData + 'mm8_chr7_tiny.maf')
-          n = 0
+          ref_scores = %w(10542.0 -33148.0 87527.0 185399.0 30120.0 58255.0 2607.0 8132.0)
+          scores = []
           p.each_block do |block|
-            n += 1
+            scores << block.vars[:score]
           end
-          n.should == 8
+          scores.should == ref_scores
         end
       end
 
       it "sets last_block_pos correctly" do
         with_const_value(Bio::MAF::ChunkParser, :CHUNK_SIZE, 2048) do
           p = ChunkParser.new(TestData + 'mm8_chr7_tiny.maf')
-          p.parse_block
+          #p.parse_block
           p.last_block_pos.should == 1103
         end
       end
