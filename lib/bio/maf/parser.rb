@@ -307,6 +307,34 @@ module Bio
         s.scan(/^a\s*/) || parse_error("bad a line")
         block_vars = parse_maf_vars()
         seqs = []
+        payload = s.scan_until(/^(?=a)/)
+        unless payload
+          payload = s.rest
+          s.pos = s.string.size # jump to EOS
+        end
+        payload.split("\n").each do |line|
+          case line[0]
+          when 's'
+            _, src, start, size, strand, src_size, text = line.split
+            seqs << Sequence.new(src,
+                                 start.to_i,
+                                 size.to_i,
+                                 STRAND_SYM.fetch(strand),
+                                 src_size.to_i,
+                                 text)
+          when 'i', 'e', 'q', '#', nil
+            next
+          else
+            parse_error "unexpected line: '#{line}'"
+          end
+        end
+        return Block.new(block_vars, seqs)
+      end
+
+      def parse_block_data_old
+        s.scan(/^a\s*/) || parse_error("bad a line")
+        block_vars = parse_maf_vars()
+        seqs = []
         while s.scan(/^([sieqa])\s+/)
           case s[1]
           when 's'
