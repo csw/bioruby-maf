@@ -35,7 +35,7 @@ module Bio
       end
 
       def raw_seq(i)
-        sequences[i]
+        sequences.fetch(i)
       end
 
       def each_raw_seq
