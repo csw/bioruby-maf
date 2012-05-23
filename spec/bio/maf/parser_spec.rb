@@ -64,10 +64,30 @@ module Bio
         it "raises an exception for malformed data"
       end
 
+      it "gives the correct number of sequences" do
+        p = described_class.new(TestData + 'mm8_chr7_tiny.maf')
+        block = p.parse_block
+        block.sequences.size.should == 10
+      end
+
       it "handles absent alignment parameters" do
         p = described_class.new(TestData + 'chrY-1block.maf')
         b = p.parse_block()
         b.should_not be_nil
+      end
+
+      it "parses larger files" do
+        p = described_class.new(TestData + 'mm8_chr7_tiny.maf')
+        expect {
+          p.each_block { |block| block }
+        }.not_to raise_error
+      end
+
+      it "handles trailing comments" do
+        p = described_class.new(TestData + 't1a.maf')
+        expect {
+          p.each_block { |block| block }
+        }.not_to raise_error
       end
 
       it "raises an exception on inconsistent sequence length" do
@@ -97,11 +117,6 @@ module Bio
       it "sets last block position correctly" do
         p = ChunkParser.new(TestData + 'mm8_subset_a.maf')
         p.last_block_pos.should == 1103
-      end
-
-      it "parses larger files" do
-        p = ChunkParser.new(TestData + 'mm8_chr7_tiny.maf')
-        p.each_block { |block| block }
       end
 
       it "yields the correct number of blocks over chunk boundaries" do
