@@ -193,7 +193,7 @@ module Bio
 
       BLOCK_START = /^(?=a)/
       BLOCK_START_OR_EOS = /(?:^(?=a))|\z/
-      EOL_OR_EOF = /\n|$/
+      EOL_OR_EOF = /\n|\z/
 
       def read_chunk
         f.read(CHUNK_SIZE)
