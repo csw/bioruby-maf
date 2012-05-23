@@ -99,11 +99,14 @@ module Bio
             params << $1
           when /^#/, /^$/
             break
-          end
-          if f =~ /#\s*.*/
+          when /^a/
             r.rewind
             break
           end
+          #if f =~ /#\s*.*/
+          #  r.rewind
+          #  break
+          #end
         end
         @header = Header.new(vars, params)
       end
@@ -175,7 +178,7 @@ module Bio
 
       ## Parses alignment blocks by reading a chunk of the file at a time.
 
-     attr_reader :header, :file_spec, :f, :s, :at_end
+     attr_reader :header, :file_spec, :f, :s, :at_end, :last_block_pos
 
       CHUNK_SIZE = 8 * 1024 * 1024
 
@@ -183,14 +186,21 @@ module Bio
         @file_spec = file_spec
         @f = File.open(file_spec)
         @s = StringScanner.new(read_chunk())
+        set_last_block_pos!
         @at_end = false
         _parse_header()
       end
 
       BLOCK_START = /^(?=a)/
+      BLOCK_START_OR_EOS = /(?:^(?=a))|\z/
+      EOL_OR_EOF = /\n|$/
 
       def read_chunk
         f.read(CHUNK_SIZE)
+      end
+
+      def set_last_block_pos!
+        @last_block_pos = s.string.rindex(BLOCK_START)
       end
 
       def _parse_header
@@ -237,11 +247,12 @@ module Bio
       def parse_block
         return nil if at_end
         block = nil
-        next_block_pos = peek_for_next_block()
-        if next_block_pos
+        #next_block_pos = peek_for_next_block()
+        s.skip_until BLOCK_START
+        if s.pos != last_block_pos
           # in non-trailing block
           block = parse_block_data
-          s.pos = next_block_pos
+          #s.pos = next_block_pos
         else
           # in trailing block fragment
           if f.eof?
@@ -251,39 +262,53 @@ module Bio
           else
             next_chunk = read_chunk
             next_scanner = StringScanner.new(next_chunk)
-            leading_frag = next_scanner.scan_until(BLOCK_START)
+            leading_frag = next_scanner.scan_until(BLOCK_START_OR_EOS)
+            unless leading_frag
+              parse_error("no leading fragment match!")
+            end
             joined_block = s.rest + leading_frag
             @s = StringScanner.new(joined_block)
             block = parse_block_data
             @s = next_scanner
+            if s.eos?
+              @at_end = true
+            else
+              set_last_block_pos!
+            end
           end
         end
         return block
       end
 
       def rest_of_line
-        s.scan_until(/\n|$/) || parse_error("Cannot scan to newline")
+        s.scan_until(EOL_OR_EOF) || parse_error("Cannot scan to newline")
       end
 
       def parse_error(msg)
         s_start = [s.pos - 10, 0].max
         s_end = [s.pos + 10, s.string.length].min
-        left = s.string[s_start..s.pos]
+        if s_start > 0
+          left = s.string[s_start..(s.pos - 1)]
+        else
+          left = ''
+        end
         right = s.string[s.pos..s_end]
+        extra = "pos #{s.pos}, last #{last_block_pos}"
 
-        raise ParseError, "#{msg} at: '>><<#{right}'"
+        raise ParseError, "#{msg} at: '#{left}>><<#{right}' (#{extra})"
       end
 
       def parse_block_data
         s.scan(/^a\s*/) || parse_error("bad a line")
         block_vars = parse_maf_vars()
         seqs = []
-        while s.scan(/([sieqa])\s+/)
+        while s.scan(/^([sieqa])\s+/)
           case s[1]
           when 's'
             seqs << parse_seq
           when 'i', 'e', 'q'
             # ignore
+            s.skip_until(EOL_OR_EOF)
           when 'a'
             parse_error "unexpectedly reached next block"
           end

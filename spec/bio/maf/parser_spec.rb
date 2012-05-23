@@ -27,7 +27,7 @@ module Bio
 
     shared_examples "parsers" do
       
-       describe "creation" do
+      describe "creation" do
         it "opens a file specified as a String argument"
         it "takes an IO object as an open file"
         it "raises an error when the file does not exist" do
@@ -64,6 +64,17 @@ module Bio
         it "raises an exception for malformed data"
       end
 
+      it "handles absent alignment parameters" do
+        p = described_class.new(TestData + 'chrY-1block.maf')
+        b = p.parse_block()
+        b.should_not be_nil
+      end
+
+      it "raises an exception on inconsistent sequence length" do
+        pending
+        ## can't just do string length, have to skip over hyphens
+      end
+
     end
 
     describe Parser do
@@ -73,7 +84,54 @@ module Bio
     describe ChunkParser do
       include_examples "parsers"
 
-      
+      def with_const_value(mod, sym, value)
+        old = mod.const_get(sym)
+        mod.const_set(sym, value)
+        begin
+          yield
+        ensure
+          mod.const_set(sym, old)
+        end
+      end
+
+      it "sets last block position correctly" do
+        p = ChunkParser.new(TestData + 'mm8_subset_a.maf')
+        p.last_block_pos.should == 1103
+      end
+
+      it "parses larger files" do
+        p = ChunkParser.new(TestData + 'mm8_chr7_tiny.maf')
+        p.each_block { |block| block }
+      end
+
+      it "yields the correct number of blocks over chunk boundaries" do
+        with_const_value(Bio::MAF::ChunkParser, :CHUNK_SIZE, 2048) do
+          p = ChunkParser.new(TestData + 'mm8_chr7_tiny.maf')
+          n = 0
+          p.each_block do |block|
+            n += 1
+          end
+          n.should == 8
+        end
+      end
+
+      it "sets last_block_pos correctly" do
+        with_const_value(Bio::MAF::ChunkParser, :CHUNK_SIZE, 2048) do
+          p = ChunkParser.new(TestData + 'mm8_chr7_tiny.maf')
+          p.parse_block
+          p.last_block_pos.should == 1103
+        end
+      end
+
+      it "handles sequence lines over chunk boundaries" do
+        with_const_value(Bio::MAF::ChunkParser, :CHUNK_SIZE, 2048) do
+          p = ChunkParser.new(TestData + 'mm8_chr7_tiny.maf')
+          p.parse_block
+          block = p.parse_block
+          break_seq = block.raw_seq(4)
+          break_seq.text.size.should == 156
+        end
+      end
     end
 
     describe LineReader do
