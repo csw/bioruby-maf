@@ -262,7 +262,12 @@ module Bio
           else
             next_chunk = read_chunk
             next_scanner = StringScanner.new(next_chunk)
-            leading_frag = next_scanner.scan_until(BLOCK_START_OR_EOS)
+            if s.string[s.string.size - 1] == "\n"
+              pat = BLOCK_START_OR_EOS
+            else
+              pat = /(?:\n(?=a))|\z/
+            end
+            leading_frag = next_scanner.scan_until(pat)
             unless leading_frag
               parse_error("no leading fragment match!")
             end
