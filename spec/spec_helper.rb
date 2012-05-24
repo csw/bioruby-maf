@@ -1,3 +1,5 @@
+require 'simplecov'
+
 require 'rspec'
 require 'pathname'
 

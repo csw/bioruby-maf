@@ -1,3 +1,5 @@
+require 'simplecov'
+
 require 'pathname'
 require 'tempfile'
 

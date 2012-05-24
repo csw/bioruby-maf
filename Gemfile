@@ -15,6 +15,9 @@ group :development do
   gem "rdoc", "~> 3.12"
   gem "cucumber", ">= 0"
   gem "rspec", "~> 2.10.0"
+  gem "simplecov", "~> 0.6.4"
+  gem "yard", "~> 0.8.1"
+  gem "redcarpet", "~> 2.1.1"
 end
 
 group :test do
