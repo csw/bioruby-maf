@@ -1,9 +1,3 @@
-Given /^in a temp file$/ do
-  @src_f = Tempfile.new(['rspec', '.maf'])
-  @src_f.write(@src)
-  @src_f.close
-end
-
 When /^I open it with a MAF reader$/ do
   @parser = Bio::MAF::Parser.new(@src_f)
 end

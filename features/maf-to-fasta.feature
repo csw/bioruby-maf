@@ -28,7 +28,6 @@ Feature: Convert MAF file to FASTA
     s horse_unc 4555 6 -  5099 ACA--ATT
     s fugu_unc  4000 4 +  4038 AC----TT
     """
-    And in a temp file
     When I select FASTA output
     And I open it with a MAF reader
     And process the file

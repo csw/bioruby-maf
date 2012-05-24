@@ -6,7 +6,9 @@ Given /^a MAF source file "(.*?)"$/ do |src|
 end
 
 Given /^MAF data:$/ do |string|
-  @src = string
+  @src_f = Tempfile.new(['rspec', '.maf'])
+  @src_f.write(string)
+  @src_f.close
 end
 
 When /^I select FASTA output$/ do

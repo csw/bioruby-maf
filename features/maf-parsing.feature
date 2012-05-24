@@ -13,7 +13,6 @@ Feature: Parse MAF files
     s horse_hoxa 120  9 -  98892 ACAATTGCT
     s fugu_hoxa   88  7  + 90788 ACA--TGCT
     """
-    And in a temp file
     When I open it with a MAF reader
     Then the MAF version should be "1"
     And the scoring scheme should be "humor.v4"
@@ -32,7 +31,6 @@ Feature: Parse MAF files
     s horse_hoxa 120  9 -  98892 ACAATTGCT
     s fugu_hoxa   88  7  + 90788 ACA--TGCT
     """
-    And in a temp file
     When I open it with a MAF reader
     Then an alignment block can be obtained
     And the alignment block has 3 sequences
