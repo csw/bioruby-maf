@@ -37,8 +37,8 @@ Feature: Parse MAF files
     And sequence 0 has source "human_hoxa"
     And sequence 0 has start 100
     And sequence 0 has size 8
-    And sequence 0 has strand "+"
+    And sequence 0 has strand :+
     And sequence 0 has source size 100257
     And sequence 0 has text "ACA-TTACT"
-    And sequence 1 has strand "-"
+    And sequence 1 has strand :-
 

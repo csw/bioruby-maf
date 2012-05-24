@@ -46,6 +46,7 @@ module Bio
 
     class Sequence
       attr_reader :source, :start, :size, :strand, :src_size, :text
+      alias_method :source_size, :src_size
 
       def initialize(*args)
         @source, @start, @size, @strand, @src_size, @text = args

@@ -23,26 +23,18 @@ Then /^the alignment block has (\d+) sequences$/ do |n_seq|
   @block.size.should == n_seq.to_i
 end
 
-Then /^sequence (\d+) has source "(.*?)"$/ do |i, src|
-  @block.raw_seq(i.to_i).source.should == src
+Then /^sequence (\d+) has (\w.*?) "(.*?)"$/ do |i, method, str|
+  method_sym = method.gsub(/ /, '_').to_sym
+  @block.raw_seq(i.to_i).send(method_sym).should == str
 end
 
-Then /^sequence (\d+) has start (\d+)$/ do |i, start|
-  @block.raw_seq(i.to_i).start.should == start.to_i
+Then /^sequence (\d+) has (\w.*?) (\d+)\s*$/ do |i, method, num|
+  method_sym = method.gsub(/ /, '_').to_sym
+  @block.raw_seq(i.to_i).send(method_sym).should == num.to_i
 end
 
-Then /^sequence (\d+) has size (\d+)$/ do |i, size|
-  @block.raw_seq(i.to_i).size.should == size.to_i
-end
-
-Then /^sequence (\d+) has strand "(.*?)"$/ do |i, strand|
-  @block.raw_seq(i.to_i).strand.should == strand.to_sym
-end
-
-Then /^sequence (\d+) has source size (\d+)$/ do |i, src_size|
-  @block.raw_seq(i.to_i).src_size.should == src_size.to_i
-end
-
-Then /^sequence (\d+) has text "(.*?)"$/ do |i, text|
-  @block.raw_seq(i.to_i).text.should == text
+Then /^sequence (\d+) has (\w.*?) :(\S+)\s*$/ do |i, method, sym_s|
+  method_sym = method.gsub(/ /, '_').to_sym
+  value_sym = sym_s.to_sym
+  @block.raw_seq(i.to_i).send(method_sym).should == value_sym
 end
