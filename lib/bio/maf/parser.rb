@@ -151,10 +151,6 @@ module Bio
         return block
       end
 
-      def rest_of_line
-        s.scan_until(EOL_OR_EOF) || parse_error("Cannot scan to newline")
-      end
-
       def parse_error(msg)
         s_start = [s.pos - 10, 0].max
         s_end = [s.pos + 10, s.string.length].min
@@ -209,16 +205,6 @@ module Bio
         '+' => :+,
         '-' => :-
       }
-
-      def parse_seq
-        src, start, size, strand, src_size, text = rest_of_line.split
-        return Sequence.new(src,
-                            start.to_i,
-                            size.to_i,
-                            STRAND_SYM.fetch(strand),
-                            src_size.to_i,
-                            text)
-      end
 
       def each_block
         until at_end
