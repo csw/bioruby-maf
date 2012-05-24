@@ -12,7 +12,11 @@ Ultimately it will provide indexed and sequential access to MAF data,
 as well as performing various manipulations on it and writing modified
 MAF files. So far, it only supports simple sequential parsing.
 
-For more information, see the [project wiki](https://github.com/csw/bioruby-maf/wiki).
+For more information, see the
+[project wiki](https://github.com/csw/bioruby-maf/wiki).
+
+Developer documentation generated with YARD is available at
+[rubydoc.info](http://rubydoc.info/github/csw/bioruby-maf/).
 
 This is being developed by Clayton Wheeler as
 [part of](http://www.bioruby.org/wiki/Google_Summer_of_Code) the
@@ -68,7 +72,7 @@ If you use this software, please cite one of
 
 ## Biogems.info
 
-This Biogem will published at [#bio-maf](http://biogems.info/index.html)
+This Biogem will be published at [#bio-maf](http://biogems.info/index.html)
 
 ## Copyright
 
