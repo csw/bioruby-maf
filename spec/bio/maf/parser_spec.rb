@@ -146,43 +146,6 @@ module Bio
       end
     end
 
-    describe LineReader do
-      describe "creation" do
-        it "takes a file-like object as argument" do
-          expect {
-            @f = File.open(TestData + 't1.maf', 'r')
-            @reader = LineReader.new(@f)
-            @f.close
-          }.not_to raise_error
-        end
-      end
-
-      context "with a file open" do
-        before(:each) do
-          @f = File.open(TestData + 't1.maf', 'r')
-          @reader = LineReader.new(@f)
-        end
-
-        after(:each) do
-          @f.close
-        end
-
-        describe "#next_line" do
-          it "returns the next line of the file" do
-            @reader.next_line.should =~ /^##maf/
-          end
-        end
-
-        describe "#rewind" do
-          it "causes #next_line to return the same line again" do
-            l1 = @reader.next_line
-            @reader.rewind
-            @reader.next_line.should == l1
-          end
-        end
-      end
-    end
-    
   end
   
 end

@@ -214,27 +214,6 @@ module Bio
 
     end
 
-    class LineReader
-      attr_reader :f
-
-      def initialize(f)
-        @f = f
-      end
-
-      def next_line
-        if @again
-          @again = false
-          return @last
-        else
-          return @last = @f.readline
-        end
-      end
-
-      def rewind
-        @again = true
-      end
-    end
-    
   end
   
 end
