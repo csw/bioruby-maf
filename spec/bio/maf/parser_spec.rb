@@ -99,10 +99,6 @@ module Bio
 
     describe Parser do
       include_examples "parsers"
-    end
-
-    describe ChunkParser do
-      include_examples "parsers"
 
       def with_const_value(mod, sym, value)
         old = mod.const_get(sym)
@@ -115,13 +111,13 @@ module Bio
       end
 
       it "sets last block position correctly" do
-        p = ChunkParser.new(TestData + 'mm8_subset_a.maf')
+        p = Parser.new(TestData + 'mm8_subset_a.maf')
         p.last_block_pos.should == 1103
       end
 
       it "yields the correct number of blocks over chunk boundaries" do
-        with_const_value(Bio::MAF::ChunkParser, :CHUNK_SIZE, 2048) do
-          p = ChunkParser.new(TestData + 'mm8_chr7_tiny.maf')
+        with_const_value(Bio::MAF::Parser, :CHUNK_SIZE, 2048) do
+          p = Parser.new(TestData + 'mm8_chr7_tiny.maf')
           ref_scores = %w(10542.0 -33148.0 87527.0 185399.0 30120.0 58255.0 2607.0 8132.0)
           scores = []
           p.each_block do |block|
@@ -132,16 +128,16 @@ module Bio
       end
 
       it "sets last_block_pos correctly" do
-        with_const_value(Bio::MAF::ChunkParser, :CHUNK_SIZE, 2048) do
-          p = ChunkParser.new(TestData + 'mm8_chr7_tiny.maf')
+        with_const_value(Bio::MAF::Parser, :CHUNK_SIZE, 2048) do
+          p = Parser.new(TestData + 'mm8_chr7_tiny.maf')
           #p.parse_block
           p.last_block_pos.should == 1103
         end
       end
 
       it "handles sequence lines over chunk boundaries" do
-        with_const_value(Bio::MAF::ChunkParser, :CHUNK_SIZE, 2048) do
-          p = ChunkParser.new(TestData + 'mm8_chr7_tiny.maf')
+        with_const_value(Bio::MAF::Parser, :CHUNK_SIZE, 2048) do
+          p = Parser.new(TestData + 'mm8_chr7_tiny.maf')
           p.parse_block
           block = p.parse_block
           break_seq = block.raw_seq(4)

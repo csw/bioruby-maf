@@ -8,10 +8,6 @@ When /^I open it with a MAF reader$/ do
   @parser = Bio::MAF::Parser.new(@src_f)
 end
 
-When /^I open it with a chunked MAF reader$/ do
-  @parser = Bio::MAF::ChunkParser.new(@src_f)
-end
-
 Then /^the MAF version should be "(.*?)"$/ do |v_spec|
   @parser.header.version.to_s.should == v_spec
 end

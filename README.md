@@ -35,7 +35,7 @@ Bioinformatics Foundation. The development
 ```ruby
     require 'bio-maf'
 
-    p = Bio::MAF::ChunkParser.new(path)
+    p = Bio::MAF::Parser.new(path)
     header = p.header
     p.each_block do |block|
       block.sequences.each do |seq|
