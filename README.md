@@ -45,6 +45,10 @@ The API doc is online. For more code examples see the
 and
 [Cucumber](https://github.com/csw/bioruby-maf/tree/master/features)
 test files in the source tree.
+
+Also, the scripts in the
+[bin](https://github.com/csw/bioruby-maf/tree/master/bin) directory
+provide good worked examples of how to use the existing parsing API.
         
 ## Project home page
 
