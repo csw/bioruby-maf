@@ -42,7 +42,7 @@ module Bio
         sequences.each { |s| yield s }
       end
 
-   end
+    end
 
     class Sequence
       attr_reader :source, :start, :size, :strand, :src_size, :text
@@ -61,7 +61,7 @@ module Bio
 
       ## Parses alignment blocks by reading a chunk of the file at a time.
 
-     attr_reader :header, :file_spec, :f, :s, :at_end, :last_block_pos
+      attr_reader :header, :file_spec, :f, :s, :at_end, :last_block_pos
 
       CHUNK_SIZE = 8 * 1024 * 1024
 
