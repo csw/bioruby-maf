@@ -1,7 +1,7 @@
 unless ENV.has_key? 'TRAVIS'
   begin
     require 'simplecov'
-  rescue
+  rescue LoadError
     $stderr.puts "WARNING: could not require 'simplecov': $!"
   end
 end
