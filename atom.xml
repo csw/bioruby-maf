@@ -4,7 +4,7 @@
   <title><![CDATA[BioRuby MAF blog]]></title>
   <link href="http://csw.github.com/bioruby-maf/atom.xml" rel="self"/>
   <link href="http://csw.github.com/bioruby-maf/"/>
-  <updated>2012-05-21T13:57:32-04:00</updated>
+  <updated>2012-05-25T16:34:32-04:00</updated>
   <id>http://csw.github.com/bioruby-maf/</id>
   <author>
     <name><![CDATA[Clayton Wheeler]]></name>
@@ -12,6 +12,108 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[First milestone]]></title>
+    <link href="http://csw.github.com/bioruby-maf/blog/2012/05/25/first_milestone/"/>
+    <updated>2012-05-25T14:13:00-04:00</updated>
+    <id>http://csw.github.com/bioruby-maf/blog/2012/05/25/first_milestone</id>
+    <content type="html"><![CDATA[<p>It&#8217;s the end of my first week of actual development work, and I&#8217;m
+happy with my progress. My <a href="https://github.com/csw/bioruby-maf/issues?milestone=1&amp;state=closed">first milestone</a>, for batch MAF
+conversion to <a href="http://en.wikipedia.org/wiki/FASTA_format">FASTA</a>, is complete. I started with a simple
+line-based parser, and then spent some time developing a faster one;
+my MAF parser now appears to be quite competitive in performance. I
+can now convert simple MAF files to FASTA with output matching that
+from the <a href="http://galaxy.psu.edu/">Galaxy</a> tools. And I&#8217;m fairly confident in its
+correctness, with RSpec <a href="https://github.com/csw/bioruby-maf/blob/master/spec/bio/maf/parser_spec.rb">unit tests</a> and Cucumber <a href="https://github.com/csw/bioruby-maf/blob/master/features/maf-parsing.feature">features</a>
+specifying its behavior relatively completely.</p>
+
+<h2>Parser development</h2>
+
+<p>My initial approach was to simply process the file line-by-line,
+calling <a href="http://www.ruby-doc.org/core-1.9.3/IO.html#method-i-readline">IO#readline</a> each time. This turned out to be a little more
+cumbersome than I expected. Also, there was a <a href="http://lists.open-bio.org/pipermail/biopython-dev/2012-April/009561.html">discussion</a> on the
+Biopython list of the usefulness of <a href="http://blastedbio.blogspot.com/2011/11/bgzf-blocked-bigger-better-gzip.html">BGZF</a> blocked compression for
+MAF files, which would not fit well with such a linear line-oriented
+approach. Inspired by Dmitry Vyukov&#8217;s <a href="http://www.1024cores.net/home/scalable-architecture/wide-finder-2">Wide Finder 2 entry</a>, I wrote
+a <a href="https://github.com/csw/bioruby-maf/blob/d424245c047e3939d1e42b97c002c02fc8b578ac/lib/bio/maf/parser.rb#L61">new parser</a> which reads the file in 8 MB chunks. It immediately
+locates the start of the last MAF alignment block in that chunk, and
+then proceeds to scan through the chunk, parsing an alignment block at
+a time, until the last block is reached. When it reaches the last
+block, it <a href="https://github.com/csw/bioruby-maf/blob/d424245c047e3939d1e42b97c002c02fc8b578ac/lib/bio/maf/parser.rb#L130">joins the block fragments</a> at the end of one
+chunk and the beginning of the next chunk.</p>
+
+<p>For separating the alignment blocks within each chunk, using a
+StringScanner and regexes worked well, but for parsing the individual
+alignment blocks, using String#split to split the block into lines,
+dispatching on the first character with a case statement and plain
+string comparisons, and splitting lines into fields turned out to
+perform substantially better. I suspect the overhead of setting up a
+regex matching operation is the reason for this; profiling indicated
+that it was spending considerable time in regex operations, at any rate.</p>
+
+<p>After this optimization, the chunked parser was able to parse a 315
+MB file and count its MAF blocks in 10.1 s, compared to 16.0 s for the
+earlier line-based parser and 22.7 s for the parser from Galaxy&#8217;s
+bx-python library. This seems like very respectable performance.</p>
+
+<p>Also, the upcoming JRuby 1.7 on Java 7 appears to have excellent
+performance with the chunked parser, perhaps due to the new
+<a href="http://blog.headius.com/2011/08/jruby-and-java-7-what-to-expect.html">invokedynamic support</a>. After warming up the JVM, it averaged 16
+&mu;s per alignment block parsed, compared to 25 &mu;s for Ruby
+1.9.3. See the <a href="https://github.com/csw/bioruby-maf/wiki/Performance">performance page</a> on the project wiki for details.</p>
+
+<h2>Behavior-Driven Development</h2>
+
+<p>At the beginning of this week, I was not at all clear on when it would
+make sense to use Cucumber and when to use RSpec. After writing a
+<a href="https://github.com/csw/bioruby-maf/blob/d77ef2e133edf449a4ac3b18ff7d21052c0fc14a/features/maf-parsing.feature">Cucumber feature</a> to ensure that sequence data was exposed
+properly, it didn&#8217;t seem worthwhile to duplicate that in
+RSpec. However, the chunked parser was much harder to get right than
+the original line-based parser, and RSpec was an invaluable tool for
+that.</p>
+
+<p>For most of the bugs I found, I developed an RSpec specification to
+call for the correct behavior. Some of these could go into Cucumber
+just as well, such as the one stipulating that a certain alignment
+block should have ten sequences in it. Most, though, are about
+low-level details such as correct parsing of
+<a href="https://github.com/csw/bioruby-maf/blob/b3b9e060c6ba40bf17930eb6564615eb3b5b31bf/spec/bio/maf/parser_spec.rb#L138">sequence lines split across chunk boundaries</a>.</p>
+
+<p>In some cases it was challenging to follow the BDD principle of
+writing only the necessary code to make the next test pass. When I
+started on the chunked parser, I had a very clear idea of how it
+needed to work, and next to no idea how to specify that in terms of
+tests. So I just started writing code and relying on the existing
+parser tests. However, the set of RSpec tests I ended up with seems to
+specify the chunked parser&#8217;s behavior reasonably well; they specify
+where the last block in a chunk should be detected, how many blocks
+should be parsed in a file if chunk fragments are being joined
+properly, what happens if a sequence line is split across a chunk
+boundary, and so on.</p>
+
+<p>This gives me a concrete idea of the kind of tests I might want to
+write to specify something like this next time. We&#8217;ll see how well I
+can apply this next week, when I start working on indexed access.</p>
+
+<h2>Tools</h2>
+
+<p>I knew that it was possible to set up <a href="http://travis-ci.org/#!/csw/bioruby-maf">continuous integration</a> as a
+hosted service with <a href="http://travis-ci.org/">Travis-CI</a>, but it was a pleasant surprise to
+find that I could also have <a href="http://rubydoc.info/github/csw/bioruby-maf/">documentation</a> generated the same
+way. It would be nice to have Travis-CI do hosted coverage reporting
+as well, but setting up <a href="https://github.com/colszowka/simplecov">simplecov</a> was very easy.</p>
+
+<p>I&#8217;ve been doing my development work with Emacs and using
+<a href="http://barelyenough.org/projects/rspec-mode/">rspec-mode</a>, <a href="https://github.com/michaelklishin/cucumber.el">cucumber.el</a>, and <a href="https://github.com/magit/magit">Magit</a>. These have all been
+better than nothing, but also somewhat frustrating; I&#8217;ve already sent
+in one <a href="https://github.com/michaelklishin/cucumber.el/pull/21">pull request</a> for cucumber.el, and over the next
+month or two I may explore some more radical ideas to make rspec-mode
+and cucumber.el more useful. I&#8217;ve been gradually learning how to use
+Magit, although I usually end up doing my more complex Git operations
+from the command line.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Basic MAF parsing]]></title>
