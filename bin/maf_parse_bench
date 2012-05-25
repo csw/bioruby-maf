@@ -1,0 +1,94 @@
+#!/usr/bin/env ruby
+
+require 'benchmark'
+require 'bio-maf'
+require 'optparse'
+require 'ostruct'
+
+options = OpenStruct.new
+options.parser = Bio::MAF::Parser
+options.runs = 100_000
+options.warmup = false
+
+PRINTERS = {
+  'flat' => :FlatPrinter,
+  'stack' => :CallStackPrinter
+}
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: maf_parse_bench [options] <maf>"
+  opts.separator ""
+  opts.separator "Options:"
+  opts.on("-p", "--profile PROF", "Profile with PerfTools") do |prof|
+    options.prof = prof
+  end
+  opts.on("--ruby-prof PATH", "Profile with ruby-prof") do |pspec|
+    if pspec =~ /(\w+):(.+)/
+      require 'ruby-prof'
+      options.ruby_prof_printer = RubyProf.const_get(PRINTERS.fetch($1))
+      options.ruby_prof_path = $2
+    else
+      options.ruby_prof_printer = :FlatPrinter
+      options.ruby_prof_path = pspec
+    end
+  end
+  opts.on("--profile-gc", "Profile GC") do |prof|
+    options.profile_gc = true
+  end
+  opts.on("--parser PARSER", "parser") do |name|
+    options.parser = Bio::MAF.const_get(name)
+  end
+  opts.on("-w", "--warmup", "perform warmup run") do 
+    options.warmup = true
+  end
+end.parse!(ARGV)
+
+src_path = ARGV.shift
+
+if options.prof
+  require 'perftools'
+  PerfTools::CpuProfiler.start(options.prof)
+elsif options.ruby_prof_path
+  require 'ruby-prof'
+  RubyProf.start
+end
+
+if options.profile_gc
+  GC::Profiler.enable
+end
+
+parser = options.parser.new(src_path)
+parser.parse_block
+parser.parse_block
+pos = parser.s.pos
+
+if options.warmup
+  options.runs.times do
+    parser.parse_block
+    parser.s.pos = pos
+  end
+end
+
+bm_res = Benchmark.measure do
+  options.runs.times do
+    parser.parse_block
+    parser.s.pos = pos
+  end
+end
+
+if options.profile_gc
+  $stderr.puts GC::Profiler.result
+  GC::Profiler.disable
+end
+
+if options.prof
+  PerfTools::CpuProfiler.stop
+elsif options.ruby_prof_path
+  res = RubyProf.stop
+  printer = options.ruby_prof_printer.new(res)
+  File.open(options.ruby_prof_path, 'w') do |f|
+    printer.print(f)
+  end
+end
+
+puts bm_res
