@@ -91,4 +91,4 @@ elsif options.ruby_prof_path
   end
 end
 
-puts bm_res
+puts bm_res / options.runs
