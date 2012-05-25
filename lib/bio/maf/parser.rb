@@ -127,8 +127,18 @@ module Bio
             block = parse_block_data
             @at_end = true
           else
+            # Trailing block fragment, but there is another chunk.
+            # Read the next chunk, find the start of the first
+            # alignment block, and concatenate this trailing block
+            # fragment with the leading fragment before the start of
+            # that next block. Parse the resulting joined block, then
+            # position the scanner to parse the next block.
             next_chunk = read_chunk
+            # Find the next alignment block
             next_scanner = StringScanner.new(next_chunk)
+            # If this trailing fragment ends with a newline, then an
+            # 'a' at the beginning of the leading fragment is the
+            # start of the next alignment block.
             if s.string[s.string.size - 1] == "\n"
               pat = BLOCK_START_OR_EOS
             else
@@ -138,9 +148,11 @@ module Bio
             unless leading_frag
               parse_error("no leading fragment match!")
             end
+            # Join the fragments and parse them
             joined_block = s.rest + leading_frag
             @s = StringScanner.new(joined_block)
             block = parse_block_data
+            # Set up to parse the next block
             @s = next_scanner
             if s.eos?
               @at_end = true
