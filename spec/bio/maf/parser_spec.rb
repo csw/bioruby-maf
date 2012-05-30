@@ -95,6 +95,13 @@ module Bio
         ## can't just do string length, have to skip over hyphens
       end
 
+      it "tracks block start positions correctly" do
+        pa = []
+        p = described_class.new(TestData + 'mm8_chr7_tiny.maf')
+        p.each_block { |b| pa << b.pos }
+        pa.should == [16, 1103, 3011, 5038, 6685, 7514, 9022, 10113]
+      end
+
     end
 
     describe Parser do
