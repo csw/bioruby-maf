@@ -15,17 +15,35 @@ module Bio
           raise "Cannot build index: #{idx_path} already exists!"
         end
         idx = self.new(idx_path)
+        idx.create_schema
         idx.build_default(parser)
         return idx
+      end
+
+      def self.open(path)
+        unless File.exist? path.to_s
+          raise "Cannot open index: #{path} does not exist!"
+        end
+        idx = self.new(path)
+        idx.load
       end
 
       def initialize(path)
         # TODO: for JRuby we need DBI:jdbc:sqlite:<path>
         # and 'driver' => 'org.sqlite.JDBC'
+        @path = path
         @db = DBI.connect("DBI:SQLite3:#{path.to_s}", "", "")
-        if count_tables("metadata") == 0
-          create_schema
+      end
+
+      def load
+        unless count_tables("metadata") == 1
+          raise "#{@path} is not a usable index database!"
         end
+        #row = db.select_one("select value from metadata where key = 'ref_seq'")
+        #unless row
+        #  raise "Could not fetch reference sequence name!"
+        #end
+        #@sequence = row[0]
       end
 
       def build_default(parser)

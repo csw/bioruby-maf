@@ -5,6 +5,32 @@ module Bio
 
     describe SQLiteIndex do
 
+      describe ".open" do
+        it "raises an error on a nonexistent index" do
+          expect {
+            Bio::MAF::SQLiteIndex.open(TestData + 'no_such_file')
+          }.to raise_error(/does not exist/)
+        end
+        it "raises an error on an index without name metadata" do
+          expect {
+            Bio::MAF::SQLiteIndex.open(TestData + 'empty.db')
+          }.to raise_error(/not a usable index database/)
+        end
+        it "raises an error on an index DB without ref seq data"
+        it "sets the sequence name correctly"
+      end
+
+      describe "#search" do
+        context "mm8_chr7" do
+          it "returns a block given a range contained in the block"
+          it "returns a block given its range exactly"
+          it "returns adjoining blocks given a range partially in each"
+          it "returns a block given a range ending in it"
+          it "returns a block given a range beginning in it"
+          it "returns no blocks given a range outside"
+        end
+      end
+
       describe ".build" do
         it "raises an error when trying to build an existing index" do
           expect {
@@ -64,9 +90,10 @@ EOF
         end
       end
 
-      describe "#initialize" do
-        it "creates a metadata table if none exists" do
+      describe "#create_schema" do
+        it "creates a metadata table" do
           idx = SQLiteIndex.new(":memory:")
+          idx.create_schema
           idx.count_tables("metadata").should == 1
         end
       end
@@ -106,8 +133,8 @@ EOF
         end
       end
 
-    end
+    end # SQLiteIndex
     
-  end
+  end # module MAF
   
-end
+end # module Bio
