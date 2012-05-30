@@ -2,7 +2,11 @@ source "http://rubygems.org"
 # Add dependencies required to use your gem here.
 gem "bio-bigbio"
 gem "bio-ucsc-api", "~> 0.4.0"
-gem "sqlite3", "~> 1.3.6"
+gem "dbi", "~> 0.4.5"
+gem "dbd-sqlite3", "~> 1.2.5", :platforms => :mri
+gem "dbd-jdbc", "~> 0.1.4", :platforms => :jruby
+gem "jdbc-sqlite3", "~> 3.7.2", :platforms => :jruby
+
 
 # Add dependencies to develop your gem here.
 # Include everything needed to run rake, tests, features, etc.
