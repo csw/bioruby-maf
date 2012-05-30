@@ -38,6 +38,14 @@ module Bio
         parser.each_block do |b|
           insert_index_row(index_tuple(b))
         end
+        build_covering_index!
+      end
+
+      def build_covering_index!
+        db.do(<<-EOF)
+CREATE INDEX idx_#{table_name}
+ON #{table_name} (bin, start, end, pos)
+        EOF
       end
 
       def insert_index_row(tuple)

@@ -12,7 +12,7 @@ module Bio
           }.to raise_error(/exists/)
         end
  
-       context "mm8_chr7" do
+        context "mm8_chr7" do
           before(:each) do 
             @p = Parser.new(TestData + 'mm8_chr7_tiny.maf')
             @idx = Bio::MAF::SQLiteIndex.build(@p, ":memory:")
@@ -31,6 +31,14 @@ module Bio
             row = @idx.db.select_one("select count(*) from seq_mm8_chr7")
             count = row[0].to_i
             count.should == 8
+          end
+          it "creates an index" do
+            r = @idx.db.select_one(<<-EOF)
+SELECT COUNT(*) FROM sqlite_master
+WHERE name = 'idx_seq_mm8_chr7'
+AND type = 'index'
+EOF
+            r[0].to_i.should == 1
           end
         end
       end
