@@ -24,6 +24,23 @@ module Bio
         @db = DBI.connect("DBI:SQLite3:#{path.to_s}", "", "")
       end
 
+      def count_tables(name_pat)
+        if name_pat =~ /%/
+          op = 'LIKE'
+        else
+          op = '='
+        end
+        query = <<-"EOF"
+           SELECT COUNT(*)
+           FROM sqlite_master
+           WHERE name #{op} '#{name_pat}'
+           AND type = 'table'
+        EOF
+        res = db.select_one(query)
+        ## XXX: what? DBI is returning a string here?
+        return res[0].to_i
+      end
+
       def index_tuple(block)
         seq = block.sequences.find { |s| s.source == sequence }
         seq_end = seq.start + seq.size

@@ -13,6 +13,35 @@ module Bio
         end
       end
 
+      describe "#count_tables" do
+        before(:each) do 
+          @idx = SQLiteIndex.new(":memory:")
+        end
+        after(:each) do
+          @idx.db.disconnect
+        end
+        it "reports no tables if none exist" do
+          @idx.count_tables("xyzzy").should == 0
+        end
+        it "reports one table correctly" do
+          @idx.db.do("create table abc (a numeric(4) primary key)")
+          @idx.count_tables("abc").should == 1
+        end
+        it "does LIKE queries given a % escape" do
+          @idx.db.do("create table abc1 (a numeric(4) primary key)")
+          @idx.db.do("create table abc2 (a numeric(4) primary key)")
+          @idx.count_tables("abc%").should == 2
+        end
+      end
+
+      describe "#initialize" do
+        it "creates a metadata table if none exists" do
+          pending("#count_tables")
+          idx = SQLiteIndex.new(":memory:")
+          idx.count_tables("metadata").should == 1
+        end
+      end
+
       describe "with mm8_chr7 data" do
         before(:each) do 
           @p = Parser.new(TestData + 'mm8_chr7_tiny.maf')
