@@ -8,14 +8,15 @@ module Bio
 
     class SQLiteIndex
 
-      attr_accessor :sequence, :db
+      attr_accessor :sequence, :db, :table_name
 
       def self.build(parser, idx_path)
         if File.exist? idx_path
           raise "Cannot build index: #{idx_path} already exists!"
         end
         idx = self.new(idx_path)
-
+        idx.build_default(parser)
+        return idx
       end
 
       def initialize(path)
@@ -25,6 +26,30 @@ module Bio
         if count_tables("metadata") == 0
           create_schema
         end
+      end
+
+      def build_default(parser)
+        first_block = parser.parse_block
+        @sequence = first_block.sequences.first.source
+        select_table_name!
+        create_index_table
+        
+      end
+
+      def select_table_name!
+        tname_base = sequence.gsub(/[^a-zA-Z0-9]/, '_')
+        @table_name = "seq_#{tname_base}"
+      end
+
+      def create_index_table
+        db.do(<<-EOF)
+CREATE TABLE #{table_name} (
+    bin integer not null,
+    start integer not null,
+    end integer not null,
+    pos integer not null
+)
+        EOF
       end
 
       def create_schema

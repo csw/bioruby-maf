@@ -11,6 +11,31 @@ module Bio
             Bio::MAF::SQLiteIndex.build(nil, TestData + 'empty')
           }.to raise_error(/exists/)
         end
+ 
+       context "mm8_chr7" do
+          before(:each) do 
+            @p = Parser.new(TestData + 'mm8_chr7_tiny.maf')
+            @idx = Bio::MAF::SQLiteIndex.build(@p, ":memory:")
+          end
+          after(:each) do
+            @idx.db.disconnect
+          end
+
+          it "uses the first sequence appearing as the reference sequence" do
+            @idx.sequence.should == "mm8.chr7"
+          end
+          it "creates an index table named after the ref sequence" do
+            @idx.count_tables("seq_mm8_chr7").should == 1
+          end
+          it "creates 8 index rows" do
+            pending "something"
+            count = nil
+            @idx.db.select_one("select count(*) from seq_mm8_chr7") do |row|
+              count = row[0]
+            end
+            count.should == 0
+          end
+        end
       end
 
       describe "#count_tables" do
