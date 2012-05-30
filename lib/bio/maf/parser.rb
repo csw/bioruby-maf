@@ -24,10 +24,10 @@ module Bio
     end
 
     class Block
-      attr_reader :vars, :sequences
+      attr_reader :vars, :sequences, :pos
 
       def initialize(*args)
-        @vars, @sequences = args
+        @vars, @sequences, @pos = args
       end
 
       def size
@@ -63,6 +63,7 @@ module Bio
       ## Parses alignment blocks by reading a chunk of the file at a time.
 
       attr_reader :header, :file_spec, :f, :s, :at_end, :last_block_pos
+      attr_reader :chunk_start
 
       CHUNK_SIZE = 8 * 1024 * 1024
 
@@ -70,6 +71,7 @@ module Bio
         @file_spec = file_spec
         @f = File.open(file_spec)
         @s = StringScanner.new(read_chunk())
+        @chunk_start = 0
         set_last_block_pos!
         @at_end = false
         _parse_header()
@@ -133,6 +135,7 @@ module Bio
             # fragment with the leading fragment before the start of
             # that next block. Parse the resulting joined block, then
             # position the scanner to parse the next block.
+            next_chunk_start = chunk_start + s.string.bytesize
             next_chunk = read_chunk
             # Find the next alignment block
             next_scanner = StringScanner.new(next_chunk)
@@ -151,9 +154,11 @@ module Bio
             # Join the fragments and parse them
             joined_block = s.rest + leading_frag
             @s = StringScanner.new(joined_block)
+            @chunk_start = chunk_start + s.pos
             block = parse_block_data
             # Set up to parse the next block
             @s = next_scanner
+            @chunk_start = next_chunk_start
             if s.eos?
               @at_end = true
             else
@@ -179,6 +184,7 @@ module Bio
       end
 
       def parse_block_data
+        block_pos = chunk_start + s.pos
         s.scan(/^a\s*/) || parse_error("bad a line")
         block_vars = parse_maf_vars()
         seqs = []
@@ -203,7 +209,7 @@ module Bio
             parse_error "unexpected line: '#{line}'"
           end
         end
-        return Block.new(block_vars, seqs)
+        return Block.new(block_vars, seqs, block_pos)
       end
 
       def parse_maf_vars
