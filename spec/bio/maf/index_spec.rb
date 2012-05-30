@@ -36,7 +36,6 @@ module Bio
 
       describe "#initialize" do
         it "creates a metadata table if none exists" do
-          pending("#count_tables")
           idx = SQLiteIndex.new(":memory:")
           idx.count_tables("metadata").should == 1
         end

@@ -22,6 +22,18 @@ module Bio
         # TODO: for JRuby we need DBI:jdbc:sqlite:<path>
         # and 'driver' => 'org.sqlite.JDBC'
         @db = DBI.connect("DBI:SQLite3:#{path.to_s}", "", "")
+        if count_tables("metadata") == 0
+          create_schema
+        end
+      end
+
+      def create_schema
+        db.do(<<-EOF)
+CREATE TABLE metadata (
+    key varchar(32) primary key not null,
+    value varchar(32) not null
+)
+        EOF
       end
 
       def count_tables(name_pat)
