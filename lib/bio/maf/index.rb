@@ -26,6 +26,7 @@ module Bio
         end
         idx = self.new(path)
         idx.load
+        return idx
       end
 
       def initialize(path)
@@ -39,16 +40,18 @@ module Bio
         unless count_tables("metadata") == 1
           raise "#{@path} is not a usable index database!"
         end
-        #row = db.select_one("select value from metadata where key = 'ref_seq'")
-        #unless row
-        #  raise "Could not fetch reference sequence name!"
-        #end
-        #@sequence = row[0]
+        row = db.select_one("select value from metadata where key = 'ref_seq'")
+        unless row
+          raise "#{@path} is not a usable index database: missing reference sequence name!"
+        end
+        @sequence = row[0]
       end
 
       def build_default(parser)
         first_block = parser.parse_block
         @sequence = first_block.sequences.first.source
+        db.do("insert into metadata (key, value) values (?, ?)",
+              "ref_seq", @sequence)
         select_table_name!
         create_index_table
 

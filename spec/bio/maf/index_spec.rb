@@ -8,16 +8,28 @@ module Bio
       describe ".open" do
         it "raises an error on a nonexistent index" do
           expect {
-            Bio::MAF::SQLiteIndex.open(TestData + 'no_such_file')
+            @idx = SQLiteIndex.open(TestData + 'no_such_file')
           }.to raise_error(/does not exist/)
         end
         it "raises an error on an index without name metadata" do
           expect {
-            Bio::MAF::SQLiteIndex.open(TestData + 'empty.db')
+            @idx = SQLiteIndex.open(TestData + 'empty.db')
           }.to raise_error(/not a usable index database/)
         end
-        it "raises an error on an index DB without ref seq data"
-        it "sets the sequence name correctly"
+        it "raises an error on an index DB without ref seq data" do
+          expect {
+            @idx = SQLiteIndex.open(TestData + 'mm8_chr7_tiny.nometa.index')
+          }.to raise_error(/not a usable index database/)
+        end
+        it "sets the sequence name correctly" do
+          @idx = SQLiteIndex.open(TestData + 'mm8_chr7_tiny.index')
+          @idx.sequence.should == "mm8.chr7"
+        end
+        after(:each) do
+          if @idx
+            @idx.db.disconnect
+          end
+        end
       end
 
       describe "#search" do
