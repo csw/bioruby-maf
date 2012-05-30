@@ -1,4 +1,4 @@
-require 'sqlite3'
+require 'dbi'
 
 module Bio
 
@@ -15,8 +15,11 @@ module Bio
       end
 
       def initialize(path)
-        @db = SQLite3::Database.new(path.to_s)
+        # TODO: for JRuby we need DBI:jdbc:sqlite:<path>
+        # and 'driver' => 'org.sqlite.JDBC'
+        @db = DBI.connect("DBI:SQLite3:#{path.to_s}", "", "")
       end
+
       
     end
     
