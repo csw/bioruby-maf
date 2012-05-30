@@ -33,7 +33,18 @@ module Bio
         @sequence = first_block.sequences.first.source
         select_table_name!
         create_index_table
-        
+
+        insert_index_row(index_tuple(first_block))
+        parser.each_block do |b|
+          insert_index_row(index_tuple(b))
+        end
+      end
+
+      def insert_index_row(tuple)
+        @db.do(<<-EOF, *tuple)
+INSERT INTO #{table_name} (bin, start, end, pos)
+VALUES (?, ?, ?, ?)
+EOF
       end
 
       def select_table_name!

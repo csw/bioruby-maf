@@ -28,12 +28,9 @@ module Bio
             @idx.count_tables("seq_mm8_chr7").should == 1
           end
           it "creates 8 index rows" do
-            pending "something"
-            count = nil
-            @idx.db.select_one("select count(*) from seq_mm8_chr7") do |row|
-              count = row[0]
-            end
-            count.should == 0
+            row = @idx.db.select_one("select count(*) from seq_mm8_chr7")
+            count = row[0].to_i
+            count.should == 8
           end
         end
       end
