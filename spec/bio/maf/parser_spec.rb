@@ -151,6 +151,16 @@ module Bio
           break_seq.text.size.should == 156
         end
       end
+
+      it "tracks block start positions correctly over chunk boundaries" do
+        with_const_value(Bio::MAF::Parser, :CHUNK_SIZE, 2048) do
+          pa = []
+          p = described_class.new(TestData + 'mm8_chr7_tiny.maf')
+          p.each_block { |b| pa << b.pos }
+          pa.should == [16, 1103, 3011, 5038, 6685, 7514, 9022, 10113]
+        end
+      end
+
     end
 
   end

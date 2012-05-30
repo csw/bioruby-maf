@@ -153,8 +153,8 @@ module Bio
             end
             # Join the fragments and parse them
             joined_block = s.rest + leading_frag
-            @s = StringScanner.new(joined_block)
             @chunk_start = chunk_start + s.pos
+            @s = StringScanner.new(joined_block)
             block = parse_block_data
             # Set up to parse the next block
             @s = next_scanner
