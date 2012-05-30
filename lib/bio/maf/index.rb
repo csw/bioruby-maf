@@ -57,7 +57,7 @@ CREATE TABLE metadata (
         seq = block.sequences.find { |s| s.source == sequence }
         seq_end = seq.start + seq.size
         bin = Bio::Ucsc::UcscBin.bin_from_range(seq.start, seq_end)
-        return [bin, seq.start, seq_end]
+        return [bin, seq.start, seq_end, block.pos]
       end
     end
     

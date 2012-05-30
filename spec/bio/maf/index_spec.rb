@@ -59,15 +59,19 @@ module Bio
             tuple[1].should == seq.start
             tuple[2].should == seq.start + seq.size
           end
-        end
-
-        describe "#index_tuple" do
           it "sets the bin correctly" do
             block = @p.parse_block
             seq = block.sequences.find { |s| s.source == @idx.sequence }
             tuple = @idx.index_tuple(block)
             # TODO: independently check this
             tuple[0].should == 1195
+          end
+          it "includes the block position" do
+            block = @p.parse_block
+            seq = block.sequences.find { |s| s.source == @idx.sequence }
+            tuple = @idx.index_tuple(block)
+            # TODO: independently check this
+            tuple[3].should == 16
           end
         end
       end
