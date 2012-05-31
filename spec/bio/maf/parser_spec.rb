@@ -102,6 +102,12 @@ module Bio
         pa.should == [16, 1103, 3011, 5038, 6685, 7514, 9022, 10113]
       end
 
+      it "reports block sizes correctly" do
+        p = described_class.new(TestData + 'mm8_chr7_tiny.maf')
+        block = p.parse_block
+        block.size.should == 1087
+      end
+
     end
 
     describe Parser do
