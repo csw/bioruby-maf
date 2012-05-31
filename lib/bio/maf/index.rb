@@ -36,6 +36,38 @@ module Bio
         @db = DBI.connect("DBI:SQLite3:#{path.to_s}", "", "")
       end
 
+      def find(ranges)
+        fetch = fetch_list(ranges)
+        # TODO: fetch blocks from MAF file
+      end
+
+      def fetch_list(ranges)
+        # returns an array of
+        # [pos, [start, end]]
+        # where pos is the block's start offset
+        # and start and end are the expected reference sequence start
+        # and end positions
+        fetch_h = {}
+        ranges.each do |range|
+          # XXX: check whether these are properly half-open
+          bins = Bio::Ucsc::UcscBin.bin_all(range.begin, range.end)
+          bin_list = bins.join(',')
+          query = <<-EOF
+          SELECT pos, start, end
+          FROM #{table_name}
+          WHERE bin IN (#{bin_list})
+          AND (end BETWEEN #{range.begin} AND #{range.end}
+               OR #{range.end} BETWEEN start AND end)
+          EOF
+          db.execute(query) do |stmt|
+            stmt.fetch do |row|
+              fetch_h[row[0]] = [row[1], row[2]]
+            end
+          end
+        end
+        return fetch_h.to_a.sort_by! { |e| e[0] }
+      end
+
       def load
         unless count_tables("metadata") == 1
           raise "#{@path} is not a usable index database!"

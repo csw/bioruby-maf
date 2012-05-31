@@ -36,14 +36,26 @@ module Bio
         end
       end
 
-      describe "#search" do
+      describe "#fetch_list" do
         context "mm8_chr7" do
-          it "returns a block given a range contained in the block"
+          before(:each) do
+            @idx = SQLiteIndex.open(TestData + 'mm8_chr7_tiny.index')
+          end
+          it "returns a block given a range contained in the block" do
+            l = @idx.fetch_list([80082334..80082338])
+            l.size.should == 1
+            l[0][0].should == 16
+          end
           it "returns a block given its range exactly"
           it "returns adjoining blocks given a range partially in each"
           it "returns a block given a range ending in it"
           it "returns a block given a range beginning in it"
           it "returns no blocks given a range outside"
+          after(:each) do
+            if @idx
+              @idx.db.disconnect
+            end
+          end
         end
       end
 
