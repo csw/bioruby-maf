@@ -24,10 +24,10 @@ module Bio
     end
 
     class Block
-      attr_reader :vars, :sequences, :pos
+      attr_reader :vars, :sequences, :offset
 
       def initialize(*args)
-        @vars, @sequences, @pos = args
+        @vars, @sequences, @offset = args
       end
 
       def size
@@ -184,7 +184,7 @@ module Bio
       end
 
       def parse_block_data
-        block_pos = chunk_start + s.pos
+        block_offset = chunk_start + s.pos
         s.scan(/^a\s*/) || parse_error("bad a line")
         block_vars = parse_maf_vars()
         seqs = []
@@ -209,7 +209,7 @@ module Bio
             parse_error "unexpected line: '#{line}'"
           end
         end
-        return Block.new(block_vars, seqs, block_pos)
+        return Block.new(block_vars, seqs, block_offset)
       end
 
       def parse_maf_vars
