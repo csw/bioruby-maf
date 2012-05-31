@@ -120,7 +120,7 @@ CREATE TABLE metadata (
 
       def index_tuple(block)
         seq = block.sequences.find { |s| s.source == sequence }
-        seq_end = seq.start + seq.size
+        seq_end = seq.start + seq.size - 1
         bin = Bio::Ucsc::UcscBin.bin_from_range(seq.start, seq_end)
         return [bin, seq.start, seq_end, block.pos]
       end

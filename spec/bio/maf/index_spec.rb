@@ -126,7 +126,7 @@ EOF
             seq = block.sequences.find { |s| s.source == @idx.sequence }
             tuple = @idx.index_tuple(block)
             tuple[1].should == seq.start
-            tuple[2].should == seq.start + seq.size
+            tuple[2].should == seq.start + seq.size - 1
           end
           it "sets the bin correctly" do
             block = @p.parse_block
