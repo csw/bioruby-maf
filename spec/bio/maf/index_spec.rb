@@ -25,6 +25,10 @@ module Bio
           @idx = SQLiteIndex.open(TestData + 'mm8_chr7_tiny.index')
           @idx.sequence.should == "mm8.chr7"
         end
+        it "sets the table name correctly" do
+          @idx = SQLiteIndex.open(TestData + 'mm8_chr7_tiny.index')
+          @idx.table_name.should == "seq_mm8_chr7"
+        end
         after(:each) do
           if @idx
             @idx.db.disconnect

@@ -45,6 +45,7 @@ module Bio
           raise "#{@path} is not a usable index database: missing reference sequence name!"
         end
         @sequence = row[0]
+        select_table_name!
       end
 
       def build_default(parser)
