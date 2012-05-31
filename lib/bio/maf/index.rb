@@ -1,6 +1,8 @@
 require 'dbi'
+require 'kyotocabinet'
 
 require 'bio-ucsc-api'
+require 'bio-genomic-interval'
 
 module Bio
 
@@ -8,13 +10,18 @@ module Bio
 
     class KyotoIndex
 
+      include KyotoCabinet
+
+      attr_reader :db
       attr_accessor :index_sequences
 
-      KEY_FMT = "CS<L<Q<"
-      VAL_FMT = "Q<Q<"
+      KEY_FMT = "CCS>L>L>"
+      KEY_SCAN_FMT = "xCS>L>L>"
+      CHROM_BIN_PREFIX_FMT = "CCS>"
+      VAL_FMT = "Q>Q>"
 
       ## keys:
-      ##  <bin>:<start>:<end>
+      ##  0xFF<chrom><bin><start><end>
       ## values:
       ##  <offset>:<length>
       ##
@@ -49,6 +56,91 @@ module Bio
       ##  * as record starts pass the start of intervals of interest,
       ##    pull those intervals off the list
 
+      # Build a fetch list of alignment blocks to read, given an array
+      # of Bio::GenomicInterval objects
+      def fetch_list(intervals)
+        to_fetch = []
+        chrom = intervals.first.chrom
+        chrom_id = index_sequences[chrom]
+        unless chrom_id
+          raise "chromosome #{chrom} not indexed!"
+        end
+        if intervals.find { |i| i.chrom != chrom }
+          raise "all intervals must be for the same chromosome!"
+        end
+        bin_intervals = Hash.new { |h, k| h[k] = [] }
+        intervals.each do |i|
+          i.bin_all.each { |bin| bin_intervals[bin] << i }
+        end
+        db.cursor_process do |cur|
+          bin_intervals.each do |bin, bin_intervals_raw|
+            bin_intervals = bin_intervals_raw.sort_by { |i| i.zero_start }
+            spanning_start = bin_intervals.first.zero_start
+            spanning_end = bin_intervals.collect { |i| i.zero_end }.last
+            spanning = GenomicInterval.zero_based(chrom,
+                                                  spanning_start,
+                                                  spanning_end)
+            cur.jump(bin_start_prefix(chrom_id, bin))
+            while pair = cur.get(true)
+              c_chr, c_bin, c_start, c_end = pair[0].unpack(KEY_SCAN_FMT)
+              if (c_chr != chrom_id) \
+                || (c_bin != bin) \
+                || c_start >= spanning_end # past the spanning interval
+                break
+              end
+              if c_end >= spanning_start # possible overlap
+                c_int = GenomicInterval.zero_based(chrom, c_start, c_end)
+                if bin_intervals.find { |i| i.overlapped?(c_int) }
+                  to_fetch << pair[1].unpack(VAL_FMT)
+                end
+              end
+            end
+          end # bin_intervals.each
+        end # #cursor_process
+        return to_fetch
+      end # #fetch_list
+
+      def unpack_key(ks)
+        ks.unpack(KEY_FMT)
+      end
+
+      def bin_start_prefix(chrom_id, bin)
+        [0xFF, chrom_id, bin].pack(CHROM_BIN_PREFIX_FMT)
+      end
+
+      def self.build(parser, path)
+        idx = self.new(path)
+        idx.build_default(parser)
+        return idx
+      end
+
+      def initialize(path)
+        if (path.size > 1) and File.exist?(path)
+          mode = DB::OREADER
+        else
+          mode = DB::OWRITER | DB::OCREATE
+        end
+        @db = DB.new
+        @path = path
+        unless db.open(path, mode)
+          raise "Could not open DB file!"
+        end
+      end
+
+      def build_default(parser)
+        first_block = parser.parse_block
+        ref_seq = first_block.sequences.first.source
+        @index_sequences = { ref_seq => 0 }
+        index_block(first_block)
+        parser.each_block { |b| index_block(b) }
+      end
+
+      def index_block(block)
+        entries_for(block).each do |k, v|
+          db.set(k, v)
+        end
+      end
+
       def entries_for(block)
         e = []
         block.sequences.each do |seq|
@@ -56,7 +148,7 @@ module Bio
           next unless seq_id
           seq_end = seq.start + seq.size
           bin = Bio::Ucsc::UcscBin.bin_from_range(seq.start, seq_end)
-          key = [seq_id, bin, seq.start, seq_end].pack(KEY_FMT)
+          key = [255, seq_id, bin, seq.start, seq_end].pack(KEY_FMT)
           val = [block.pos, 0].pack(VAL_FMT)
           e << [key, val]
         end
