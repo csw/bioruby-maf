@@ -20,7 +20,7 @@ Then /^an alignment block can be obtained$/ do
 end
 
 Then /^the alignment block has (\d+) sequences$/ do |n_seq|
-  @block.size.should == n_seq.to_i
+  @block.sequences.size.should == n_seq.to_i
 end
 
 Then /^sequence (\d+) has (\w.*?) "(.*?)"$/ do |i, method, str|
