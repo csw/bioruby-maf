@@ -6,6 +6,7 @@ gem "dbi", "~> 0.4.5"
 gem "dbd-sqlite3", "~> 1.2.5", :platforms => :mri
 gem "dbd-jdbc", "~> 0.1.4", :platforms => :jruby
 gem "jdbc-sqlite3", "~> 3.7.2", :platforms => :jruby
+gem "kyotocabinet-ruby", "~> 1.27.1", :platforms => :mri
 
 
 # Add dependencies to develop your gem here.

@@ -6,6 +6,64 @@ module Bio
 
   module MAF
 
+    class KyotoIndex
+
+      attr_accessor :index_sequences
+
+      KEY_FMT = "CS<L<Q<"
+      VAL_FMT = "Q<Q<"
+
+      ## keys:
+      ##  <bin>:<start>:<end>
+      ## values:
+      ##  <offset>:<length>
+      ##
+      ## bin: 5 digits (could be 4, or 4 hex, or 16 bits)
+      ## start, end: 10 digits (could do 8 hex, or 32 bits)
+      ## offset: hex
+      ## length: hex
+      ##
+      ## ex: 01195:80082334:80082367              (23 bytes)
+      ## =    04AB:4C5F59E:4C5F5BF                (20 bytes)
+      ## = [1195, 80082334, 80082367].pack("SLL") (10 bytes)
+      ##
+      ## Intervals: Ruby 1...9 intervals (three dots) are half-open
+      ##
+      ## Retrieval:
+      ##  1. merge the intervals of interest
+      ##  2. for each interval, compute the bins with #bin_all
+      ##  3. for each bin to search, make a list of intervals of
+      ##     interest
+      ##  4. compute the spanning interval for that bin
+      ##  5. start at the beginning of the bin
+      ##  6. if a record intersects the spanning interval: 
+      ##    A. #find an interval it intersects
+      ##    B. if found, add to the fetch list
+      ##  7. if a record starts past the end of the spanning interval,
+      ##     we are done scanning this bin.
+      ##
+      ## Optimizations:
+      ##  * once we reach the start of the spanning interval,
+      ##    all records start in it until we see a record starting
+      ##    past it.
+      ##  * as record starts pass the start of intervals of interest,
+      ##    pull those intervals off the list
+
+      def entries_for(block)
+        e = []
+        block.sequences.each do |seq|
+          seq_id = index_sequences[seq.source]
+          next unless seq_id
+          seq_end = seq.start + seq.size
+          bin = Bio::Ucsc::UcscBin.bin_from_range(seq.start, seq_end)
+          key = [seq_id, bin, seq.start, seq_end].pack(KEY_FMT)
+          val = [block.pos, 0].pack(VAL_FMT)
+          e << [key, val]
+        end
+        return e
+      end
+    end
+
     class SQLiteIndex
 
       attr_accessor :sequence, :db, :table_name
