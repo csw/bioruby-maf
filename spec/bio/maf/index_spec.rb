@@ -122,7 +122,8 @@ module Bio
             b_offset.should == 16
           end
           it "gives the correct length" do
-            pending("block length tracking")
+            b_offset, b_len = @e[0][1].unpack("Q>Q>")
+            b_len.should == 1087
           end
         end
         after(:each) do

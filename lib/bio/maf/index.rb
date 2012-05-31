@@ -149,7 +149,7 @@ module Bio
           seq_end = seq.start + seq.size
           bin = Bio::Ucsc::UcscBin.bin_from_range(seq.start, seq_end)
           key = [255, seq_id, bin, seq.start, seq_end].pack(KEY_FMT)
-          val = [block.offset, 0].pack(VAL_FMT)
+          val = [block.offset, block.size].pack(VAL_FMT)
           e << [key, val]
         end
         return e
