@@ -77,7 +77,17 @@ module Bio
                                                             80083200)])
             l.size.should == 0
           end
-          it "returns no blocks given a range outside"
+          it "returns all blocks given a range fitting a larger bin" do
+            l = @idx.fetch_list([GenomicInterval.zero_based('mm8.chr7',
+                                                            0,
+                                                            80083200)])
+            l.size.should == 8
+          end
+          it "returns no blocks given a range outside" do
+            l = @idx.fetch_list([GenomicInterval.zero_based('mm8.chr7',
+                                                            80083200,
+                                                            80083300)])
+          end
           after(:each) do
             if @idx
               @idx.db.close
