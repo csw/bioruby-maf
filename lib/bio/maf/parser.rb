@@ -128,11 +128,7 @@ module Bio
         cr.read_chunk
       end
 
-      def seek(offset)
-        
-      end
-
-      def fetch_blocks(fetch_list)
+     def fetch_blocks(fetch_list)
         ## fetch_list: array of [offset, length, block_count] tuples
         ## returns array of Blocks
         return fetch_blocks_merged(merge_fetch_list(fetch_list))
@@ -144,9 +140,8 @@ module Bio
         @chunk_size = 4096
         begin
           fetch_list.each do |offset, len, count|
-            cr.seek(offset)
-            @chunk_start = offset
-            chunk = read_chunk
+            chunk = cr.read_chunk_at(offset)
+            @chunk_start = cr.pos
             @s = StringScanner.new(chunk)
             count.times do
               r << parse_block
@@ -226,7 +221,7 @@ module Bio
             # fragment with the leading fragment before the start of
             # that next block. Parse the resulting joined block, then
             # position the scanner to parse the next block.
-            next_chunk_start = chunk_start + s.string.bytesize
+            next_chunk_start = cr.pos
             next_chunk = read_chunk
             # Find the next alignment block
             next_scanner = StringScanner.new(next_chunk)
