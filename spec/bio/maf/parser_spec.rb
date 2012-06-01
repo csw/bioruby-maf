@@ -56,23 +56,47 @@ module Bio
           }.not_to raise_error
         end
       end
-      describe "#read_chunk" do
+      context "with 1K ChunkReader" do
         before(:each) do
           @r = ChunkReader.new(@f, 1024)
         end
-        it "returns a chunk of the specified length" do
-          @r.read_chunk.bytesize == 1024
+ 
+        describe "#chunk_size=" do
+          it "sets the chunk size" do
+            @r.chunk_size = 8192
+            @r.chunk_size.should == 8192
+          end
+          it "sets the chunk shift" do
+            @r.chunk_size = 8192
+            @r.chunk_shift.should == 13
+          end
         end
-        it "starts at position 0" do
-          @r.pos.should == 0
+
+        describe "#read_chunk" do
+          it "returns a chunk of the specified length" do
+            @r.read_chunk.bytesize == 1024
+          end
+          it "starts at position 0" do
+            @r.pos.should == 0
+          end
+          it "advances the position" do
+            @r.read_chunk
+            @r.pos.should == 1024
+          end
         end
-        it "advances the position" do
-          @r.read_chunk
-          @r.pos.should == 1024
+
+        describe "#read_chunk_at" do
+          it "returns data starting at the specified offset" do
+            c = @r.read_chunk_at(59)
+            c.start_with?("80082334").should be_true
+            @r.pos.should == 1024
+          end
+          it "handles a read starting exactly at a chunk boundary" do
+            c = @r.read_chunk_at(1024)
+            c.start_with?("   594").should be_true
+            @r.pos.should == 2048
+          end
         end
-      end
-      describe "#initialize" do
-        it ""
       end
       after(:each) do
         @f.close
@@ -108,12 +132,14 @@ module Bio
           @p = described_class.new(TestData + 'mm8_chr7_tiny.maf')
         end
         it "parses a single block" do
+          pending "seek refactoring"
           fl = [[16, 1087]]
           blocks = @p.fetch_blocks(fl)
           blocks.size.should == 1
           blocks[0].offset.should == 16
         end
         it "parses several consecutive blocks" do
+          pending "seek refactoring"
           fl = [[16, 1087], [1103, 1908], [3011, 2027]]
           blocks = @p.fetch_blocks(fl)
           blocks.size.should == 3

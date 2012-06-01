@@ -55,7 +55,7 @@ module Bio
     end
 
     class ChunkReader
-      attr_accessor :chunk_size, :pos
+      attr_accessor :chunk_size, :chunk_shift, :pos
       attr_reader :f
       def initialize(f, chunk_size)
         @f = f
@@ -65,7 +65,8 @@ module Bio
 
       def chunk_size=(size)
         check_chunk_size(size)
-        @chunk_size=size
+        @chunk_size = size
+        @chunk_shift = Math.log2(size).to_i
       end
 
       def check_chunk_size(size)
@@ -79,15 +80,22 @@ module Bio
         end
       end
 
+      # Reads the next chunk of the file.
       def read_chunk
         chunk = f.read(@chunk_size)
         @pos += chunk.bytesize
         return chunk
       end
 
-      def seek(offset)
+      # Reads a chunk of the file, starting at the specified
+      # offset. If the offset is not the start of a chunk, the read
+      # will be shortened so that it ends on a chunk boundary.
+      def read_chunk_at(offset)
         f.seek(offset)
-        @pos = offset
+        next_chunk_start = ((offset >> chunk_shift) + 1) << chunk_shift
+        chunk = f.read(next_chunk_start - offset)
+        @pos = next_chunk_start
+        return chunk
       end
     end
 
