@@ -140,12 +140,16 @@ module Bio
         old_chunk_size = @chunk_size
         @chunk_size = 4096
         begin
-          fetch_list.each do |offset, len, count|
+          fetch_list.each do |offset, len, block_offsets|
             chunk = cr.read_chunk_at(offset)
             @chunk_start = offset
             @s = StringScanner.new(chunk)
-            count.times do
-              r << parse_block
+            block_offsets.each do |expected_offset|
+              block = parse_block
+              unless block.offset == expected_offset
+                raise "Parse error: got block with offset #{block.offset}, expected #{expected_offset}!"
+              end
+              r << block
             end
           end
           return r
@@ -163,10 +167,10 @@ module Bio
             # contiguous with the previous one
             # add to length and increment count
             r.last[1] += cur[1]
-            r.last[2] += 1
+            r.last[2] << cur[0]
           else
+            cur << [cur[0]]
             r << cur
-            r.last << 1
           end
         end
         return r
