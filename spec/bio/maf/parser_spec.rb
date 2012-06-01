@@ -169,47 +169,40 @@ module Bio
         p.last_block_pos.should == 1103
       end
 
-      it "yields the correct number of blocks over chunk boundaries" do
-        with_const_value(Bio::MAF::Parser, :CHUNK_SIZE, 2048) do
-          p = Parser.new(TestData + 'mm8_chr7_tiny.maf')
-          ref_scores = %w(10542.0 -33148.0 87527.0 185399.0 30120.0 58255.0 2607.0 8132.0)
+      context "with 2k chunk size" do
+        before(:each) do
+          @p = Parser.new(TestData + 'mm8_chr7_tiny.maf',
+                          :chunk_size => 2048)
+        end
+        it "yields the correct number of blocks over chunk boundaries" do
+          ref_scores = %w(10542.0 -33148.0 87527.0 185399.0
+                          30120.0 58255.0 2607.0 8132.0)
           scores = []
-          p.each_block do |block|
+          @p.each_block do |block|
             scores << block.vars[:score]
           end
           scores.should == ref_scores
         end
-      end
-
-      it "sets last_block_pos correctly" do
-        with_const_value(Bio::MAF::Parser, :CHUNK_SIZE, 2048) do
-          p = Parser.new(TestData + 'mm8_chr7_tiny.maf')
-          #p.parse_block
-          p.last_block_pos.should == 1103
+        it "sets last_block_pos correctly" do
+          @p.last_block_pos.should == 1103
         end
-      end
-
-      it "handles sequence lines over chunk boundaries" do
-        with_const_value(Bio::MAF::Parser, :CHUNK_SIZE, 2048) do
-          p = Parser.new(TestData + 'mm8_chr7_tiny.maf')
-          p.parse_block
-          block = p.parse_block
+        it "handles sequence lines over chunk boundaries" do
+          @p.parse_block
+          block = @p.parse_block
           break_seq = block.raw_seq(4)
           break_seq.text.size.should == 156
         end
-      end
 
-      it "tracks block start offsets correctly over chunk boundaries" do
-        with_const_value(Bio::MAF::Parser, :CHUNK_SIZE, 2048) do
+        it "tracks block start offsets correctly over chunk boundaries" do
           pa = []
-          p = described_class.new(TestData + 'mm8_chr7_tiny.maf')
-          p.each_block { |b| pa << b.offset }
+          @p.each_block { |b| pa << b.offset }
           pa.should == [16, 1103, 3011, 5038, 6685, 7514, 9022, 10113]
         end
-      end
 
     end
 
   end
   
 end
+      end
+      end

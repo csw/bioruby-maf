@@ -59,15 +59,16 @@ module Bio
       ## Parses alignment blocks by reading a chunk of the file at a time.
 
       attr_reader :header, :file_spec, :f, :s, :at_end, :last_block_pos
-      attr_reader :chunk_start
+      attr_reader :chunk_start, :chunk_size
 
-      CHUNK_SIZE = 8 * 1024 * 1024
+      SEQ_CHUNK_SIZE = 8 * 1024 * 1024
 
-      def initialize(file_spec)
+      def initialize(file_spec, opts={})
+        @chunk_size = opts[:chunk_size] || SEQ_CHUNK_SIZE
+        @chunk_start = 0
         @file_spec = file_spec
         @f = File.open(file_spec)
         @s = StringScanner.new(read_chunk())
-        @chunk_start = 0
         set_last_block_pos!
         @at_end = false
         _parse_header()
@@ -78,7 +79,7 @@ module Bio
       EOL_OR_EOF = /\n|\z/
 
       def read_chunk
-        f.read(CHUNK_SIZE)
+        f.read(chunk_size)
       end
 
       def merge_fetch_list(orig_fl)
