@@ -25,6 +25,28 @@ module Bio
       it "provides arbitrary parameters"
     end
 
+    describe ChunkReader do
+      before(:each) do
+        @f = (TestData + 'mm8_chr7_tiny.maf').open
+        @r = ChunkReader.new(@f, 1024)
+      end
+      describe "read_chunk" do
+        it "returns a chunk of the specified length" do
+          @r.read_chunk.bytesize == 1024
+        end
+        it "starts at position 0" do
+          @r.pos.should == 0
+        end
+        it "advances the position" do
+          @r.read_chunk
+          @r.pos.should == 1024
+        end
+      end
+      after(:each) do
+        @f.close
+      end
+    end
+
     shared_examples "parsers" do
       
       describe "creation" do

@@ -54,6 +54,27 @@ module Bio
       end
     end
 
+    class ChunkReader
+      attr_accessor :chunk_size, :pos
+      attr_reader :f
+      def initialize(f, chunk_size)
+        @f = f
+        @chunk_size = chunk_size
+        @pos = 0
+      end
+
+      def read_chunk
+        chunk = f.read(@chunk_size)
+        @pos += chunk.bytesize
+        return chunk
+      end
+
+      def seek(offset)
+        f.seek(offset)
+        @pos = offset
+      end
+    end
+
     class Parser
 
       ## Parses alignment blocks by reading a chunk of the file at a time.
@@ -80,6 +101,10 @@ module Bio
 
       def read_chunk
         f.read(chunk_size)
+      end
+
+      def seek(offset)
+        
       end
 
       def fetch_blocks(fetch_list)
