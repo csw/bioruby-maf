@@ -59,8 +59,24 @@ module Bio
       attr_reader :f
       def initialize(f, chunk_size)
         @f = f
-        @chunk_size = chunk_size
+        self.chunk_size = chunk_size
         @pos = 0
+      end
+
+      def chunk_size=(size)
+        check_chunk_size(size)
+        @chunk_size=size
+      end
+
+      def check_chunk_size(size)
+        if size < 1
+          raise "Invalid chunk size: #{size}"
+        end
+        ## test whether it is a power of 2
+        ## cf. http://bit.ly/JExNc4
+        if size & (size - 1) != 0
+          raise "Invalid chunk size (not a power of 2): #{size}}"
+        end
       end
 
       def read_chunk

@@ -28,9 +28,38 @@ module Bio
     describe ChunkReader do
       before(:each) do
         @f = (TestData + 'mm8_chr7_tiny.maf').open
-        @r = ChunkReader.new(@f, 1024)
       end
-      describe "read_chunk" do
+      describe "#initialize" do
+        it "rejects a chunk size of zero" do
+          expect {
+            ChunkReader.new(@f, 0)
+          }.to raise_error(/Invalid chunk size/)
+        end
+        it "rejects a negative chunk size" do
+          expect {
+            ChunkReader.new(@f, 0)
+          }.to raise_error(/Invalid chunk size/)
+        end
+        it "rejects a chunk size not a power of 2" do
+          expect {
+            ChunkReader.new(@f, 1000)
+          }.to raise_error(/Invalid chunk size/)
+        end
+        it "accepts a 4k chunk size" do
+          expect {
+            ChunkReader.new(@f, 4096)
+          }.not_to raise_error
+        end
+        it "accepts an 8M chunk size" do
+          expect {
+            ChunkReader.new(@f, 8 * 1024 * 1024)
+          }.not_to raise_error
+        end
+      end
+      describe "#read_chunk" do
+        before(:each) do
+          @r = ChunkReader.new(@f, 1024)
+        end
         it "returns a chunk of the specified length" do
           @r.read_chunk.bytesize == 1024
         end
@@ -41,6 +70,9 @@ module Bio
           @r.read_chunk
           @r.pos.should == 1024
         end
+      end
+      describe "#initialize" do
+        it ""
       end
       after(:each) do
         @f.close
