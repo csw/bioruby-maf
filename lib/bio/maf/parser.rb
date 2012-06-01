@@ -139,6 +139,7 @@ module Bio
         r = []
         old_chunk_size = @chunk_size
         @chunk_size = 4096
+        @at_end = false
         begin
           fetch_list.each do |offset, len, block_offsets|
             if (chunk_start <= offset) \
@@ -152,6 +153,9 @@ module Bio
             end
             block_offsets.each do |expected_offset|
               block = parse_block
+              unless block
+                raise "Parse error: expected a block at offset #{expected_offset} but could not parse one!"
+              end
               unless block.offset == expected_offset
                 raise "Parse error: got block with offset #{block.offset}, expected #{expected_offset}!"
               end

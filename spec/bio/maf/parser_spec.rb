@@ -128,35 +128,53 @@ module Bio
       end
 
       describe "#fetch_blocks" do
-        before(:each) do
-          @p = described_class.new(TestData + 'mm8_chr7_tiny.maf',
-                                   :chunk_size => 4096)
+        shared_examples_for "any chunk size" do
+          it "parses a single block" do
+            fl = [[16, 1087]]
+            blocks = @p.fetch_blocks(fl)
+            blocks.size.should == 1
+            blocks[0].offset.should == 16
+          end
+          it "parses several consecutive blocks" do
+            fl = [[16, 1087], [1103, 1908], [3011, 2027]]
+            blocks = @p.fetch_blocks(fl)
+            blocks.size.should == 3
+            blocks.collect {|b| b.offset}.should == [16, 1103, 3011]
+          end
+          it "parses consecutive blocks further ahead" do
+            fl = [[5038, 1647], [6685, 829]]
+            blocks = @p.fetch_blocks(fl)
+            blocks.size.should == 2
+            blocks.collect {|b| b.offset}.should == [5038, 6685]
+          end
+          it "parses nonconsecutive blocks" do
+            fl = [[16, 1087], [3011, 2027]]
+            blocks = @p.fetch_blocks(fl)
+            blocks.size.should == 2
+            blocks.collect {|b| b.offset}.should == [16, 3011]
+          end
         end
-        it "parses a single block" do
-          fl = [[16, 1087]]
-          blocks = @p.fetch_blocks(fl)
-          blocks.size.should == 1
-          blocks[0].offset.should == 16
+        context "with 4K chunk size" do
+          before(:each) do
+            @p = described_class.new(TestData + 'mm8_chr7_tiny.maf',
+                                     :chunk_size => 4096)
+          end
+          it_behaves_like "any chunk size"
         end
-        it "parses several consecutive blocks" do
-          fl = [[16, 1087], [1103, 1908], [3011, 2027]]
-          blocks = @p.fetch_blocks(fl)
-          blocks.size.should == 3
-          blocks.collect {|b| b.offset}.should == [16, 1103, 3011]
+        context "after parsing to end" do
+          before(:each) do
+            @p = described_class.new(TestData + 'mm8_chr7_tiny.maf',
+                                     :chunk_size => 4096)
+            @p.each_block { |b| nil }
+          end
+          it_behaves_like "any chunk size"
         end
-        it "parses nonconsecutive blocks" do
-          fl = [[16, 1087], [3011, 2027]]
-          blocks = @p.fetch_blocks(fl)
-          blocks.size.should == 2
-          blocks.collect {|b| b.offset}.should == [16, 3011]
-        end
-        it "does not read the same chunk twice" do
-          pending("figuring out this test proxy nonsense")
-          @p.cr.should_receive(:read_chunk_at).once
-          fl = [[16, 1087], [3011, 2027]]
-          blocks = @p.fetch_blocks(fl)
-          blocks.size.should == 2
-          blocks.collect {|b| b.offset}.should == [16, 3011]
+        context "with 8M chunk size" do
+          before(:each) do
+            @p = described_class.new(TestData + 'mm8_chr7_tiny.maf',
+                                     :chunk_size => 8 * 1024 * 1024)
+          end
+          it_behaves_like "any chunk size"
         end
         after(:each) do
           @p.f.close
