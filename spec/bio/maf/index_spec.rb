@@ -6,6 +6,16 @@ module Bio
     describe KyotoIndex do
 
       describe ".build" do
+        it "accepts '%' as a path for an in-memory DB" do
+          expect {
+            @p = Parser.new(TestData + 'mm8_chr7_tiny.maf')
+            @idx = KyotoIndex.build(@p, '%')
+            @p.f.close
+            @idx.close
+          }.not_to raise_error
+        end
+        it "accepts .kct paths"
+        it "rejects other paths"
         context "mm8_chr7" do
           before(:each) do 
             @p = Parser.new(TestData + 'mm8_chr7_tiny.maf')
