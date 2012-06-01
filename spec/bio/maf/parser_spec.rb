@@ -54,15 +54,16 @@ module Bio
           @p = described_class.new(TestData + 'mm8_chr7_tiny.maf')
         end
         it "parses a single block" do
-          pending("chunk/offset calculations")
           fl = [[16, 1087]]
           blocks = @p.fetch_blocks(fl)
           blocks.size.should == 1
           blocks[0].offset.should == 16
         end
         it "parses several consecutive blocks" do
-          pending "implementation"
           fl = [[16, 1087], [1103, 1908], [3011, 2027]]
+          blocks = @p.fetch_blocks(fl)
+          blocks.size.should == 3
+          blocks.collect {|b| b.offset}.should == [16, 1103, 3011]
         end
         after(:each) do
           @p.f.close
@@ -143,6 +144,21 @@ module Bio
         end
       end
 
+      describe "#fetch_blocks" do
+        before(:each) do
+          @p = described_class.new(TestData + 'mm8_chr7_tiny.maf')
+        end
+        it "fetches a single block" do
+          pending("chunk work")
+          r = @p.fetch_blocks([[3011, 2027]])
+          r.size.should == 1
+          r[0].offset.should == 3011
+        end
+        after(:each) do
+          @p.f.close
+        end
+      end
+
       describe "#merge_fetch_list" do
         before(:each) do
           @p = described_class.new(TestData + 'mm8_chr7_tiny.maf')
@@ -198,11 +214,10 @@ module Bio
           @p.each_block { |b| pa << b.offset }
           pa.should == [16, 1103, 3011, 5038, 6685, 7514, 9022, 10113]
         end
+      end
 
     end
 
   end
   
 end
-      end
-      end

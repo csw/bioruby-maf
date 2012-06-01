@@ -82,6 +82,32 @@ module Bio
         f.read(chunk_size)
       end
 
+      def fetch_blocks(fetch_list)
+        ## fetch_list: array of [offset, length, block_count] tuples
+        ## returns array of Blocks
+        return fetch_blocks_merged(merge_fetch_list(fetch_list))
+      end
+
+      def fetch_blocks_merged(fetch_list)
+        r = []
+        old_chunk_size = @chunk_size
+        @chunk_size = 4096
+        begin
+          fetch_list.each do |offset, len, count|
+            f.seek(offset)
+            @chunk_start = offset
+            chunk = read_chunk
+            @s = StringScanner.new(chunk)
+            count.times do
+              r << parse_block
+            end
+          end
+          return r
+        ensure
+          @chunk_size = old_chunk_size
+        end
+      end
+
       def merge_fetch_list(orig_fl)
         fl = orig_fl.dup
         r = []
