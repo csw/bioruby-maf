@@ -9,13 +9,14 @@ Feature: Indexed access to MAF files
   Scenario: Index a MAF file
     Given a MAF source file "mm8_chr7_tiny.maf"
     When I open it with a MAF reader
-    And build an index on the reference sequence in "mm8_chr7_tiny.maf.index"
-    Then the index has 8 entries
+    And build an index on the reference sequence
+    Then the index has at least 8 entries
     
   Scenario: Extract alignment blocks by chromosomal range
     Given a MAF source file "mm8_chr7_tiny.maf"
     When I open it with a MAF reader
+    And build an index on the reference sequence
     And search for blocks between positions 80082592 and 80082766 of mm8.chr7
-    Then 2 sequences are obtained
-    And sequence 0 has start 80082592
-    And sequence 1 has start 80082713
+    Then 2 blocks are obtained
+    And sequence mm8.chr7 of block 0 has start 80082592
+    And sequence mm8.chr7 of block 1 has start 80082713

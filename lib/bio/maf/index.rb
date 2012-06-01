@@ -10,8 +10,6 @@ module Bio
 
     class KyotoIndex
 
-      include KyotoCabinet
-
       attr_reader :db
       attr_accessor :index_sequences
 
@@ -118,11 +116,11 @@ module Bio
 
       def initialize(path)
         if (path.size > 1) and File.exist?(path)
-          mode = DB::OREADER
+          mode = KyotoCabinet::DB::OREADER
         else
-          mode = DB::OWRITER | DB::OCREATE
+          mode = KyotoCabinet::DB::OWRITER | KyotoCabinet::DB::OCREATE
         end
-        @db = DB.new
+        @db = KyotoCabinet::DB.new
         @path = path
         unless db.open(path, mode)
           raise "Could not open DB file!"

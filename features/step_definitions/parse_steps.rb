@@ -38,3 +38,21 @@ Then /^sequence (\d+) has (\w.*?) :(\S+)\s*$/ do |i, method, sym_s|
   value_sym = sym_s.to_sym
   @block.raw_seq(i.to_i).send(method_sym).should == value_sym
 end
+
+Then /^sequence (\S+) of block (\d+) has (\w.*?) "(.*?)"$/ do |chr, i, method, str|
+  seq = @blocks[i.to_i].sequences.find { |seq| seq.source == chr }
+  method_sym = method.gsub(/ /, '_').to_sym
+  seq.send(method_sym).should == str
+end
+
+Then /^sequence (\S+) of block (\d+) has (\w.*?) (\d+)$/ do |chr, i, method, num|
+  seq = @blocks[i.to_i].sequences.find { |seq| seq.source == chr }
+  method_sym = method.gsub(/ /, '_').to_sym
+  seq.send(method_sym).should == num.to_i
+end
+
+Then /^sequence (\S+) of block (\d+) has (\w.*?) :(\S+)$/ do |chr, i, method, sym_s|
+  seq = @blocks[i.to_i].sequences.find { |seq| seq.source == chr }
+  method_sym = method.gsub(/ /, '_').to_sym
+  seq.send(method_sym).should == sym_s.to_sym
+end

@@ -1,10 +1,17 @@
-When /^build an index on the reference sequence in "(.*?)"$/ do |idx_path|
-  pending("index")
-  @idx_path = idx_path
-  Bio::MAF::SQLiteIndex.build(@parser, idx_path)
+When /^build an index on the reference sequence$/ do
+  @idx = Bio::MAF::KyotoIndex.build(@parser, '%')
 end
 
-Then /^the index has (\d+) entries$/ do |size_spec|
-  idx = Bio::MAF::SQLiteIndex.open(idx_path)
-  idx.size.should == size_spec.to_i
+Then /^the index has at least (\d+) entries$/ do |size_spec|
+  @idx.db.count.should be >= size_spec.to_i
+end
+
+When /^search for blocks between positions (\d+) and (\d+) of (\S+)$/ do |i_start, i_end, chr|
+  int = Bio::GenomicInterval.zero_based(chr, i_start.to_i, i_end.to_i)
+  fetch_list = @idx.fetch_list([int])
+  @blocks = @parser.fetch_blocks(fetch_list)
+end
+
+Then /^(\d+) blocks are obtained$/ do |num|
+  @blocks.size.should == num.to_i
 end
