@@ -123,6 +123,27 @@ module Bio
         end
       end
 
+      describe "#merge_fetch_list" do
+        before(:each) do
+          @p = described_class.new(TestData + 'mm8_chr7_tiny.maf')
+        end
+        it "passes through single records" do
+          fl = [[16, 1087]]
+          @p.merge_fetch_list(fl).should == fl
+        end
+        it "passes through non-contiguous records" do
+          fl = [[16, 1087], [3011, 2027]]
+          @p.merge_fetch_list(fl).should == fl
+        end
+        it "merges contiguous records" do
+          fl = [[16, 1087], [1103, 1908], [3011, 2027]]
+          @p.merge_fetch_list(fl).should == [[16, 5022]]
+        end
+        after(:each) do
+          @p.f.close
+        end
+      end
+
       it "sets last block position correctly" do
         p = Parser.new(TestData + 'mm8_subset_a.maf')
         p.last_block_pos.should == 1103

@@ -81,6 +81,20 @@ module Bio
         f.read(CHUNK_SIZE)
       end
 
+      def merge_fetch_list(orig_fl)
+        fl = orig_fl.dup
+        r = []
+        until fl.empty? do
+          cur = fl.shift
+          if r.last && (r.last[0] + r.last[1]) == cur[0]
+            r.last[1] += cur[1]
+          else
+            r << cur
+          end
+        end
+        return r
+      end
+
       def set_last_block_pos!
         @last_block_pos = s.string.rindex(BLOCK_START)
       end
