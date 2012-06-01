@@ -21,6 +21,10 @@ module Bio
         parser.fetch_blocks(fetch_list(intervals))
       end
 
+      def close
+        db.close
+      end
+
       ## keys:
       ##  0xFF<chrom><bin><start><end>
       ## values:
