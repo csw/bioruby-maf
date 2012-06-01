@@ -68,6 +68,7 @@ module Bio
         if intervals.find { |i| i.chrom != chrom }
           raise "all intervals must be for the same chromosome!"
         end
+        # for each bin, build a list of the intervals to look for there
         bin_intervals = Hash.new { |h, k| h[k] = [] }
         intervals.each do |i|
           i.bin_all.each { |bin| bin_intervals[bin] << i }
@@ -75,17 +76,18 @@ module Bio
         db.cursor_process do |cur|
           bin_intervals.each do |bin, bin_intervals_raw|
             bin_intervals = bin_intervals_raw.sort_by { |i| i.zero_start }
+            # compute the start and end of all intervals of interest
             spanning_start = bin_intervals.first.zero_start
-            spanning_end = bin_intervals.collect { |i| i.zero_end }.last
-            spanning = GenomicInterval.zero_based(chrom,
-                                                  spanning_start,
-                                                  spanning_end)
+            spanning_end = bin_intervals.collect {|i| i.zero_end}.sort.last
+            # scan from the start of the bin
             cur.jump(bin_start_prefix(chrom_id, bin))
             while pair = cur.get(true)
               c_chr, c_bin, c_start, c_end = pair[0].unpack(KEY_SCAN_FMT)
               if (c_chr != chrom_id) \
                 || (c_bin != bin) \
-                || c_start >= spanning_end # past the spanning interval
+                || c_start >= spanning_end
+                # we've hit the next bin, or chromosome, or gone past
+                # the spanning interval, so we're done with this bin
                 break
               end
               if c_end >= spanning_start # possible overlap
