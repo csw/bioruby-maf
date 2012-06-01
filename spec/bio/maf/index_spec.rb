@@ -37,6 +37,14 @@ module Bio
             l.size.should == 1
             l[0][0].should == 16 # block offset
           end
+          it "returns a block with correct size" do
+            l = @idx.fetch_list([GenomicInterval.zero_based('mm8.chr7',
+                                                            80082334,
+                                                            80082338)])
+            l.size.should == 1
+            l[0][0].should == 16 # block offset
+            l[0][1].should == 1087 # block size
+          end
           it "returns a block given its range exactly" do
             l = @idx.fetch_list([GenomicInterval.zero_based('mm8.chr7',
                                                             80082334,

@@ -49,6 +49,26 @@ module Bio
         end
       end
 
+      describe "#fetch_blocks" do
+        before(:each) do
+          @p = described_class.new(TestData + 'mm8_chr7_tiny.maf')
+        end
+        it "parses a single block" do
+          pending("chunk/offset calculations")
+          fl = [[16, 1087]]
+          blocks = @p.fetch_blocks(fl)
+          blocks.size.should == 1
+          blocks[0].offset.should == 16
+        end
+        it "parses several consecutive blocks" do
+          pending "implementation"
+          fl = [[16, 1087], [1103, 1908], [3011, 2027]]
+        end
+        after(:each) do
+          @p.f.close
+        end
+      end
+
       context "at end of file" do
         describe "#parse_block" do
           it "returns nil"
