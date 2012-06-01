@@ -3,10 +3,6 @@ source "http://rubygems.org"
 gem "bio-bigbio"
 gem "bio-ucsc-api", "~> 0.4.0"
 gem "bio-genomic-interval", "~> 0.1.2"
-gem "dbi", "~> 0.4.5"
-gem "dbd-sqlite3", "~> 1.2.5", :platforms => :mri
-gem "dbd-jdbc", "~> 0.1.4", :platforms => :jruby
-gem "jdbc-sqlite3", "~> 3.7.2", :platforms => :jruby
 gem "kyotocabinet-ruby", "~> 1.27.1", :platforms => :mri
 
 
