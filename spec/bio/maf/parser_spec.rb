@@ -130,21 +130,33 @@ module Bio
       describe "#fetch_blocks" do
         before(:each) do
           @p = described_class.new(TestData + 'mm8_chr7_tiny.maf',
-                                   :chunk_size => 1024)
+                                   :chunk_size => 4096)
         end
         it "parses a single block" do
-          pending "seek refactoring"
           fl = [[16, 1087]]
           blocks = @p.fetch_blocks(fl)
           blocks.size.should == 1
           blocks[0].offset.should == 16
         end
         it "parses several consecutive blocks" do
-          pending "seek refactoring"
           fl = [[16, 1087], [1103, 1908], [3011, 2027]]
           blocks = @p.fetch_blocks(fl)
           blocks.size.should == 3
           blocks.collect {|b| b.offset}.should == [16, 1103, 3011]
+        end
+        it "parses nonconsecutive blocks" do
+          fl = [[16, 1087], [3011, 2027]]
+          blocks = @p.fetch_blocks(fl)
+          blocks.size.should == 2
+          blocks.collect {|b| b.offset}.should == [16, 3011]
+        end
+        it "does not read the same chunk twice" do
+          pending("figuring out this test proxy nonsense")
+          @p.cr.should_receive(:read_chunk_at).once
+          fl = [[16, 1087], [3011, 2027]]
+          blocks = @p.fetch_blocks(fl)
+          blocks.size.should == 2
+          blocks.collect {|b| b.offset}.should == [16, 3011]
         end
         after(:each) do
           @p.f.close
