@@ -237,21 +237,6 @@ module Bio
         end
       end
 
-      describe "#fetch_blocks" do
-        before(:each) do
-          @p = described_class.new(TestData + 'mm8_chr7_tiny.maf')
-        end
-        it "fetches a single block" do
-          pending("chunk work")
-          r = @p.fetch_blocks([[3011, 2027]])
-          r.size.should == 1
-          r[0].offset.should == 3011
-        end
-        after(:each) do
-          @p.f.close
-        end
-      end
-
       describe "#merge_fetch_list" do
         before(:each) do
           @p = described_class.new(TestData + 'mm8_chr7_tiny.maf')
