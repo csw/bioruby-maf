@@ -8,8 +8,7 @@ end
 
 When /^search for blocks between positions (\d+) and (\d+) of (\S+)$/ do |i_start, i_end, chr|
   int = Bio::GenomicInterval.zero_based(chr, i_start.to_i, i_end.to_i)
-  fetch_list = @idx.fetch_list([int])
-  @blocks = @parser.fetch_blocks(fetch_list)
+  @blocks = @idx.find([int], @parser)
 end
 
 Then /^(\d+) blocks are obtained$/ do |num|

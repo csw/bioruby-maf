@@ -24,20 +24,43 @@ module Bio
         end
       end
 
+      describe "#find" do
+        context "mm8_chr7" do
+          before(:each) do
+            @p = Parser.new(TestData + 'mm8_chr7_tiny.maf')
+            @idx = KyotoIndex.build(@p, '%')
+          end
+
+          it "returns a block given a range contained in the block" do
+            l = @idx.find([GenomicInterval.zero_based('mm8.chr7',
+                                                      80082334,
+                                                      80082338)],
+                                @p)
+            l.size.should == 1
+            l[0].offset.should == 16
+          end
+
+          after(:each) do
+            @idx.db.close
+            @p.f.close
+          end
+        end
+      end
+
       describe "#fetch_list" do
         context "mm8_chr7" do
           before(:each) do
             @p = Parser.new(TestData + 'mm8_chr7_tiny.maf')
             @idx = KyotoIndex.build(@p, '%')
           end
-          it "returns a block given a range contained in the block" do
+          it "returns a block spec given a range contained in the block" do
             l = @idx.fetch_list([GenomicInterval.zero_based('mm8.chr7',
                                                             80082334,
                                                             80082338)])
             l.size.should == 1
             l[0][0].should == 16 # block offset
           end
-          it "returns a block with correct size" do
+          it "returns a block spec with correct size" do
             l = @idx.fetch_list([GenomicInterval.zero_based('mm8.chr7',
                                                             80082334,
                                                             80082338)])
@@ -45,47 +68,47 @@ module Bio
             l[0][0].should == 16 # block offset
             l[0][1].should == 1087 # block size
           end
-          it "returns a block given its range exactly" do
+          it "returns a block spec given its range exactly" do
             l = @idx.fetch_list([GenomicInterval.zero_based('mm8.chr7',
                                                             80082334,
                                                             80082368)])
             l.size.should == 1
             l[0][0].should == 16 # block offset
           end
-          it "returns adjoining blocks given a range partially in each" do
+          it "returns specs for adjoining blocks given a range partially in each" do
             l = @idx.fetch_list([GenomicInterval.zero_based('mm8.chr7',
                                                             80082360,
                                                             80082370)])
             l.size.should == 2
             l.collect { |e| e[0] }.should == [16, 1103]
           end
-          it "returns a block given a range ending in it" do
+          it "returns a block spec given a range ending in it" do
             l = @idx.fetch_list([GenomicInterval.zero_based('mm8.chr7',
                                                             80082330,
                                                             80082339)])
             l.size.should == 1
             l[0][0].should == 16 # block offset
           end
-          it "returns no block given a zero-based range ending at its start" do
+          it "returns no block spec given a zero-based range ending at a block start" do
             l = @idx.fetch_list([GenomicInterval.zero_based('mm8.chr7',
                                                             80082330,
                                                             80082334)])
             l.size.should == 0
           end
-          it "returns a block given a range beginning in it" do
+          it "returns a block spec given a range beginning in it" do
             l = @idx.fetch_list([GenomicInterval.zero_based('mm8.chr7',
                                                             80083009,
                                                             80083220)])
             l.size.should == 1
             l[0][0].should == 10113 # block offset
           end
-          it "returns no block given a range beginning in at its end" do
+          it "returns no block spec given a range beginning at its end" do
             l = @idx.fetch_list([GenomicInterval.zero_based('mm8.chr7',
                                                             80083156,
                                                             80083200)])
             l.size.should == 0
           end
-          it "returns all blocks given a range fitting a larger bin" do
+          it "returns specs for all blocks given a range fitting a larger bin" do
             l = @idx.fetch_list([GenomicInterval.zero_based('mm8.chr7',
                                                             0,
                                                             80083200)])

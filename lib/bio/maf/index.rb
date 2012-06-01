@@ -18,6 +18,10 @@ module Bio
       CHROM_BIN_PREFIX_FMT = "CCS>"
       VAL_FMT = "Q>Q>"
 
+      def find(intervals, parser)
+        parser.fetch_blocks(fetch_list(intervals))
+      end
+
       ## keys:
       ##  0xFF<chrom><bin><start><end>
       ## values:
