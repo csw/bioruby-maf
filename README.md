@@ -1,6 +1,8 @@
 # bio-maf
 
+<!--
 [![Build Status](https://secure.travis-ci.org/csw/bioruby-maf.png)](http://travis-ci.org/csw/bioruby-maf)
+-->
 
 This is a plugin for [BioRuby](http://bioruby.open-bio.org/) adding
 support for the
