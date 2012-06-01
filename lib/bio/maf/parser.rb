@@ -141,9 +141,15 @@ module Bio
         @chunk_size = 4096
         begin
           fetch_list.each do |offset, len, block_offsets|
-            chunk = cr.read_chunk_at(offset)
-            @chunk_start = offset
-            @s = StringScanner.new(chunk)
+            if (chunk_start <= offset) \
+              && (offset < (chunk_start + s.string.size))
+              ## the selected offset is in the current chunk
+              s.pos = offset - chunk_start
+            else
+              chunk = cr.read_chunk_at(offset)
+              @chunk_start = offset
+              @s = StringScanner.new(chunk)
+            end
             block_offsets.each do |expected_offset|
               block = parse_block
               unless block.offset == expected_offset
