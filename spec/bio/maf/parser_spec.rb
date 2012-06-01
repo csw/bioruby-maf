@@ -149,15 +149,15 @@ module Bio
         end
         it "passes through single records" do
           fl = [[16, 1087]]
-          @p.merge_fetch_list(fl).should == fl
+          @p.merge_fetch_list(fl).should == [[16, 1087, 1]]
         end
         it "passes through non-contiguous records" do
           fl = [[16, 1087], [3011, 2027]]
-          @p.merge_fetch_list(fl).should == fl
+          @p.merge_fetch_list(fl).should == [[16, 1087, 1], [3011, 2027, 1]]
         end
         it "merges contiguous records" do
           fl = [[16, 1087], [1103, 1908], [3011, 2027]]
-          @p.merge_fetch_list(fl).should == [[16, 5022]]
+          @p.merge_fetch_list(fl).should == [[16, 5022, 3]]
         end
         after(:each) do
           @p.f.close

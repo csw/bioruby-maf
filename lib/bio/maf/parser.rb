@@ -87,9 +87,13 @@ module Bio
         until fl.empty? do
           cur = fl.shift
           if r.last && (r.last[0] + r.last[1]) == cur[0]
+            # contiguous with the previous one
+            # add to length and increment count
             r.last[1] += cur[1]
+            r.last[2] += 1
           else
             r << cur
+            r.last << 1
           end
         end
         return r
