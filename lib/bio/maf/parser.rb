@@ -66,6 +66,7 @@ module Bio
       def chunk_size=(size)
         check_chunk_size(size)
         @chunk_size = size
+        # power of 2 so don't worry about rounding
         @chunk_shift = Math.log2(size).to_i
       end
 
@@ -94,7 +95,7 @@ module Bio
         f.seek(offset)
         next_chunk_start = ((offset >> chunk_shift) + 1) << chunk_shift
         chunk = f.read(next_chunk_start - offset)
-        @pos = next_chunk_start
+        @pos = offset + chunk.bytesize
         return chunk
       end
     end
@@ -141,7 +142,7 @@ module Bio
         begin
           fetch_list.each do |offset, len, count|
             chunk = cr.read_chunk_at(offset)
-            @chunk_start = cr.pos
+            @chunk_start = offset
             @s = StringScanner.new(chunk)
             count.times do
               r << parse_block

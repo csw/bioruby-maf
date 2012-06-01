@@ -129,7 +129,8 @@ module Bio
 
       describe "#fetch_blocks" do
         before(:each) do
-          @p = described_class.new(TestData + 'mm8_chr7_tiny.maf')
+          @p = described_class.new(TestData + 'mm8_chr7_tiny.maf',
+                                   :chunk_size => 1024)
         end
         it "parses a single block" do
           pending "seek refactoring"
