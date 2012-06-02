@@ -138,8 +138,25 @@ module Bio
         first_block = parser.parse_block
         ref_seq = first_block.sequences.first.source
         @index_sequences = { ref_seq => 0 }
+        store_index_sequences!
         index_block(first_block)
         parser.each_block { |b| index_block(b) }
+      end
+
+      def load_index_sequences
+        h = {}
+        db.match_prefix("sequence:").each do |key|
+          _, name = key.split(':', 2)
+          id = db[key].to_i
+          h[name] = id
+        end
+        @index_sequences = h
+      end
+
+      def store_index_sequences!
+        index_sequences.each do |name, id|
+          db.set("sequence:#{name}", id.to_s)
+        end
       end
 
       def index_block(block)

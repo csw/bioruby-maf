@@ -28,10 +28,20 @@ module Bio
             keys = @idx.db.match_prefix("\xFF\x00")
             keys.size.should == 8
           end
+          it "stores the sequence IDs" do
+            @idx.db.match_prefix("sequence:").size.should == 1
+          end
+          it "stores the sequence IDs" do
+            @idx.db.get("sequence:mm8.chr7").should == "0"
+          end
           after(:each) do
             @idx.db.close
           end
         end
+      end
+
+      describe ".open" do
+ 
       end
 
       describe "#find" do
