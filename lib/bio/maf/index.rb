@@ -17,6 +17,10 @@ module Bio
       CHROM_BIN_PREFIX_FMT = "CCS>"
       VAL_FMT = "Q>Q>"
 
+      def self.open(path)
+        return KyotoIndex.new(path)
+      end
+
       def find(intervals, parser)
         parser.fetch_blocks(fetch_list(intervals))
       end
@@ -131,6 +135,9 @@ module Bio
         @path = path
         unless db.open(path, mode)
           raise "Could not open DB file!"
+        end
+        if mode == KyotoCabinet::DB::OREADER
+          load_index_sequences
         end
       end
 

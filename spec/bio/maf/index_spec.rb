@@ -41,7 +41,18 @@ module Bio
       end
 
       describe ".open" do
- 
+        it "opens an existing index successfully" do
+          @idx = KyotoIndex.open(TestData + 'mm8_chr7_tiny.kct')
+          @idx.db.count.should be > 8
+        end
+        it "populates #index_sequences" do
+          @idx = KyotoIndex.open(TestData + 'mm8_chr7_tiny.kct')
+          @idx.index_sequences.size.should be > 0
+          @idx.index_sequences['mm8.chr7'].should == 0
+        end
+        after(:each) do
+          @idx.db.close if @idx
+        end
       end
 
       describe "#find" do

@@ -2,6 +2,10 @@ When /^build an index on the reference sequence$/ do
   @idx = Bio::MAF::KyotoIndex.build(@parser, '%')
 end
 
+Given /^a Kyoto Cabinet index file "(.*?)"$/ do |name|
+  @idx = Bio::MAF::KyotoIndex.open($test_data + name)
+end
+
 Then /^the index has at least (\d+) entries$/ do |size_spec|
   @idx.db.count.should be >= size_spec.to_i
 end
