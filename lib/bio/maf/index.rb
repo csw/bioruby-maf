@@ -17,34 +17,79 @@ module Bio
       CHROM_BIN_PREFIX_FMT = "CCS>"
       VAL_FMT = "Q>Q>"
 
+      ## Binary index entry format description
+      ##   * All values are stored big-endian and unsigned
+      ##
+      ## Keys: (12 bytes) [CCS>L>L>]
+      ##
+      ##  0xFF (1 byte):
+      ##     index entry prefix
+      ##  Sequence chromosome ID (1 byte):
+      ##     corresponds to sequence:<name> entries
+      ##  UCSC bin (16 bits)
+      ##  Sequence start, zero-based, inclusive (32 bits)
+      ##  Sequence end, zero-based, exclusive (32 bits)
+      ##
+      ## Values (16 bytes) [Q>Q>]
+      ##
+      ##  MAF file offset (64 bits)
+      ##  MAF alignment block length (64 bits)
+      ##
+      ## Example:
+      ##  For a block with sequence 0, bin 1195, start 80082334, end
+      ##       80082368, MAF offset 16, and MAF block length 1087:
+      ##
+      ##     |  |id| bin | seq_start | seq_end   |
+      ## key: FF 00 04 AB 04 C5 F5 9E 04 C5 F5 C0
+      ##
+      ##     |         offset        |         length        |
+      ## val: 00 00 00 00 00 00 00 10 00 00 00 00 00 00 04 3F
+
+      #### Public API
+
+      # Open an existing index for reading.
       def self.open(path)
         return KyotoIndex.new(path)
       end
 
+      # Build a new index from the MAF file being parsed by PARSER,
+      # and store it in PATH.
+      def self.build(parser, path)
+        idx = self.new(path)
+        idx.build_default(parser)
+        return idx
+      end
+
+      # Find all alignment blocks in the genomic regions in the list
+      # of Bio::GenomicInterval objects INTERVALS, and parse them with
+      # PARSER.
       def find(intervals, parser)
         parser.fetch_blocks(fetch_list(intervals))
       end
 
+      # Close the underlying Kyoto Cabinet database handle.
       def close
         db.close
       end
 
-      ## keys:
-      ##  0xFF<chrom><bin><start><end>
-      ## values:
-      ##  <offset>:<length>
-      ##
-      ## bin: 5 digits (could be 4, or 4 hex, or 16 bits)
-      ## start, end: 10 digits (could do 8 hex, or 32 bits)
-      ## offset: hex
-      ## length: hex
-      ##
-      ## ex: 01195:80082334:80082367              (23 bytes)
-      ## =    04AB:4C5F59E:4C5F5BF                (20 bytes)
-      ## = [1195, 80082334, 80082367].pack("SLL") (10 bytes)
-      ##
-      ## Intervals: Ruby 1...9 intervals (three dots) are half-open
-      ##
+      #### KyotoIndex Internals
+
+      def initialize(path)
+        if (path.size > 1) and File.exist?(path)
+          mode = KyotoCabinet::DB::OREADER
+        else
+          mode = KyotoCabinet::DB::OWRITER | KyotoCabinet::DB::OCREATE
+        end
+        @db = KyotoCabinet::DB.new
+        @path = path
+        unless db.open(path, mode)
+          raise "Could not open DB file!"
+        end
+        if mode == KyotoCabinet::DB::OREADER
+          load_index_sequences
+        end
+      end
+
       ## Retrieval:
       ##  1. merge the intervals of interest
       ##  2. for each interval, compute the bins with #bin_all
@@ -117,28 +162,6 @@ module Bio
 
       def bin_start_prefix(chrom_id, bin)
         [0xFF, chrom_id, bin].pack(CHROM_BIN_PREFIX_FMT)
-      end
-
-      def self.build(parser, path)
-        idx = self.new(path)
-        idx.build_default(parser)
-        return idx
-      end
-
-      def initialize(path)
-        if (path.size > 1) and File.exist?(path)
-          mode = KyotoCabinet::DB::OREADER
-        else
-          mode = KyotoCabinet::DB::OWRITER | KyotoCabinet::DB::OCREATE
-        end
-        @db = KyotoCabinet::DB.new
-        @path = path
-        unless db.open(path, mode)
-          raise "Could not open DB file!"
-        end
-        if mode == KyotoCabinet::DB::OREADER
-          load_index_sequences
-        end
       end
 
       def build_default(parser)
