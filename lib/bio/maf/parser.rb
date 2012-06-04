@@ -106,6 +106,7 @@ module Bio
 
       attr_reader :header, :file_spec, :f, :s, :cr, :at_end
       attr_reader :chunk_start, :chunk_size, :last_block_pos
+      attr_accessor :sequence_filter
 
       SEQ_CHUNK_SIZE = 8 * 1024 * 1024
 
@@ -299,6 +300,12 @@ module Bio
           case line[0]
           when 's'
             _, src, start, size, strand, src_size, text = line.split
+            if sequence_filter
+              if sequence_filter[:only_species]
+                m = sequence_filter[:only_species].find { |sp| src.start_with? sp }
+                next unless m
+              end
+            end
             seqs << Sequence.new(src,
                                  start.to_i,
                                  size.to_i,
