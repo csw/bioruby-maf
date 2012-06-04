@@ -17,25 +17,54 @@ module Bio
       CHROM_BIN_PREFIX_FMT = "CCS>"
       VAL_FMT = "Q>Q>"
 
-      ## Binary index entry format description
-      ##   * All values are stored big-endian and unsigned
+      ## Key-value store index format
+      ##
+      ## This format is designed for Kyoto Cabinet but should work on
+      ## other key-value databases allowing binary data.
+      ##
+      ## Index metadata is stored as ASCII text, but index data is
+      ## stored as packed binary values.
+      ##
+      ## Index metadata:
+      ##
+      ##   Sequence IDs:
+      ##     sequence:<name> => <id>
+      ##
+      ##     Each indexed sequence has a corresponding entry of this
+      ##     kind. The <name> parameter is the sequence or chromosome
+      ##     name as found in the MAF file, e.g. mm8.chr7. The <id>
+      ##     parameter is assigned when the sequence is indexed, and
+      ##     can be from 0 to 255.
+      ##
+      ## Index data:
+      ##
+      ##   For each sequence upon which an index is built, one index
+      ##   entry is generated per MAF alignment block. The key
+      ##   identifies the sequence, the UCSC index bin, and the
+      ##   zero-based start and end positions of the sequence. The
+      ##   value gives the offset and size of the alignment block
+      ##   within the MAF file.
+      ##
+      ##   All values are stored as big-endian, unsigned packed binary
+      ##   data.
       ##
       ## Keys: (12 bytes) [CCS>L>L>]
       ##
-      ##  0xFF (1 byte):
-      ##     index entry prefix
-      ##  Sequence chromosome ID (1 byte):
-      ##     corresponds to sequence:<name> entries
-      ##  UCSC bin (16 bits)
-      ##  Sequence start, zero-based, inclusive (32 bits)
-      ##  Sequence end, zero-based, exclusive (32 bits)
+      ##   0xFF (1 byte):
+      ##      index entry prefix
+      ##   Sequence chromosome ID (1 byte):
+      ##      corresponds to sequence:<name> entries
+      ##   UCSC bin (16 bits)
+      ##   Sequence start, zero-based, inclusive (32 bits)
+      ##   Sequence end, zero-based, exclusive (32 bits)
       ##
       ## Values (16 bytes) [Q>Q>]
       ##
-      ##  MAF file offset (64 bits)
-      ##  MAF alignment block length (64 bits)
+      ##   MAF file offset (64 bits)
+      ##   MAF alignment block length (64 bits)
       ##
       ## Example:
+      ##
       ##  For a block with sequence 0, bin 1195, start 80082334, end
       ##       80082368, MAF offset 16, and MAF block length 1087:
       ##
