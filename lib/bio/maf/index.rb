@@ -1,4 +1,8 @@
-require 'kyotocabinet'
+if RUBY_PLATFORM != 'java'
+  require 'kyotocabinet'
+else
+  require 'kyotocabinet-java'
+end
 
 require 'bio-ucsc-api'
 require 'bio-genomic-interval'
@@ -111,7 +115,7 @@ module Bio
         end
         @db = KyotoCabinet::DB.new
         @path = path
-        unless db.open(path, mode)
+        unless db.open(path.to_s, mode)
           raise "Could not open DB file!"
         end
         if mode == KyotoCabinet::DB::OREADER
