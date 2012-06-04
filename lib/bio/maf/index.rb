@@ -15,7 +15,7 @@ module Bio
       KEY_FMT = "CCS>L>L>"
       KEY_SCAN_FMT = "xCS>L>L>"
       CHROM_BIN_PREFIX_FMT = "CCS>"
-      VAL_FMT = "Q>Q>"
+      VAL_FMT = "Q>L>"
 
       ## Key-value store index format
       ##
@@ -58,10 +58,10 @@ module Bio
       ##   Sequence start, zero-based, inclusive (32 bits)
       ##   Sequence end, zero-based, exclusive (32 bits)
       ##
-      ## Values (16 bytes) [Q>Q>]
+      ## Values (12 bytes) [Q>L>]
       ##
       ##   MAF file offset (64 bits)
-      ##   MAF alignment block length (64 bits)
+      ##   MAF alignment block length (32 bits)
       ##
       ## Example:
       ##
@@ -71,8 +71,8 @@ module Bio
       ##     |  |id| bin | seq_start | seq_end   |
       ## key: FF 00 04 AB 04 C5 F5 9E 04 C5 F5 C0
       ##
-      ##     |         offset        |         length        |
-      ## val: 00 00 00 00 00 00 00 10 00 00 00 00 00 00 04 3F
+      ##     |         offset        |  length   |
+      ## val: 00 00 00 00 00 00 00 10 00 00 04 3F
 
       #### Public API
 

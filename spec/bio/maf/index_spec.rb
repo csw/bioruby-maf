@@ -180,11 +180,11 @@ module Bio
             i_end.should == 80082368
           end
           it "gives the correct offset" do
-            b_offset, b_len = @e[0][1].unpack("Q>Q>")
+            b_offset, b_len = @e[0][1].unpack("Q>L>")
             b_offset.should == 16
           end
           it "gives the correct length" do
-            b_offset, b_len = @e[0][1].unpack("Q>Q>")
+            b_offset, b_len = @e[0][1].unpack("Q>L>")
             b_len.should == 1087
           end
         end
