@@ -4,7 +4,7 @@
   <title><![CDATA[BioRuby MAF blog]]></title>
   <link href="http://csw.github.com/bioruby-maf/atom.xml" rel="self"/>
   <link href="http://csw.github.com/bioruby-maf/"/>
-  <updated>2012-05-25T16:34:32-04:00</updated>
+  <updated>2012-06-04T23:01:50-04:00</updated>
   <id>http://csw.github.com/bioruby-maf/</id>
   <author>
     <name><![CDATA[Clayton Wheeler]]></name>
@@ -12,6 +12,158 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Indexed MAF access]]></title>
+    <link href="http://csw.github.com/bioruby-maf/blog/2012/06/04/indexed_maf_access/"/>
+    <updated>2012-06-04T16:33:00-04:00</updated>
+    <id>http://csw.github.com/bioruby-maf/blog/2012/06/04/indexed_maf_access</id>
+    <content type="html"><![CDATA[<p>My second week of working on this MAF library was more of a struggle
+than the first week. I was implementing indexing of MAF files and
+using those indexes to enable searching by genomic regions. In the
+process of doing this, I ended up changing directions partway through,
+but I eventually did implement the features I had planned to, and
+ended up with a better implementation than I thought I would.</p>
+
+<p>MAF files can be quite large, often hundreds of gigabytes. Frequently,
+too, a user will want to extract a relatively small subset of that
+data. Reading in and parsing an entire 200 GB file to find a few
+alignments of interest is not a very useful approach; instead, we want
+to build indexes to enable quick location of the alignments to parse.</p>
+
+<p>This was, in fact, my <a href="https://github.com/csw/bioruby-maf/issues?milestone=2&amp;state=closed">milestone</a> for this week: to be able to build
+an index for a MAF file, identify alignment blocks matching a region
+of interest, and then selectively parse those blocks from the MAF
+file. The two MAF implementations I&#8217;m aware of that use a similar
+indexing scheme are <a href="https://github.com/polyatail/biopython/tree/alignio-maf">Biopython</a> and <a href="https://bitbucket.org/james_taylor/bx-python/wiki/Home">bx-python</a>; Biopython uses the
+SQLite embedded relational database to build its indexes, and
+bx-python uses a custom <a href="https://bitbucket.org/james_taylor/bx-python/src/07aca5a9f6fc/lib/bx/interval_index_file.py">index file format</a>. (I believe the UCSC
+genome browser uses MySQL for indexing in general, but I&#8217;m not sure
+whether this is applied to MAF files directly.)</p>
+
+<h3>SQLite vs. Kyoto Cabinet</h3>
+
+<p>The plan I started with was to use SQLite for indexing in a similar
+way to Biopython, in order to bring up functional code with indexing
+support as quickly as possible. I reasoned that being able to use SQL
+for declarative queries would make this simpler than, say, using a
+key-value store such as <a href="http://fallabs.com/kyotocabinet/">Kyoto Cabinet</a> or <a href="http://en.wikipedia.org/wiki/Berkeley_DB">Berkeley DB</a>, let
+alone implementing a <em>sui generis</em> indexing system such as the one
+bx-python uses.</p>
+
+<p>My first task, though, was to understand the UCSC
+<a href="http://genomewiki.ucsc.edu/index.php/Bin_indexing_system">bin indexing system</a>, which is used by all MAF indexing
+implementations. It was not particularly clear to me how it worked,
+even after looking at several implementations of it, until I finally
+read the <a href="http://genome.cshlp.org/content/12/6/996.full">paper</a> describing it and illustrating its hierarchical
+nature. I still don&#8217;t understand why Biopython <a href="https://github.com/polyatail/biopython/blob/alignio-maf/Bio/AlignIO/MafIO.py#L318">always searches</a> bin
+1, which was puzzling me for a while; I need to ask the author.</p>
+
+<p>I ran into a series of problems with using SQLite,
+unfortunately. First, the standard <code>sqlite3</code> gem uses the C extension
+API rather than FFI, and so does not work with JRuby. To use the same
+code with the native and JDBC drivers, I needed to use the
+unmaintained DBI/DBD library. (I subsequently learned that <a href="http://sequel.rubyforge.org/">Sequel</a>
+might have worked as well, but after I&#8217;d already decided to try
+another tack.) The DBI interface also had the unfortunate feature of
+returning all numeric values as strings, which was not what I would
+hope for in performance-critical code.</p>
+
+<p>Also, I discovered that SQLite does not have clustered indexes,
+meaning that I needed to create a table just to hold the index data,
+and then a separate index within SQLite for that data. This duplicates
+the index data, which is also not ideal.</p>
+
+<p>Most of all, though, SQL simply turned out to be too
+cumbersome. Explicitly creating and indexing tables and checking for
+their existence started consuming more of my effort than I would have
+liked. Biopython&#8217;s <a href="https://github.com/polyatail/biopython/blob/alignio-maf/Bio/AlignIO/MafIO.py#L384">implementation</a> ended up running a SQL query for
+each possible bin for each range of interest; I knew that it should be
+possible to execute a search like this while only having to make a
+single pass through the index data for each bin. It wasn&#8217;t clear that
+there was a good (and simple) way to do this in SQL, though.</p>
+
+<p>In frustration, I opened up the Kyoto Cabinet documentation, studied
+the available features for prefix and range searches, and wrote out
+the <a href="https://github.com/csw/bioruby-maf/blob/4b0fb7b97c6185d912515dbf1903c0f066d2b901/lib/bio/maf/index.rb#L122">algorithm</a> I had in mind. My biggest decision point was how
+exactly to store the index data. In the past, I&#8217;ve always favored
+human-readable data representations; I&#8217;ve generally dealt with small
+amounts of data in situations where being able to see the data
+immediately with View Source or a packet trace is invaluable. Here,
+though, after adding things up I realized I could use a binary
+representation and use a mere 24 bytes per index record. This actually
+may be the first time I&#8217;ve written something to output a binary data
+representation, but I think it was well worth it.</p>
+
+<p>Once I sat down to actually implement the Kyoto Cabinet version, I was
+amazed how much simpler it was than the SQLite version. I could step
+through the data just the way I wanted to, and do whatever computation
+seemed appropriate on the way. I pulled together a running version
+very quickly, and simply applied the same RSpec tests to both.</p>
+
+<p>For both implementations of this indexing code, I found RSpec
+invaluable. I made a fairly rigorous effort to implement this in
+BDD/TDD style, writing <a href="https://github.com/csw/bioruby-maf/blob/4b0fb7b97c6185d912515dbf1903c0f066d2b901/spec/bio/maf/index_spec.rb">tests</a> for each bit of behavior I could
+think of to specify. This gave me a great deal of confidence in
+optimizing and tweaking the index search code.</p>
+
+<h3>Kyoto Cabinet results</h3>
+
+<p>I&#8217;m now very happy with the Kyoto Cabinet code; I also expect it to be
+easily adapted to other key-value stores such as leveldb or Berkeley
+DB.</p>
+
+<p>Getting Kyoto Cabinet working on JRuby has posed a bit of a headache
+too, unfortunately. Its Ruby library also uses the C extension API, so
+I plan to use the Kyoto Cabinet Java library instead, with a thin
+adaptation layer to present a compatible interface to the Ruby
+library. This approach has been promising, except that a few of the
+methods in the Java library seem to encounter string encoding problems
+with binary data, returning garbage strings (probably containing
+Unicode &#8216;REPLACEMENT CHARACTER&#8217;, I need to check) rather than the
+expected data. Many of the Java methods have separate String and
+byte[] versions, but not all. Ironically, the trickiest problems of
+this kind are caused by <code>DB#match_prefix</code> calls in my unit tests,
+rather than in the actual indexing code.</p>
+
+<p>Another oddity has been that there don&#8217;t appear to be any Ubuntu
+packages in usable form for Kyoto Cabinet. This is strange, since it&#8217;s
+hardly the most obscure software I&#8217;ve wanted packages for. I don&#8217;t
+need these for development, but <a href="http://travis-ci.org/">Travis CI</a> doesn&#8217;t provide Kyoto
+Cabinet, so I have to install it myself there to get CI working
+again. Since I&#8217;m not about to teach myself Debian packaging just for
+this, I&#8217;ve written a <a href="https://github.com/csw/bioruby-maf/blob/0c2eabdd5f2e2efe2c3fd3e9559e84bed6dd1dec/travis-ci/install_kc">horrible shell script</a> instead for the time
+being. (What would really be nice is an easy way to run user-provided
+Chef recipes on Travis CI, but they don&#8217;t appear to provide one.)</p>
+
+<h3>Random-access parsing</h3>
+
+<p>The trickiest part of the whole effort may have been figuring out how
+to revise the parsing code to work in a truly random-access fashion,
+and in a way that will be compatible with <a href="http://blastedbio.blogspot.com/2011/11/bgzf-blocked-bigger-better-gzip.html">BGZF</a> compression later
+on. What I ended up doing was extracting a separate <a href="https://github.com/csw/bioruby-maf/blob/4b0fb7b97c6185d912515dbf1903c0f066d2b901/lib/bio/maf/parser.rb#L57">ChunkReader</a>
+class responsible for positioning within the file and reading
+appropriately-sized chunks of it as requested while maintaining proper
+chunk alignment. Together with other code to <a href="https://github.com/csw/bioruby-maf/blob/4b0fb7b97c6185d912515dbf1903c0f066d2b901/lib/bio/maf/parser.rb#L138">merge requests</a> for
+adjoining or nearby alignment blocks, this keeps the basic parsing
+logic intact but should avoid either excessive or excessively large
+reads.</p>
+
+<p>This also means that the indexing code simply provides the starting
+offset of each block, and the parser is responsible for reading ahead
+as appropriate. This should be perfectly compatible with a BGZF layer,
+even if an alignment block spans the boundary between separate BGZF
+blocks. (Alignment blocks, chunks, and now BGZF blocks&#8230; I may be
+heading for a terminology problem here.)</p>
+
+<h3>Next steps</h3>
+
+<p>This week, I&#8217;m focusing on providing additional logic for filtering
+and querying for sequences and alignment blocks. I&#8217;m also working on a
+few ideas to optimize index creation, and I hope to get my index code
+running on JRuby soon.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[First milestone]]></title>
