@@ -1,0 +1,9 @@
+#!/bin/bash
+
+## NOTE: I am aware that this shell script is horrible.
+
+cd /tmp
+wget http://fallabs.com/kyotocabinet/pkg/kyotocabinet-1.2.76.tar.gz
+tar xzf kyotocabinet-1.2.76.tar.gz
+cd kyotocabinet-1.2.76
+./configure && make && make install
