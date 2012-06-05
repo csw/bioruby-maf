@@ -48,6 +48,21 @@ module Java::Kyotocabinet
         return nil
       end
     end
+
+    alias_method :_get_key, :get_key
+    def get_key(step=false)
+      r = self._get_key(step)
+      if r
+        return String.from_java_bytes(r)
+      else
+        return nil
+      end
+    end
+
+    alias_method :_jump, :jump
+    def jump(key)
+      self._jump(key.to_java_bytes)
+    end
   end # class Cursor
 
   class DB
@@ -58,6 +73,11 @@ module Java::Kyotocabinet
 
     def [](key)
       get(key)
+    end
+
+    alias_method :_set, :set
+    def set(k, v)
+      self._set(k.to_java_bytes, v.to_java_bytes)
     end
 
     def cursor_process

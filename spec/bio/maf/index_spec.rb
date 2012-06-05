@@ -4,6 +4,18 @@ module Bio
   module MAF
 
     describe KyotoIndex do
+      def has_at_least_n_with_prefix(n, start)
+        @idx.db.cursor_process do |cur|
+          i = 0
+          cur.jump(start)
+          k = cur.get_key(true)
+          $stderr.puts "saw key: #{k}"
+          while k && k.start_with?(start) && i < n
+            i += 1
+          end
+          return i == n
+        end
+      end
 
       describe ".build" do
         it "accepts '%' as a path for an in-memory DB" do
@@ -25,8 +37,7 @@ module Bio
             @idx.index_sequences.to_a.should == [["mm8.chr7", 0]]
           end
           it "creates 8 index entries" do
-            keys = @idx.db.match_prefix("\xFF\x00")
-            keys.size.should == 8
+            has_at_least_n_with_prefix(8, "\xFF\x00").should be_true
           end
           it "stores the sequence IDs" do
             @idx.db.match_prefix("sequence:").size.should == 1
