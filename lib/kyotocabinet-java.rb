@@ -36,48 +36,71 @@ rescue NameError
   end
 end
 
+module KyotoCabinet
+  module Adaptation
+    BYTE_ARRAY = [1].to_java(:byte).java_class
+
+    def self.with_method_handle(mname, *args)
+      yield self.java_method(mname, args)
+    end
+  end
+end
+
 module Java::Kyotocabinet
   class Cursor
-    alias_method :_get, :get
-    def get(step=false)
-      r = self._get(step)
-      if r
-        return [String.from_java_bytes(r[0]),
-                String.from_java_bytes(r[1])]
-      else
-        return nil
+    include KyotoCabinet::Adaptation
+
+    with_method_handle(:get, BYTE_ARRAY, BYTE_ARRAY) do |m|
+      def get(step=false)
+        r = m.call(step)
+        if r
+          return [String.from_java_bytes(r[0]),
+                  String.from_java_bytes(r[1])]
+        else
+          return nil
+        end
       end
     end
 
-    alias_method :_get_key, :get_key
-    def get_key(step=false)
-      r = self._get_key(step)
-      if r
-        return String.from_java_bytes(r)
-      else
-        return nil
+    with_method_handle(:get_key, java.lang.Boolean) do |m|
+      def get_key(step=false)
+        r = m.call(step)
+        if r
+          return String.from_java_bytes(r)
+        else
+          return nil
+        end
       end
     end
 
-    alias_method :_jump, :jump
-    def jump(key)
-      self._jump(key.to_java_bytes)
+    with_method_handle(:jump, BYTE_ARRAY) do |m|
+      def jump(key)
+        m.call(key.to_java_bytes)
+      end
     end
   end # class Cursor
 
   class DB
+    include KyotoCabinet::Adaptation
+
     alias_method :_match_prefix, :match_prefix
-    def match_prefix(prefix, limit=-1)
-      _match_prefix(prefix, limit)
+    with_method_handle(:match_prefix, java.lang.String, java.lang.Integer) do |m|
+      def match_prefix(prefix, limit=-1)
+        m.call(prefix, limit)
+      end
     end
 
-    def [](key)
-      get(key)
+    with_method_handle(:get, BYTE_ARRAY) do |m|
+      def get(key)
+        m.call(key)
+      end
+      alias_method :[], :get
     end
 
-    alias_method :_set, :set
-    def set(k, v)
-      self._set(k.to_java_bytes, v.to_java_bytes)
+    with_method_handle(:set, BYTE_ARRAY, BYTE_ARRAY) do |m|
+      def set(k, v)
+        m.call(k.to_java_bytes, v.to_java_bytes)
+      end
     end
 
     def cursor_process
