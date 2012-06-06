@@ -12,6 +12,8 @@ module Bio
       attr_reader :db
       attr_accessor :index_sequences
 
+      FORMAT_VERSION_KEY = 'bio-maf:index-format-version'
+      FORMAT_VERSION = 2
       KEY_FMT = "CCS>L>L>"
       KEY_SCAN_FMT = "xCS>L>L>"
       CHROM_BIN_PREFIX_FMT = "CCS>"
@@ -196,6 +198,7 @@ module Bio
       def build_default(parser)
         first_block = parser.parse_block
         ref_seq = first_block.sequences.first.source
+        db[FORMAT_VERSION_KEY] = FORMAT_VERSION
         @index_sequences = { ref_seq => 0 }
         store_index_sequences!
         index_block(first_block)
