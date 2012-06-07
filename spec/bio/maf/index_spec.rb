@@ -202,13 +202,14 @@ module Bio
         @idx = KyotoIndex.build(@p, '%')
       end
 
-      def fake_entry_with(species_l)
-        ids = species_l.collect {|s| @idx.species.fetch(s)}
-        vec = ids.collect { |id| 1 << id }.reduce(0, :|)
-        return ['', [0, 0, 0, vec].pack(KyotoIndex::VAL_FMT)]
-      end
+      describe AllSpeciesFilter do
+        def fake_entry_with(species_l)
+          ids = species_l.collect {|s| @idx.species.fetch(s)}
+          vec = ids.collect { |id| 1 << id }.reduce(0, :|)
+          return ['', [0, 0, 0, vec].pack(KyotoIndex::VAL_FMT)]
+        end
 
-        context "with an empty set" do
+       context "with an empty set" do
           before(:each) do
             @filter = AllSpeciesFilter.new([], @idx)
           end
@@ -244,12 +245,31 @@ module Bio
             @filter.match(e).should be_true
           end
         end
-      end
+      end # AllSpeciesFilter
+
+      describe AtLeastNSequencesFilter do
+        def fake_entry_with(n)
+          return ['', [0, 0, n, (1 << n) - 1].pack(KyotoIndex::VAL_FMT)]
+        end
+        context "n = 3" do
+          before(:each) do
+            @filter = AtLeastNSequencesFilter.new(3, @idx)
+          end
+          it "does not match 2 sequences" do
+            e = fake_entry_with(2)
+            @filter.match(e).should be_false
+          end
+          it "matches 3 sequences" do
+            e = fake_entry_with(3)
+            @filter.match(e).should be_true
+          end
+        end
+      end # AtLeastNSequencesFilter
       
       after(:each) do
         @idx.close
       end
-    end
+    end # filter classes
 
   end # module MAF
   

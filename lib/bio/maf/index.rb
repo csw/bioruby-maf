@@ -315,10 +315,25 @@ module Bio
       end
     end
 
+    class AtLeastNSequencesFilter < Filter
+      attr_reader :n
+      def initialize(n, idx)
+        @n = n
+      end
+
+      def match(entry)
+        bs = BitString.new(extract_species_vec(entry))
+        bs.population(1) >= n
+      end
+    end
+
     class Filters
       include KVHelpers
 
-      FILTER_CLASSES = { :with_all_species => MAF::AllSpeciesFilter }
+      FILTER_CLASSES = {
+        :with_all_species => MAF::AllSpeciesFilter,
+        :at_least_n_sequences => MAF::AtLeastNSequencesFilter
+      }
 
       def self.build(spec, idx)
         l = spec.collect do |key, val|
