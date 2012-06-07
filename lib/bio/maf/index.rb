@@ -41,6 +41,8 @@ module Bio
       attr_reader :db, :species
       attr_accessor :index_sequences
 
+      MAX_SPECIES = 64
+
       ## Key-value store index format
       ##
       ## This format is designed for Kyoto Cabinet but should work on
@@ -248,6 +250,9 @@ module Bio
             return species[species_name]
           else
             species_id = @species_max_id + 1
+            if species_id >= MAX_SPECIES
+              raise "cannot index MAF file with more than #{MAX_SPECIES} species"
+            end
             species[species_name] = species_id
             db["species:#{species_name}"] = species_id
             @species_max_id = species_id
