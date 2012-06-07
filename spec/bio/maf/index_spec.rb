@@ -202,12 +202,11 @@ module Bio
         @idx = KyotoIndex.build(@p, '%')
       end
 
-      describe AllSpeciesFilter do
-        def fake_entry_with(species_l)
-          ids = species_l.collect {|s| @idx.species.fetch(s)}
-          vec = ids.collect { |id| 1 << id }.reduce(0, :|)
-          return ['', [0, 0, vec].pack(KyotoIndex::VAL_FMT)]
-        end
+      def fake_entry_with(species_l)
+        ids = species_l.collect {|s| @idx.species.fetch(s)}
+        vec = ids.collect { |id| 1 << id }.reduce(0, :|)
+        return ['', [0, 0, 0, vec].pack(KyotoIndex::VAL_FMT)]
+      end
 
         context "with an empty set" do
           before(:each) do

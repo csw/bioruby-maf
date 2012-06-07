@@ -13,9 +13,9 @@ module Bio
       KEY_FMT = "CCS>L>L>"
       KEY_SCAN_FMT = "xCS>L>L>"
       CHROM_BIN_PREFIX_FMT = "CCS>"
-      VAL_FMT = "Q>L>Q>"
+      VAL_FMT = "Q>L>CQ>"
       VAL_IDX_OFFSET_FMT = "Q>L>"
-      VAL_SPECIES_FMT = "@12Q>"
+      VAL_SPECIES_FMT = "@13Q>"
 
       module_function
       def extract_species_vec(entry)
@@ -272,6 +272,7 @@ module Bio
         end
         return [block.offset,
                 block.size,
+                block.sequences.size,
                 species_vec.to_i].pack(VAL_FMT)
       end
 
