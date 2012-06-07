@@ -15,6 +15,6 @@ When /^search for blocks between positions (\d+) and (\d+) of (\S+)$/ do |i_star
   @blocks = @idx.find([int], @parser)
 end
 
-Then /^(\d+) blocks are obtained$/ do |num|
+Then /^(\d+) blocks? (?:is|are) obtained$/ do |num|
   @blocks.size.should == num.to_i
 end
