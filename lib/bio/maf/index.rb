@@ -1,4 +1,5 @@
 require 'kyotocabinet'
+require 'bitstring'
 
 require 'bio-ucsc-api'
 require 'bio-genomic-interval'
@@ -7,15 +8,38 @@ module Bio
 
   module MAF
 
-    class KyotoIndex
-
-      attr_reader :db
-      attr_accessor :index_sequences
+    module KVHelpers
 
       KEY_FMT = "CCS>L>L>"
       KEY_SCAN_FMT = "xCS>L>L>"
       CHROM_BIN_PREFIX_FMT = "CCS>"
-      VAL_FMT = "Q>L>"
+      VAL_FMT = "Q>L>Q>"
+      VAL_IDX_OFFSET_FMT = "Q>L>"
+      VAL_SPECIES_FMT = "@12Q>"
+
+      module_function
+      def extract_species_vec(entry)
+        entry[1].unpack(VAL_SPECIES_FMT)[0]
+      end
+
+      def extract_index_offset(entry)
+        entry[1].unpack(VAL_IDX_OFFSET_FMT)
+      end
+
+      def unpack_key(ks)
+        ks.unpack(KEY_FMT)
+      end
+
+      def bin_start_prefix(chrom_id, bin)
+        [0xFF, chrom_id, bin].pack(CHROM_BIN_PREFIX_FMT)
+      end
+    end
+
+    class KyotoIndex
+      include KVHelpers
+
+      attr_reader :db, :species
+      attr_accessor :index_sequences
 
       ## Key-value store index format
       ##
@@ -92,8 +116,8 @@ module Bio
       # Find all alignment blocks in the genomic regions in the list
       # of Bio::GenomicInterval objects INTERVALS, and parse them with
       # PARSER.
-      def find(intervals, parser)
-        parser.fetch_blocks(fetch_list(intervals))
+      def find(intervals, parser, filter={})
+        parser.fetch_blocks(fetch_list(intervals, filter))
       end
 
       # Close the underlying Kyoto Cabinet database handle.
@@ -104,6 +128,8 @@ module Bio
       #### KyotoIndex Internals
 
       def initialize(path)
+        @species = {}
+        @species_max_id = -1
         if (path.size > 1) and File.exist?(path)
           mode = KyotoCabinet::DB::OREADER
         else
@@ -141,8 +167,10 @@ module Bio
 
       # Build a fetch list of alignment blocks to read, given an array
       # of Bio::GenomicInterval objects
-      def fetch_list(intervals)
+      def fetch_list(intervals, filter_spec={})
         to_fetch = []
+        filter_spec ||= {}
+        filters = Filters.build(filter_spec, self)
         chrom = intervals.first.chrom
         chrom_id = index_sequences[chrom]
         unless chrom_id
@@ -176,7 +204,9 @@ module Bio
               if c_end >= spanning_start # possible overlap
                 c_int = GenomicInterval.zero_based(chrom, c_start, c_end)
                 if bin_intervals.find { |i| i.overlapped?(c_int) }
-                  to_fetch << pair[1].unpack(VAL_FMT)
+                  if filters.match(pair)
+                    to_fetch << extract_index_offset(pair)
+                  end
                 end
               end
             end
@@ -185,15 +215,7 @@ module Bio
         return to_fetch
       end # #fetch_list
 
-      def unpack_key(ks)
-        ks.unpack(KEY_FMT)
-      end
-
-      def bin_start_prefix(chrom_id, bin)
-        [0xFF, chrom_id, bin].pack(CHROM_BIN_PREFIX_FMT)
-      end
-
-      def build_default(parser)
+     def build_default(parser)
         first_block = parser.parse_block
         ref_seq = first_block.sequences.first.source
         @index_sequences = { ref_seq => 0 }
@@ -218,27 +240,105 @@ module Bio
         end
       end
 
+      def species_id_for_seq(seq)
+        parts = seq.split('.')
+        if parts.size == 2
+          species_name = parts[0]
+          if species.has_key? species_name
+            return species[species_name]
+          else
+            species_id = @species_max_id + 1
+            species[species_name] = species_id
+            db["species:#{species_name}"] = species_id
+            @species_max_id = species_id
+            return species_id
+          end
+        else
+          # not in species.sequence format, apparently
+          return nil
+        end
+      end
+
       def index_block(block)
         entries_for(block).each do |k, v|
           db.set(k, v)
         end
       end
 
+      def build_block_value(block)
+        species_vec = BitString.new(0, 64)
+        block.sequences.each do |seq|
+          species_vec[species_id_for_seq(seq.source)] = 1
+        end
+        return [block.offset,
+                block.size,
+                species_vec.to_i].pack(VAL_FMT)
+      end
+
       def entries_for(block)
         e = []
+        val = build_block_value(block)
         block.sequences.each do |seq|
           seq_id = index_sequences[seq.source]
           next unless seq_id
           seq_end = seq.start + seq.size
           bin = Bio::Ucsc::UcscBin.bin_from_range(seq.start, seq_end)
           key = [255, seq_id, bin, seq.start, seq_end].pack(KEY_FMT)
-          val = [block.offset, block.size].pack(VAL_FMT)
           e << [key, val]
         end
         return e
       end
+    end # class KyotoIndex
+
+    class Filter
+      include KVHelpers
+
+      def call(e)
+        match(e)
+      end
     end
 
-  end
+    class AllSpeciesFilter < Filter
+      attr_reader :bs
+      def initialize(species, idx)
+        bs = BitString.new(0, 64)
+        species.each do |species_name|
+          bs[idx.species.fetch(species_name)] = 1
+        end
+        @bs = bs
+      end
+
+      def match(entry)
+        vec = extract_species_vec(entry)
+        (@bs & vec) == @bs
+      end
+    end
+
+    class Filters
+      include KVHelpers
+
+      FILTER_CLASSES = { :with_all_species => MAF::AllSpeciesFilter }
+
+      def self.build(spec, idx)
+        l = spec.collect do |key, val|
+          if FILTER_CLASSES.has_key? key
+            FILTER_CLASSES[key].new(val, idx)
+          else
+            raise "Unsupported filter key #{key}!"
+          end
+        end
+        return Filters.new(l)
+      end
+
+      def initialize(l)
+        @l = l
+      end
+
+      def match(entry)
+        return ! @l.find { |f| ! f.call(entry) }
+      end
+    end
+
+  end # module MAF
   
 end

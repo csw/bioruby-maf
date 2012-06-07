@@ -130,7 +130,7 @@ module Bio
         cr.read_chunk
       end
 
-     def fetch_blocks(fetch_list)
+      def fetch_blocks(fetch_list, filters=nil)
         ## fetch_list: array of [offset, length, block_count] tuples
         ## returns array of Blocks
         return fetch_blocks_merged(merge_fetch_list(fetch_list))

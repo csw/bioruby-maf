@@ -196,6 +196,62 @@ module Bio
 
     end
 
+    describe "Filter classes" do
+      before(:each) do 
+        @p = Parser.new(TestData + 'mm8_chr7_tiny.maf')
+        @idx = KyotoIndex.build(@p, '%')
+      end
+
+      describe AllSpeciesFilter do
+        def fake_entry_with(species_l)
+          ids = species_l.collect {|s| @idx.species.fetch(s)}
+          vec = ids.collect { |id| 1 << id }.reduce(0, :|)
+          return ['', [0, 0, vec].pack(KyotoIndex::VAL_FMT)]
+        end
+
+        context "with an empty set" do
+          before(:each) do
+            @filter = AllSpeciesFilter.new([], @idx)
+          end
+          it "matches anything" do
+            e = fake_entry_with(%w(mm8 rn4 oryCun1))
+            @filter.match(e).should be_true
+          end
+        end
+        context "with [mm8 rn4]" do
+          before(:each) do
+            @filter = AllSpeciesFilter.new(%w(mm8 rn4), @idx)
+          end
+          it "does not match an empty entry" do
+            e = fake_entry_with(%w())
+            KVHelpers.extract_species_vec(e).should == 0
+            @filter.bs.should_not == 0
+            @filter.match(e).should be_false
+          end
+          it "does not match an entry with mm8" do
+            e = fake_entry_with(%w(mm8))
+            @filter.match(e).should be_false
+          end
+          it "does not match an entry with mm8 oryCun1" do
+            e = fake_entry_with(%w(mm8 oryCun1))
+            @filter.match(e).should be_false
+          end
+          it "matches an entry with mm8 rn4" do
+            e = fake_entry_with(%w(mm8 rn4))
+            @filter.match(e).should be_true
+          end
+          it "does not match an entry with mm8 rn4 oryCun1" do
+            e = fake_entry_with(%w(mm8 rn4 oryCun1))
+            @filter.match(e).should be_true
+          end
+        end
+      end
+      
+      after(:each) do
+        @idx.close
+      end
+    end
+
   end # module MAF
   
 end # module Bio

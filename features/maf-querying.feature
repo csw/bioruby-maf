@@ -27,3 +27,14 @@ Feature: Filter results from MAF files
     | rheMac2 |
     Then an alignment block can be obtained
     And the alignment block has 3 sequences
+
+  Scenario: Return only blocks having all specified species
+    Given a MAF source file "mm8_chr7_tiny.maf"
+    When I open it with a MAF reader
+    And build an index on the reference sequence
+    And filter for blocks with the species
+    | panTro2 |
+    | loxAfr1 |
+    And search for blocks between positions 80082471 and 80082730 of mm8.chr7
+    Then 1 block is obtained
+
