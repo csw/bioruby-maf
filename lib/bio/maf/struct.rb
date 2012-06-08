@@ -18,6 +18,10 @@ module Bio
         end
       end
 
+      def fmt
+        @members.collect { |m| m.fmt }.join('')
+      end
+
       def extractor_fmt(*names)
         extract = names.collect { |name| @by_name.fetch(name) }
         extract.sort_by! { |m| m.offset }

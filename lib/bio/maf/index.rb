@@ -8,14 +8,27 @@ module Bio
 
     module KVHelpers
 
-      KEY_FMT = "CCS>L>L>"
-      KEY_SCAN_FMT = "xCS>L>L>"
-      CHROM_BIN_PREFIX_FMT = "CCS>"
-      VAL_FMT = "Q>L>L>CQ>"
-      VAL_IDX_OFFSET_FMT = "Q>L>"
-      VAL_TEXT_SIZE_FMT = "@12L>"
-      VAL_SPECIES_FMT = "@17Q>"
-      VAL_N_SEQ_FMT = "@16C"
+      KEY = Struct.new([[:marker,    :uint8],
+                        [:seq_id,    :uint8],
+                        [:bin,       :uint16],
+                        [:seq_start, :uint32],
+                        [:seq_end,   :uint32]])
+
+      VAL = Struct.new([[:offset,      :uint64],
+                        [:length,      :uint32],
+                        [:text_size,   :uint32],
+                        [:n_seq,       :uint8],
+                        [:species_vec, :uint64]])
+
+      KEY_FMT = KEY.fmt
+      KEY_SCAN_FMT = KEY.extractor_fmt(:seq_id, :bin, :seq_start, :seq_end)
+      CHROM_BIN_PREFIX_FMT = KEY.extractor_fmt(:marker, :seq_id, :bin)
+
+      VAL_FMT = VAL.fmt
+      VAL_IDX_OFFSET_FMT = VAL.extractor_fmt(:offset, :length)
+      VAL_TEXT_SIZE_FMT = VAL.extractor_fmt(:text_size)
+      VAL_N_SEQ_FMT = VAL.extractor_fmt(:n_seq)
+      VAL_SPECIES_FMT = VAL.extractor_fmt(:species_vec)
 
       module_function
 

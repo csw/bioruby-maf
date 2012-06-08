@@ -5,6 +5,16 @@ module Bio
 
     describe Struct do
 
+      describe "#fmt" do
+        it "presents all members in order" do
+          @s = Struct.new([[:a, :uint16],
+                           [:b, :uint32],
+                           [:c, :uint32],
+                           [:d, :uint8]])
+          @s.fmt.should == "S>L>L>C"
+        end
+      end
+
       describe "#extractor_fmt" do
         it "handles uint8" do
           @s = Struct.new([[:marker, :uint8]])
