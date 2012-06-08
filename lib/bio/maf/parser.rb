@@ -30,12 +30,16 @@ module Bio
         @vars, @sequences, @offset, @size = args
       end
 
-     def raw_seq(i)
+      def raw_seq(i)
         sequences.fetch(i)
       end
 
       def each_raw_seq
         sequences.each { |s| yield s }
+      end
+
+      def text_size
+        sequences.first.text.size
       end
 
     end
@@ -106,6 +110,7 @@ module Bio
 
       attr_reader :header, :file_spec, :f, :s, :cr, :at_end
       attr_reader :chunk_start, :chunk_size, :last_block_pos
+      attr_accessor :sequence_filter
 
       SEQ_CHUNK_SIZE = 8 * 1024 * 1024
 
@@ -129,7 +134,7 @@ module Bio
         cr.read_chunk
       end
 
-     def fetch_blocks(fetch_list)
+      def fetch_blocks(fetch_list, filters=nil)
         ## fetch_list: array of [offset, length, block_count] tuples
         ## returns array of Blocks
         return fetch_blocks_merged(merge_fetch_list(fetch_list))
@@ -299,6 +304,12 @@ module Bio
           case line[0]
           when 's'
             _, src, start, size, strand, src_size, text = line.split
+            if sequence_filter
+              if sequence_filter[:only_species]
+                m = sequence_filter[:only_species].find { |sp| src.start_with? sp }
+                next unless m
+              end
+            end
             seqs << Sequence.new(src,
                                  start.to_i,
                                  size.to_i,
