@@ -279,7 +279,9 @@ module Bio
       end
 
       def species_id_for_seq(seq)
-        parts = seq.split('.')
+        # NB can have multiple dots
+        # example: otoGar1.scaffold_104707.1-93001
+        parts = seq.split('.', 2)
         if parts.size == 2
           species_name = parts[0]
           if species.has_key? species_name
@@ -307,15 +309,13 @@ module Bio
       end
 
       def build_block_value(block)
-        species_vec = BitString.new(0, 64)
-        block.sequences.each do |seq|
-          species_vec[species_id_for_seq(seq.source)] = 1
-        end
+        bits = block.sequences.collect {|s| 1 << species_id_for_seq(s.source) }
+        vec = bits.reduce(0, :|)
         return [block.offset,
                 block.size,
                 block.text_size,
                 block.sequences.size,
-                species_vec.to_i].pack(VAL_FMT)
+                vec].pack(VAL_FMT)
       end
 
       def entries_for(block)
@@ -344,16 +344,13 @@ module Bio
     class AllSpeciesFilter < Filter
       attr_reader :bs
       def initialize(species, idx)
-        bs = BitString.new(0, 64)
-        species.each do |species_name|
-          bs[idx.species.fetch(species_name)] = 1
-        end
-        @bs = bs
+        ids = species.collect {|s| 1 << idx.species.fetch(s) }
+        @mask = ids.reduce(0, :|)
       end
 
       def match(entry)
         vec = extract_species_vec(entry)
-        (@bs & vec) == @bs
+        (@mask & vec) == @mask
       end
     end
 
