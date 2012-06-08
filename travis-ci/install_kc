@@ -1,0 +1,13 @@
+#!/bin/bash
+
+## NOTE: I am aware that this shell script is horrible.
+
+cd /tmp
+wget http://fallabs.com/kyotocabinet/pkg/kyotocabinet-1.2.76.tar.gz
+tar xzf kyotocabinet-1.2.76.tar.gz
+cd kyotocabinet-1.2.76
+./configure && make && make install
+grep -q local /etc/ld.so.conf
+if [ $? -ne 0 ]; then
+  echo "/usr/local/lib" >> /etc/ld.so.conf && ldconfig
+fi
