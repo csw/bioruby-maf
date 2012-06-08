@@ -1,0 +1,7 @@
+##maf version=1
+a score=10542.0
+s mm8.chr7                 80082334 34 + 145134094 GGGCTGAGGGC--AGGGATGG---AGGGCGGTCC--------------CAGCA- 
+s rn4.chr1                136011785 34 + 267910886 GGGCTGAGGGC--AGGGACGG---AGGGCGGTCC--------------CAGCA- 
+s oryCun1.scaffold_199771     14021 43 -     75077 -----ATGGGC--AAGCGTGG---AGGGGAACCTCTCCTCCCCTCCGACAAAG- 
+s hg18.chr15               88557580 27 + 100338915 --------GGC--AAGTGTGGA--AGGGAAGCCC--------------CAGAA- 
+s hg181.chr15            87959837 27 + 100063422 --------GGC--AAGTGTGGA--AGGGAAGCCC--------------CAGAA- 

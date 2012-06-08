@@ -181,6 +181,20 @@ module Bio
         end
       end
 
+      describe "sequence_filter" do
+        before(:each) do
+          @p = described_class.new(TestData + 'mm8_mod_a.maf')
+        end
+        it "restricts sequences parsed" do
+          @p.sequence_filter = { :only_species => %w(mm8 rn4) }
+          @p.parse_block.sequences.size.should == 2
+        end
+        it "matches at the species delimiter rather than a prefix" do
+          @p.sequence_filter = { :only_species => %w(mm8 hg18) }
+          @p.parse_block.sequences.size.should == 2
+        end
+      end
+
       context "at end of file" do
         describe "#parse_block" do
           it "returns nil"

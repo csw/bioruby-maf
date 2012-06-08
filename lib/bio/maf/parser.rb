@@ -306,7 +306,8 @@ module Bio
             _, src, start, size, strand, src_size, text = line.split
             if sequence_filter
               if sequence_filter[:only_species]
-                m = sequence_filter[:only_species].find { |sp| src.start_with? sp }
+                src_sp = src.split('.', 2)[0]
+                m = sequence_filter[:only_species].find { |sp| src_sp == sp }
                 next unless m
               end
             end
