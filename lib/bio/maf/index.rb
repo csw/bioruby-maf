@@ -1,6 +1,4 @@
 require 'kyotocabinet'
-require 'bitstring'
-
 require 'bio-ucsc-api'
 require 'bio-genomic-interval'
 
