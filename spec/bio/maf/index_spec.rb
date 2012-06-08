@@ -249,7 +249,7 @@ module Bio
 
       describe AtLeastNSequencesFilter do
         def fake_entry_with(n)
-          return ['', [0, 0, 0, n, (1 << n) - 1].pack(KyotoIndex::VAL_FMT)]
+          return ['', [0, 0, 0, n, 0].pack(KyotoIndex::VAL_FMT)]
         end
         context "n = 3" do
           before(:each) do

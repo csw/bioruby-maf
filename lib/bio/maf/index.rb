@@ -17,11 +17,16 @@ module Bio
       VAL_IDX_OFFSET_FMT = "Q>L>"
       VAL_TEXT_SIZE_FMT = "@12L>"
       VAL_SPECIES_FMT = "@17Q>"
+      VAL_N_SEQ_FMT = "@16C"
 
       module_function
 
       def extract_species_vec(entry)
         entry[1].unpack(VAL_SPECIES_FMT)[0]
+      end
+
+      def extract_n_sequences(entry)
+        entry[1].unpack(VAL_N_SEQ_FMT)[0]
       end
 
       def extract_index_offset(entry)
@@ -361,8 +366,7 @@ module Bio
       end
 
       def match(entry)
-        bs = BitString.new(extract_species_vec(entry))
-        bs.population(1) >= n
+        extract_n_sequences(entry) >= @n
       end
     end
 
