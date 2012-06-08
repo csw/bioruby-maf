@@ -19,6 +19,7 @@ module Bio
       VAL_SPECIES_FMT = "@17Q>"
 
       module_function
+
       def extract_species_vec(entry)
         entry[1].unpack(VAL_SPECIES_FMT)[0]
       end
@@ -33,8 +34,8 @@ module Bio
 
       def unpack_key(ks)
         ks.unpack(KEY_FMT)
-
       end
+
       def bin_start_prefix(chrom_id, bin)
         [0xFF, chrom_id, bin].pack(CHROM_BIN_PREFIX_FMT)
       end
@@ -93,7 +94,6 @@ module Bio
       ##
       ##   MAF file offset (64 bits)
       ##   MAF alignment block length (32 bits)
-      ##
       ##   Block text size (32 bits)
       ##   Number of sequences in block (8 bits)
       ##   Species bit vector (64 bits)
@@ -156,15 +156,6 @@ module Bio
         end
       end
 
-      ## Retrieval:
-      ##  1. merge the intervals of interest
-      ##  2. for each interval, compute the bins with #bin_all
-      ##  3. for each bin to search, make a list of intervals of
-      ##     interest
-      ##  4. compute the spanning interval for that bin
-      ##  5. start at the beginning of the bin
-      ##  6. if a record intersects the spanning interval: 
-      ##    A. #find an interval it intersects
       def dump(stream=$stdout)
         stream.puts "KyotoIndex dump: #{@path}"
         stream.puts
@@ -192,6 +183,15 @@ module Bio
         end
       end
 
+      ## Retrieval:
+      ##  1. merge the intervals of interest
+      ##  2. for each interval, compute the bins with #bin_all
+      ##  3. for each bin to search, make a list of intervals of
+      ##     interest
+      ##  4. compute the spanning interval for that bin
+      ##  5. start at the beginning of the bin
+      ##  6. if a record intersects the spanning interval: 
+      ##    A. #find an interval it intersects
       ##    B. if found, add to the fetch list
       ##  7. if a record starts past the end of the spanning interval,
       ##     we are done scanning this bin.
@@ -313,6 +313,7 @@ module Bio
         end
         return [block.offset,
                 block.size,
+                block.text_size,
                 block.sequences.size,
                 species_vec.to_i].pack(VAL_FMT)
       end
@@ -368,12 +369,32 @@ module Bio
       end
     end
 
+    class MaxSizeFilter < Filter
+      def initialize(n, idx)
+        @n = n
+      end
+      def match(entry)
+        extract_text_size(entry) <= @n
+      end
+    end
+
+    class MinSizeFilter < Filter
+      def initialize(n, idx)
+        @n = n
+      end
+      def match(entry)
+        extract_text_size(entry) >= @n
+      end
+    end
+
     class Filters
       include KVHelpers
 
       FILTER_CLASSES = {
         :with_all_species => MAF::AllSpeciesFilter,
-        :at_least_n_sequences => MAF::AtLeastNSequencesFilter
+        :at_least_n_sequences => MAF::AtLeastNSequencesFilter,
+        :min_size => MAF::MinSizeFilter,
+        :max_size => MAF::MaxSizeFilter
       }
 
       def self.build(spec, idx)

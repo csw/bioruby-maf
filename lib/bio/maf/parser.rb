@@ -30,12 +30,16 @@ module Bio
         @vars, @sequences, @offset, @size = args
       end
 
-     def raw_seq(i)
+      def raw_seq(i)
         sequences.fetch(i)
       end
 
       def each_raw_seq
         sequences.each { |s| yield s }
+      end
+
+      def text_size
+        sequences.first.text.size
       end
 
     end
