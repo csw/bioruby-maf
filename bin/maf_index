@@ -4,6 +4,12 @@ require 'bio-maf'
 require 'optparse'
 require 'ostruct'
 
+PRINTERS = {
+  'flat' => :FlatPrinter,
+  'stack' => :CallStackPrinter,
+  'graph' => :GraphHtmlPrinter
+}
+
 options = OpenStruct.new
 options.mode = :build
 
@@ -13,6 +19,16 @@ op = OptionParser.new do |opts|
   #opts.separator "Options:"
   opts.on("-d", "--dump") do
     options.mode = :dump
+  end
+  opts.on("--ruby-prof PATH", "Profile with ruby-prof") do |pspec|
+    require 'ruby-prof'
+    if pspec =~ /(\w+):(.+)/
+      options.ruby_prof_printer = RubyProf.const_get(PRINTERS.fetch($1))
+      options.ruby_prof_path = $2
+    else
+      options.ruby_prof_printer = Ruby_Prof::FlatPrinter
+      options.ruby_prof_path = pspec
+    end
   end
 end
 
@@ -26,6 +42,10 @@ unless (maf_p || options.mode == :dump) && index_p
   exit 1
 end
 
+if options.ruby_prof_path
+  RubyProf.start
+end
+
 case options.mode
 when :build
   parser = Bio::MAF::Parser.new(maf_p)
@@ -36,4 +56,12 @@ when :dump
   idx.dump
 else
   raise "Unsupported mode: #{options.mode}"
+end
+
+if options.ruby_prof_path
+  res = RubyProf.stop
+  printer = options.ruby_prof_printer.new(res)
+  File.open(options.ruby_prof_path, 'w') do |f|
+    printer.print(f)
+  end
 end
