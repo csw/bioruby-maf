@@ -206,7 +206,7 @@ module Bio
         def fake_entry_with(species_l)
           ids = species_l.collect {|s| @idx.species.fetch(s)}
           vec = ids.collect { |id| 1 << id }.reduce(0, :|)
-          return ['', [0, 0, 0, vec].pack(KyotoIndex::VAL_FMT)]
+          return ['', [0, 0, 0, 0, vec].pack(KyotoIndex::VAL_FMT)]
         end
 
        context "with an empty set" do
@@ -249,7 +249,7 @@ module Bio
 
       describe AtLeastNSequencesFilter do
         def fake_entry_with(n)
-          return ['', [0, 0, n, (1 << n) - 1].pack(KyotoIndex::VAL_FMT)]
+          return ['', [0, 0, 0, n, (1 << n) - 1].pack(KyotoIndex::VAL_FMT)]
         end
         context "n = 3" do
           before(:each) do

@@ -13,9 +13,10 @@ module Bio
       KEY_FMT = "CCS>L>L>"
       KEY_SCAN_FMT = "xCS>L>L>"
       CHROM_BIN_PREFIX_FMT = "CCS>"
-      VAL_FMT = "Q>L>CQ>"
+      VAL_FMT = "Q>L>L>CQ>"
       VAL_IDX_OFFSET_FMT = "Q>L>"
-      VAL_SPECIES_FMT = "@13Q>"
+      VAL_TEXT_SIZE_FMT = "@12L>"
+      VAL_SPECIES_FMT = "@17Q>"
 
       module_function
       def extract_species_vec(entry)
@@ -26,10 +27,14 @@ module Bio
         entry[1].unpack(VAL_IDX_OFFSET_FMT)
       end
 
-      def unpack_key(ks)
-        ks.unpack(KEY_FMT)
+      def extract_text_size(entry)
+        entry[1].unpack(VAL_TEXT_SIZE_FMT)[0]
       end
 
+      def unpack_key(ks)
+        ks.unpack(KEY_FMT)
+
+      end
       def bin_start_prefix(chrom_id, bin)
         [0xFF, chrom_id, bin].pack(CHROM_BIN_PREFIX_FMT)
       end
@@ -84,10 +89,14 @@ module Bio
       ##   Sequence start, zero-based, inclusive (32 bits)
       ##   Sequence end, zero-based, exclusive (32 bits)
       ##
-      ## Values (12 bytes) [Q>L>]
+      ## Values (25 bytes) [Q>L>L>CQ>]
       ##
       ##   MAF file offset (64 bits)
       ##   MAF alignment block length (32 bits)
+      ##
+      ##   Block text size (32 bits)
+      ##   Number of sequences in block (8 bits)
+      ##   Species bit vector (64 bits)
       ##
       ## Example:
       ##
@@ -97,8 +106,8 @@ module Bio
       ##     |  |id| bin | seq_start | seq_end   |
       ## key: FF 00 04 AB 04 C5 F5 9E 04 C5 F5 C0
       ##
-      ##     |         offset        |  length   |
-      ## val: 00 00 00 00 00 00 00 10 00 00 04 3F
+      ##     |         offset        |  length   |   ts   |ns|  species_vec  |
+      ## val: 00 00 00 00 00 00 00 10 00 00 04 3F  [TODO]
 
       #### Public API
 
@@ -156,6 +165,33 @@ module Bio
       ##  5. start at the beginning of the bin
       ##  6. if a record intersects the spanning interval: 
       ##    A. #find an interval it intersects
+      def dump(stream=$stdout)
+        stream.puts "KyotoIndex dump: #{@path}"
+        stream.puts
+        db.cursor_process do |cur|
+          stream.puts "== Metadata =="
+          cur.jump('')
+          while true
+            k, v = cur.get(false)
+            break if k[0] == "\xff"
+            stream.puts "#{k}: #{v}"
+            unless cur.step
+              raise "could not advance cursor!"
+            end
+          end
+          stream.puts "== Index records =="
+          while pair = cur.get(true)
+            _, chr, bin, s_start, s_end = pair[0].unpack(KEY_FMT)
+            offset, len, text_size, n_seq, species_vec = pair[1].unpack(VAL_FMT)
+            stream.puts "#{chr} [bin #{bin}] #{s_start}:#{s_end}"
+            stream.puts "  offset #{offset}, length #{len}"
+            stream.puts "  text size: #{text_size}"
+            stream.puts "  sequences in block: #{n_seq}"
+            stream.printf("  species vector: %016x\n", species_vec)
+          end
+        end
+      end
+
       ##    B. if found, add to the fetch list
       ##  7. if a record starts past the end of the spanning interval,
       ##     we are done scanning this bin.
