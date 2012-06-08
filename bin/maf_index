@@ -5,24 +5,35 @@ require 'optparse'
 require 'ostruct'
 
 options = OpenStruct.new
+options.mode = :build
 
 op = OptionParser.new do |opts|
   opts.banner = "Usage: maf_index [options] <maf> <index>"
   #opts.separator ""
   #opts.separator "Options:"
+  opts.on("-d", "--dump") do
+    options.mode = :dump
+  end
 end
 
 op.parse!(ARGV)
 
-maf_p = ARGV.shift
+maf_p = ARGV.shift if options.mode == :build
 index_p = ARGV.shift
 
-unless maf_p && index_p
+unless (maf_p || options.mode == :dump) && index_p
   $stderr.puts op
   exit 1
 end
 
-parser = Bio::MAF::Parser.new(maf_p)
-idx = Bio::MAF::KyotoIndex.build(parser, index_p)
-
-idx.close
+case options.mode
+when :build
+  parser = Bio::MAF::Parser.new(maf_p)
+  idx = Bio::MAF::KyotoIndex.build(parser, index_p)
+  idx.close
+when :dump
+  idx = Bio::MAF::KyotoIndex.open(index_p)
+  idx.dump
+else
+  raise "Unsupported mode: #{options.mode}"
+end
