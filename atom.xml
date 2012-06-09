@@ -4,7 +4,7 @@
   <title><![CDATA[BioRuby MAF blog]]></title>
   <link href="http://csw.github.com/bioruby-maf/atom.xml" rel="self"/>
   <link href="http://csw.github.com/bioruby-maf/"/>
-  <updated>2012-06-04T23:01:50-04:00</updated>
+  <updated>2012-06-09T14:20:55-04:00</updated>
   <id>http://csw.github.com/bioruby-maf/</id>
   <author>
     <name><![CDATA[Clayton Wheeler]]></name>
@@ -12,6 +12,71 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Filtering work]]></title>
+    <link href="http://csw.github.com/bioruby-maf/blog/2012/06/09/filtering-work/"/>
+    <updated>2012-06-09T11:46:00-04:00</updated>
+    <id>http://csw.github.com/bioruby-maf/blog/2012/06/09/filtering-work</id>
+    <content type="html"><![CDATA[<p>I think I made good progress in the end this week, although it was a
+bit frustrating along the way, with a few dead ends and some
+challenges in figuring out the right approaches to things. My main
+goal was to implement MAF file filtering on queries, as specified in a
+<a href="https://github.com/csw/bioruby-maf/blob/86e9f0fb30723a0df19f948b1aa9c9bd36def8f8/features/maf-querying.feature">Cucumber feature</a> and <a href="https://github.com/csw/bioruby-maf/issues/22">Github issue</a>.</p>
+
+<p>This is all working now, and I&#8217;ve managed to do all the alignment
+block filtering using the index, to avoid having to parse blocks to
+test whether they meet criteria for e.g. presence of species. I&#8217;m
+storing things like the number of sequences, the text size, and a bit
+vector of species present in the index, and checking those when
+building the list of MAF blocks to read from disk. I think this is an
+improvement over bx-python, which does this sort of thing by a
+combination of post-parsing filtering and writing out modified MAF
+files.</p>
+
+<p>I tried using external libraries to provide somewhat nicer interfaces
+to binary record access (<a href="http://rdoc.info/gems/bindata">bindata</a>) and bit vector manipulation
+(<a href="http://bitstring.rubyforge.org/rdoc/">bitstring</a>); they are both nice and well-thought out libraries but
+turned out to have awful performance, so I ended up ripping them both
+out. (I got about a 120% performance boost when building indexes by
+using raw Array#pack calls instead of bindata, and then about 100% by
+using Integers and shifts instead of bitstring.)</p>
+
+<p>I think in the future I will do microbenchmarks before integrating
+things like these; I wouldn&#8217;t have expected such a high performance
+penalty for such conceptually simple operations.</p>
+
+<p>Ultimately, I wrote my own little <a href="https://github.com/csw/bioruby-maf/blob/master/spec/bio/maf/struct_spec.rb">library</a> for building format strings,
+after making a few arithmetic mistakes when calculating byte offsets
+in my head. I also wrote a <a href="https://github.com/csw/bioruby-maf/blob/7ebeeb03c7b3e9755978f4c4307312e13451b0e6/lib/bio/maf/index.rb#L177">bit of code</a> to dump out binary indexes in
+human-readable form, to help with debugging.</p>
+
+<p>The <a href="https://github.com/csw/bioruby-maf/blob/master/features/step_definitions/query_steps.rb">API</a> for this filtering code could perhaps use some work. I&#8217;ll
+need to think about that further.</p>
+
+<p>I also made some progress on getting Kyoto Cabinet and JRuby working
+together, although it&#8217;s not quite there yet. Along the way, I
+discovered what looks like an interesting <a href="https://github.com/csw/bioruby-maf/issues/31">JRuby bug</a>.</p>
+
+<p>And I&#8217;ve got tests passing on Travis CI again, after adding a script
+to build and install Kyoto Cabinet there.</p>
+
+<p>After working through and thinking about things this week, and
+particularly in light of Francesco&#8217;s comments, I have a few questions
+I need to look into about MAF and MAF workflows:</p>
+
+<ul>
+<li>Is it possible for alignment blocks to overlap, at least with
+respect to the reference sequence?</li>
+<li>Is it useful to build indexes on other sequences besides the
+reference sequence?</li>
+<li>What is the longest (in terms of text size, i.e. sequence data
+including dashes) alignment block I should be prepared to encounter?
+(That is, does its length need to be 32 bits? 16? 64?)</li>
+</ul>
+
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Indexed MAF access]]></title>
