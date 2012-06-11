@@ -109,13 +109,13 @@ module Bio
       ## Parses alignment blocks by reading a chunk of the file at a time.
 
       attr_reader :header, :file_spec, :f, :s, :cr, :at_end
-      attr_reader :chunk_start, :chunk_size, :last_block_pos
+      attr_reader :chunk_start, :last_block_pos
       attr_accessor :sequence_filter
 
       SEQ_CHUNK_SIZE = 8 * 1024 * 1024
 
       def initialize(file_spec, opts={})
-        @chunk_size = opts[:chunk_size] || SEQ_CHUNK_SIZE
+        chunk_size = opts[:chunk_size] || SEQ_CHUNK_SIZE
         @chunk_start = 0
         @file_spec = file_spec
         @f = File.open(file_spec)
@@ -142,8 +142,8 @@ module Bio
 
       def fetch_blocks_merged(fetch_list)
         r = []
-        old_chunk_size = @chunk_size
-        @chunk_size = 4096
+        old_chunk_size = cr.chunk_size
+        cr.chunk_size = 4096
         @at_end = false
         begin
           fetch_list.each do |offset, len, block_offsets|
@@ -169,7 +169,7 @@ module Bio
           end
           return r
         ensure
-          @chunk_size = old_chunk_size
+          cr.chunk_size = old_chunk_size
         end
       end
 
@@ -284,7 +284,7 @@ module Bio
           left = ''
         end
         right = s.string[s.pos..s_end]
-        extra = "pos #{s.pos}, last #{last_block_pos}"
+        extra = "pos #{s.pos} [#{chunk_start + s.pos}], last #{last_block_pos}"
 
         raise ParseError, "#{msg} at: '#{left}>><<#{right}' (#{extra})"
       end
