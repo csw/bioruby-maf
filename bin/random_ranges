@@ -1,0 +1,35 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+require 'ostruct'
+
+options = OpenStruct.new
+
+op = OptionParser.new do |opts|
+  opts.banner = "Usage: random_ranges [options]"
+  opts.on("-r", "--range START:END", "range") do |range|
+    s, e = range.split(':')
+    options.start = s.to_i
+    options.end = e.to_i
+  end
+  opts.on("-l", "--length LEN", "block length") do |len|
+    options.length = len.to_i
+  end
+  opts.on("-n", "--number NUM", "number of blocks") do |num|
+    options.num = num.to_i
+  end
+  opts.on("-s", "--sequence SEQ", "sequence") do |seq|
+    options.seq = seq
+  end
+end.parse!(ARGV)
+
+rand = Random.new
+range = options.end - options.start
+block_range = range / options.num
+block_start_range = block_range - options.length
+(0...options.num).each do |n|
+  block_offset = rand.rand(block_start_range)
+  b_start = options.start + (block_range * n) + block_offset
+  b_end = b_start + options.length
+  puts "#{options.seq}\t#{b_start}\t#{b_end}\tx"
+end
