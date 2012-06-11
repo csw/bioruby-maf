@@ -113,9 +113,11 @@ module Bio
       attr_accessor :sequence_filter
 
       SEQ_CHUNK_SIZE = 8 * 1024 * 1024
+      RANDOM_CHUNK_SIZE = 4096
 
       def initialize(file_spec, opts={})
         chunk_size = opts[:chunk_size] || SEQ_CHUNK_SIZE
+        @random_access_chunk_size = opts[:random_chunk_size] || RANDOM_CHUNK_SIZE
         @chunk_start = 0
         @file_spec = file_spec
         @f = File.open(file_spec)
@@ -143,7 +145,7 @@ module Bio
       def fetch_blocks_merged(fetch_list)
         r = []
         old_chunk_size = cr.chunk_size
-        cr.chunk_size = 4096
+        cr.chunk_size = @random_access_chunk_size
         @at_end = false
         begin
           fetch_list.each do |offset, len, block_offsets|

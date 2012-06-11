@@ -157,14 +157,24 @@ module Bio
         context "with 4K chunk size" do
           before(:each) do
             @p = described_class.new(TestData + 'mm8_chr7_tiny.maf',
-                                     :chunk_size => 4096)
+                                     :chunk_size => 4096,
+                                     :random_chunk_size => 4096)
+          end
+          it_behaves_like "any chunk size"
+        end
+        context "with 1K chunk size" do
+          before(:each) do
+            @p = described_class.new(TestData + 'mm8_chr7_tiny.maf',
+                                     :chunk_size => 1024,
+                                     :random_chunk_size => 1024)
           end
           it_behaves_like "any chunk size"
         end
         context "after parsing to end" do
           before(:each) do
             @p = described_class.new(TestData + 'mm8_chr7_tiny.maf',
-                                     :chunk_size => 4096)
+                                     :chunk_size => 4096,
+                                     :random_chunk_size => 4096)
             @p.each_block { |b| nil }
           end
           it_behaves_like "any chunk size"
@@ -172,7 +182,8 @@ module Bio
         context "with 8M chunk size" do
           before(:each) do
             @p = described_class.new(TestData + 'mm8_chr7_tiny.maf',
-                                     :chunk_size => 8 * 1024 * 1024)
+                                     :chunk_size => 8 * 1024 * 1024,
+                                     :random_chunk_size => 8 * 1024 * 1024)
           end
           it_behaves_like "any chunk size"
         end
