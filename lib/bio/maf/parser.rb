@@ -114,10 +114,12 @@ module Bio
 
       SEQ_CHUNK_SIZE = 8 * 1024 * 1024
       RANDOM_CHUNK_SIZE = 4096
+      MERGE_MAX = SEQ_CHUNK_SIZE
 
       def initialize(file_spec, opts={})
         chunk_size = opts[:chunk_size] || SEQ_CHUNK_SIZE
         @random_access_chunk_size = opts[:random_chunk_size] || RANDOM_CHUNK_SIZE
+        @merge_max = opts[:merge_max] || MERGE_MAX
         @chunk_start = 0
         @file_spec = file_spec
         @f = File.open(file_spec)
@@ -148,6 +150,8 @@ module Bio
         cr.chunk_size = @random_access_chunk_size
         @at_end = false
         begin
+          # inhibit fragment joining
+          @last_block_pos = -1
           fetch_list.each do |offset, len, block_offsets|
             if (chunk_start <= offset) \
               && (offset < (chunk_start + s.string.size))
@@ -157,8 +161,13 @@ module Bio
               chunk = cr.read_chunk_at(offset)
               @chunk_start = offset
               @s = StringScanner.new(chunk)
-              set_last_block_pos!
             end
+            # read chunks until we have the entire merged set of
+            # blocks ready to parse
+            while s.string.size < len
+              s.string << cr.read_chunk()
+            end
+            # parse the blocks
             block_offsets.each do |expected_offset|
               block = parse_block
               unless block
@@ -173,6 +182,7 @@ module Bio
           return r
         ensure
           cr.chunk_size = old_chunk_size
+          set_last_block_pos!
         end
       end
 
@@ -181,7 +191,9 @@ module Bio
         r = []
         until fl.empty? do
           cur = fl.shift
-          if r.last && (r.last[0] + r.last[1]) == cur[0]
+          if r.last \
+            && (r.last[0] + r.last[1]) == cur[0] \
+            && (r.last[1] + cur[1]) <= @merge_max
             # contiguous with the previous one
             # add to length and increment count
             r.last[1] += cur[1]
@@ -261,10 +273,15 @@ module Bio
               parse_error("no leading fragment match!")
             end
             # Join the fragments and parse them
-            joined_block = s.rest + leading_frag
+            trailing_frag = s.rest
+            joined_block = trailing_frag + leading_frag
             @chunk_start = chunk_start + s.pos
             @s = StringScanner.new(joined_block)
-            block = parse_block_data
+            begin
+              block = parse_block_data
+            rescue ParseError => pe
+              parse_error "Could not parse joined fragments: #{pe}\nTRAILING: #{trailing_frag}\nLEADING: #{leading_frag}"
+            end
             # Set up to parse the next block
             @s = next_scanner
             @chunk_start = next_chunk_start
