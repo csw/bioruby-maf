@@ -1,0 +1,24 @@
+#!/usr/bin/env ruby
+
+require 'bio-maf'
+require 'bio-genomic-interval'
+
+maf_p = ARGV.shift
+index_p = ARGV.shift
+
+parser = Bio::MAF::Parser.new(maf_p)
+index = Bio::MAF::KyotoIndex.open(index_p)
+
+def parse_interval(line)
+  src, r_start_s, r_end_s, _ = line.split(nil, 4)
+  r_start = r_start_s.to_i
+  r_end = r_end_s.to_i
+  return Bio::GenomicInterval.zero_based(src, r_start, r_end)
+end
+
+intervals = []
+$stdin.each_line { |line| intervals << parse_interval(line) }
+
+blocks = index.find(intervals, parser)
+
+puts "TOTAL: #{blocks.size} blocks parsed."
