@@ -157,6 +157,7 @@ module Bio
               chunk = cr.read_chunk_at(offset)
               @chunk_start = offset
               @s = StringScanner.new(chunk)
+              set_last_block_pos!
             end
             block_offsets.each do |expected_offset|
               block = parse_block
@@ -313,12 +314,16 @@ module Bio
                 next unless m
               end
             end
-            seqs << Sequence.new(src,
-                                 start.to_i,
-                                 size.to_i,
-                                 STRAND_SYM.fetch(strand),
-                                 src_size.to_i,
-                                 text)
+            begin
+              seqs << Sequence.new(src,
+                                   start.to_i,
+                                   size.to_i,
+                                   STRAND_SYM.fetch(strand),
+                                   src_size.to_i,
+                                   text)
+            rescue KeyError
+              parse_error "invalid sequence line: #{line}"
+            end
           when 'i', 'e', 'q', '#', nil
             next
           else
