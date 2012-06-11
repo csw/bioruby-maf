@@ -26,7 +26,7 @@ OptionParser.new do |opts|
       options.ruby_prof_printer = RubyProf.const_get(PRINTERS.fetch($1))
       options.ruby_prof_path = $2
     else
-      options.ruby_prof_printer = :FlatPrinter
+      options.ruby_prof_printer = RubyProf::FlatPrinter
       options.ruby_prof_path = pspec
     end
   end
