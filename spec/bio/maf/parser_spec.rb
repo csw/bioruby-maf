@@ -89,12 +89,10 @@ module Bio
           it "returns data starting at the specified offset" do
             c = @r.read_chunk_at(59)
             c.start_with?("80082334").should be_true
-            @r.pos.should == 1024
           end
           it "handles a read starting exactly at a chunk boundary" do
             c = @r.read_chunk_at(1024)
             c.start_with?("   594").should be_true
-            @r.pos.should == 2048
           end
         end
       end

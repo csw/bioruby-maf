@@ -92,13 +92,9 @@ module Bio
         return chunk
       end
 
-      # Reads a chunk of the file, starting at the specified
-      # offset. If the offset is not the start of a chunk, the read
-      # will be shortened so that it ends on a chunk boundary.
-      def read_chunk_at(offset)
+     def read_chunk_at(offset, size_hint=@chunk_size)
         f.seek(offset)
-        next_chunk_start = ((offset >> chunk_shift) + 1) << chunk_shift
-        chunk = f.read(next_chunk_start - offset)
+        chunk = f.read(size_hint)
         @pos = offset + chunk.bytesize
         return chunk
       end
@@ -158,7 +154,7 @@ module Bio
               ## the selected offset is in the current chunk
               s.pos = offset - chunk_start
             else
-              chunk = cr.read_chunk_at(offset)
+              chunk = cr.read_chunk_at(offset, len)
               @chunk_start = offset
               @s = StringScanner.new(chunk)
             end
