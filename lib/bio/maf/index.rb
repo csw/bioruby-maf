@@ -86,6 +86,15 @@ module Bio
       ##     parameter is assigned when the sequence is indexed, and
       ##     can be from 0 to 255.
       ##
+      ##   Species IDs:
+      ##     species:<name> => <id>
+      ##
+      ##     Each indexed species has a corresponding entry of this
+      ##     kind. The <name> parameter is the species part of the
+      ##     sequence name as found in the MAF file, e.g. 'mm8' for
+      ##     'mm8.chr7'. The <id> parameter is assigned when the
+      ##     species is indexed, and can be from 0 to 255.
+      ##
       ## Index data:
       ##
       ##   For each sequence upon which an index is built, one index
