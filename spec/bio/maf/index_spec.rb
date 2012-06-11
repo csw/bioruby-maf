@@ -34,6 +34,12 @@ module Bio
           it "stores the sequence IDs" do
             @idx.db.get("sequence:mm8.chr7").should == "0"
           end
+          describe "loads sequence data correctly" do
+            before(:each) { @idx = @idx.reopen }
+            it "uses the first sequence appearing as the reference sequence" do
+              @idx.index_sequences.to_a.should == [["mm8.chr7", 0]]
+            end
+          end
           after(:each) do
             @idx.db.close
           end
@@ -194,6 +200,31 @@ module Bio
         end
       end
 
+    end
+
+    describe "#species" do
+      before(:each) do
+        @p = Parser.new(TestData + 'mm8_chr7_tiny.maf')
+        @idx = KyotoIndex.build(@p, '%')
+      end
+      shared_examples "species" do
+        it "records the correct number of species" do
+          @idx.species.size.should == 11
+        end
+        it "sets species_max_id correctly" do
+          @idx.species_max_id.should == 10
+        end
+      end
+      describe "after building index" do
+        include_examples "species"
+        it "records species in order" do
+          @idx.db["species:mm8"].should == "0"
+        end
+      end
+      describe "after loading index" do
+        before(:each) { @idx = @idx.reopen }
+        include_examples "species"
+      end
     end
 
     describe "Filter classes" do

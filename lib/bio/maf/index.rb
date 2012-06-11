@@ -60,7 +60,7 @@ module Bio
     class KyotoIndex
       include KVHelpers
 
-      attr_reader :db, :species
+      attr_reader :db, :species, :species_max_id
       attr_accessor :index_sequences
 
       FORMAT_VERSION_KEY = 'bio-maf:index-format-version'
@@ -156,22 +156,28 @@ module Bio
 
       #### KyotoIndex Internals
 
-      def initialize(path)
+      def initialize(path, db_arg=nil)
         @species = {}
         @species_max_id = -1
-        if (path.size > 1) and File.exist?(path)
+        if db_arg || ((path.size > 1) and File.exist?(path))
           mode = KyotoCabinet::DB::OREADER
         else
           mode = KyotoCabinet::DB::OWRITER | KyotoCabinet::DB::OCREATE
         end
-        @db = KyotoCabinet::DB.new
+        @db = db_arg || KyotoCabinet::DB.new
         @path = path
-        unless db.open(path, mode)
+        unless db_arg || db.open(path, mode)
           raise "Could not open DB file!"
         end
         if mode == KyotoCabinet::DB::OREADER
           load_index_sequences
+          load_species
         end
+      end
+
+      # Reopen the same DB handle read-only. Only useful for unit tests.
+      def reopen
+        KyotoIndex.new(@path, @db)
       end
 
       def dump(stream=$stdout)
@@ -295,6 +301,15 @@ module Bio
         index_sequences.each do |name, id|
           db.set("sequence:#{name}", id.to_s)
         end
+      end
+
+      def load_species
+        db.match_prefix("species:").each do |key|
+          _, name = key.split(':', 2)
+          id = db[key].to_i
+          @species[name] = id
+        end
+        @species_max_id = @species.values.sort.last || -1
       end
 
       def species_id_for_seq(seq)
