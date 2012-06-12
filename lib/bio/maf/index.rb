@@ -55,6 +55,10 @@ module Bio
       def bin_start_prefix(chrom_id, bin)
         [0xFF, chrom_id, bin].pack(CHROM_BIN_PREFIX_FMT)
       end
+
+      def scan_start_prefix(chrom_id, bin, start)
+        [0xFF, chrom_id, bin, start, 0].pack(KEY_FMT)
+      end
     end
 
     class KyotoIndex
@@ -263,6 +267,48 @@ module Bio
         return to_fetch
       end # #fetch_list
 
+      def position_for_scan_start(cur, chrom_id, bin, start)
+        if db["bin:#{chrom_id}:#{bin}:overlap"] == 0
+          position_non_overlapping_for_scan(cur, chrom_id, bin, start)
+        else
+          # overlapping MAF blocks, position at bin start
+          position_overlapping_for_scan(cur, chrom_id, bin, start)
+        end
+      end
+
+      def position_overlapping_for_scan(cur, chrom_id, bin, start)
+        cur.jump(bin_start_prefix(chrom_id, bin))
+      end
+
+      def position_non_overlapping_for_scan(cur, chrom_id, bin, start)
+        # common case, non-overlapping MAF blocks
+        cur.jump(scan_start_prefix(chrom_id, bin, start))
+        start_key = cur.get_key(false)
+        s_chr, s_bin, s_start, s_end = cur.get_key(false).unpack(KEY_SCAN_FMT)
+        if s_chr == chrom_id && s_bin == bin
+          # started on correct bin, start will be <= s_start
+          if start == s_start
+            return
+          else
+            cur.step_back || raise("#step_back failed!")
+            p_chr, p_bin, p_start, p_end = cur.get_key(false).unpack(KEY_SCAN_FMT)
+            if p_chr == chrom_id && p_bin == bin && p_end >= start
+              # start was in the previous block
+              # we are now positioned correctly
+              return
+            else
+              # we stepped back into the previous bin
+              # or the previous block is before start
+              # so step forward again
+              cur.step
+              return
+            end
+          end
+        else
+          cur.step_back || raise("#step_back failed!")
+        end
+      end
+
       def find_bin_matches(cur, chrom, bin, bin_intervals_raw, filters)
         matches = []
         bin_intervals = bin_intervals_raw.sort_by { |i| i.zero_start }
@@ -272,7 +318,7 @@ module Bio
         spanning_start = bin_intervals.first.zero_start
         spanning_end = bin_intervals.collect {|i| i.zero_end}.sort.last
         # scan from the start of the bin
-        cur.jump(bin_start_prefix(chrom_id, bin))
+        position_for_scan_start(cur, chrom_id, bin, spanning_start)
         while pair = cur.get(true)
           c_chr, c_bin, c_start, c_end = pair[0].unpack(KEY_SCAN_FMT)
           if (c_chr != chrom_id) \
@@ -385,7 +431,7 @@ module Bio
       end
 
       def store_overlap(seq, bin, overlap_p)
-        $stderr.puts "storing overlap: \"bin:#{seq}:#{bin}:overlap\" = #{overlap_p} "
+        # $stderr.puts "storing overlap: \"bin:#{seq}:#{bin}:overlap\" = #{overlap_p} "
         db["bin:#{seq}:#{bin}:overlap"] = overlap_p ? '1' : '0'
       end
 
