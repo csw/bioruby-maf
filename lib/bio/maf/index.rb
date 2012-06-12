@@ -288,20 +288,18 @@ module Bio
         if s_chr == chrom_id && s_bin == bin
           # started on correct bin, start will be <= s_start
           if start == s_start
-            return
+            # positioned right at the first bin
           else
             cur.step_back || raise("#step_back failed!")
             p_chr, p_bin, p_start, p_end = cur.get_key(false).unpack(KEY_SCAN_FMT)
-            if p_chr == chrom_id && p_bin == bin && p_end >= start
+            if p_chr == chrom_id && p_bin == bin && start <= p_end
               # start was in the previous block
               # we are now positioned correctly
-              return
             else
               # we stepped back into the previous bin
               # or the previous block is before start
               # so step forward again
               cur.step
-              return
             end
           end
         else
