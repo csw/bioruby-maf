@@ -46,6 +46,7 @@ module Bio
 
     class Sequence
       attr_reader :source, :start, :size, :strand, :src_size, :text
+      attr_accessor :i_data, :quality
       alias_method :source_size, :src_size
 
       def initialize(*args)
@@ -337,7 +338,15 @@ module Bio
             rescue KeyError
               parse_error "invalid sequence line: #{line}"
             end
-          when 'i', 'e', 'q', '#', nil
+          when 'i'
+            parts = line.split
+            parse_error("wrong i source #{src}!") unless seqs.last.src == src
+            seqs.last.i_data = parts.slice(2..6)
+          when 'q'
+            _, src, quality = line.split
+            parse_error("wrong q source #{src}!") unless seqs.last.src == src
+            seqs.last.quality = quality
+          when 'i', 'e', '#', nil
             next
           else
             parse_error "unexpected line: '#{line}'"
