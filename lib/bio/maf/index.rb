@@ -286,7 +286,7 @@ module Bio
         return to_fetch
       end # #fetch_list
 
-     def build_default(parser)
+      def build_default(parser)
         first_block = parser.parse_block
         ref_seq = first_block.sequences.first.source
         db[FORMAT_VERSION_KEY] = FORMAT_VERSION
@@ -294,6 +294,7 @@ module Bio
         store_index_sequences!
         index_block(first_block)
         parser.each_block { |b| index_block(b) }
+        overlap_scan
       end
 
       def load_index_sequences
@@ -373,6 +374,39 @@ module Bio
           e << [key, val]
         end
         return e
+      end
+
+      def store_overlap(seq, bin, overlap_p)
+        $stderr.puts "storing overlap: \"bin:#{seq}:#{bin}:overlap\" = #{overlap_p} "
+        db["bin:#{seq}:#{bin}:overlap"] = overlap_p ? '1' : '0'
+      end
+
+      def overlap_scan
+        db.cursor_process do |cur|
+          cur.jump([255].pack(KEY.extractor_fmt(:marker)))
+          cur_seq = nil
+          cur_bin = nil
+          prev_end = nil
+          overlap = nil
+          while key = cur.get_key(true)
+            _, seq, bin, b_start, b_end = unpack_key(key)
+            if seq != cur_seq || bin != cur_bin
+              store_overlap(cur_seq, cur_bin, overlap) if cur_seq
+              # reset
+              cur_seq = seq
+              cur_bin = bin
+              prev_end = b_end
+              overlap = false
+            else
+              if (! overlap) && b_start < prev_end
+                # same bin as previous
+                overlap = true
+              end
+              prev_end = b_end
+            end
+          end
+          store_overlap(cur_seq, cur_bin, overlap)
+        end
       end
     end # class KyotoIndex
 

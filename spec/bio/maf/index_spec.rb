@@ -40,9 +40,18 @@ module Bio
               @idx.index_sequences.to_a.should == [["mm8.chr7", 0]]
             end
           end
+          it "indicates bin 1195 non-overlapping" do
+            @idx.db.get("bin:0:1195:overlap").should == "0"
+          end
           after(:each) do
             @idx.db.close
           end
+        end
+        it "detects overlapping sequences" do
+          @p = Parser.new(TestData + 'mm8_mod_overlapping.maf')
+          @idx = KyotoIndex.build(@p, '%')
+          @idx.db.get("bin:0:1195:overlap").should == "1"
+          @idx.db.close
         end
       end
 
