@@ -243,10 +243,6 @@ module Bio
         filter_spec ||= {}
         filters = Filters.build(filter_spec, self)
         chrom = intervals.first.chrom
-        chrom_id = index_sequences[chrom]
-        unless chrom_id
-          raise "chromosome #{chrom} not indexed!"
-        end
         if intervals.find { |i| i.chrom != chrom }
           raise "all intervals must be for the same chromosome!"
         end
@@ -256,35 +252,47 @@ module Bio
           i.bin_all.each { |bin| bin_intervals[bin] << i }
         end
         db.cursor_process do |cur|
-          bin_intervals.each do |bin, bin_intervals_raw|
-            bin_intervals = bin_intervals_raw.sort_by { |i| i.zero_start }
-            # compute the start and end of all intervals of interest
-            spanning_start = bin_intervals.first.zero_start
-            spanning_end = bin_intervals.collect {|i| i.zero_end}.sort.last
-            # scan from the start of the bin
-            cur.jump(bin_start_prefix(chrom_id, bin))
-            while pair = cur.get(true)
-              c_chr, c_bin, c_start, c_end = pair[0].unpack(KEY_SCAN_FMT)
-              if (c_chr != chrom_id) \
-                || (c_bin != bin) \
-                || c_start >= spanning_end
-                # we've hit the next bin, or chromosome, or gone past
-                # the spanning interval, so we're done with this bin
-                break
-              end
-              if c_end >= spanning_start # possible overlap
-                c_int = GenomicInterval.zero_based(chrom, c_start, c_end)
-                if bin_intervals.find { |i| i.overlapped?(c_int) }
-                  if filters.match(pair)
-                    to_fetch << extract_index_offset(pair)
-                  end
-                end
-              end
-            end
+          bin_intervals.each do |bin, intervals|
+            to_fetch.concat(find_bin_matches(cur,
+                                             chrom,
+                                             bin,
+                                             intervals,
+                                             filters))
           end # bin_intervals.each
         end # #cursor_process
         return to_fetch
       end # #fetch_list
+
+      def find_bin_matches(cur, chrom, bin, bin_intervals_raw, filters)
+        matches = []
+        bin_intervals = bin_intervals_raw.sort_by { |i| i.zero_start }
+        chrom_id = index_sequences[chrom]
+        raise("chromosome #{chrom} not indexed!") unless chrom_id
+        # compute the start and end of all intervals of interest
+        spanning_start = bin_intervals.first.zero_start
+        spanning_end = bin_intervals.collect {|i| i.zero_end}.sort.last
+        # scan from the start of the bin
+        cur.jump(bin_start_prefix(chrom_id, bin))
+        while pair = cur.get(true)
+          c_chr, c_bin, c_start, c_end = pair[0].unpack(KEY_SCAN_FMT)
+          if (c_chr != chrom_id) \
+            || (c_bin != bin) \
+            || c_start >= spanning_end
+            # we've hit the next bin, or chromosome, or gone past
+            # the spanning interval, so we're done with this bin
+            break
+          end
+          if c_end >= spanning_start # possible overlap
+            c_int = GenomicInterval.zero_based(chrom, c_start, c_end)
+            if bin_intervals.find { |i| i.overlapped?(c_int) }
+              if filters.match(pair)
+                matches << extract_index_offset(pair)
+              end
+            end
+          end
+        end
+        return matches
+      end
 
       def build_default(parser)
         first_block = parser.parse_block
