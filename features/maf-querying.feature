@@ -27,3 +27,49 @@ Feature: Filter results from MAF files
     | rheMac2 |
     Then an alignment block can be obtained
     And the alignment block has 3 sequences
+
+  Scenario: Return only blocks having all specified species
+    Given a MAF source file "mm8_chr7_tiny.maf"
+    When I open it with a MAF reader
+    And build an index on the reference sequence
+    And filter for blocks with the species
+    | panTro2 |
+    | loxAfr1 |
+    And search for blocks between positions 80082471 and 80082730 of mm8.chr7
+    Then 1 block is obtained
+
+  Scenario: Return only blocks having a certain number of sequences
+    Given a MAF source file "mm8_chr7_tiny.maf"
+    When I open it with a MAF reader
+    And build an index on the reference sequence
+    And filter for blocks with at least 6 sequences
+    And search for blocks between positions 80082767 and 80083008 of mm8.chr7
+    Then 1 block is obtained
+
+  # sizes present:
+  # 55 64 128 148 157 163 165 192 
+
+  Scenario: Return blocks with a maximum text size
+    Given a MAF source file "mm8_chr7_tiny.maf"
+    When I open it with a MAF reader
+    And build an index on the reference sequence
+    And filter for blocks with text size at least 150
+    And search for blocks between positions 0 and 80100000 of mm8.chr7
+    Then 4 blocks are obtained
+
+  Scenario: Return blocks with a minimum text size
+    Given a MAF source file "mm8_chr7_tiny.maf"
+    When I open it with a MAF reader
+    And build an index on the reference sequence
+    And filter for blocks with text size at most 72
+    And search for blocks between positions 0 and 80100000 of mm8.chr7
+    Then 2 blocks are obtained
+
+  Scenario: Return blocks within a text size range
+    Given a MAF source file "mm8_chr7_tiny.maf"
+    When I open it with a MAF reader
+    And build an index on the reference sequence
+    And filter for blocks with text size between 72 and 160
+    And search for blocks between positions 0 and 80100000 of mm8.chr7
+    Then 3 blocks are obtained
+

@@ -89,12 +89,10 @@ module Bio
           it "returns data starting at the specified offset" do
             c = @r.read_chunk_at(59)
             c.start_with?("80082334").should be_true
-            @r.pos.should == 1024
           end
           it "handles a read starting exactly at a chunk boundary" do
             c = @r.read_chunk_at(1024)
             c.start_with?("   594").should be_true
-            @r.pos.should == 2048
           end
         end
       end
@@ -157,14 +155,24 @@ module Bio
         context "with 4K chunk size" do
           before(:each) do
             @p = described_class.new(TestData + 'mm8_chr7_tiny.maf',
-                                     :chunk_size => 4096)
+                                     :chunk_size => 4096,
+                                     :random_chunk_size => 4096)
+          end
+          it_behaves_like "any chunk size"
+        end
+        context "with 1K chunk size" do
+          before(:each) do
+            @p = described_class.new(TestData + 'mm8_chr7_tiny.maf',
+                                     :chunk_size => 1024,
+                                     :random_chunk_size => 1024)
           end
           it_behaves_like "any chunk size"
         end
         context "after parsing to end" do
           before(:each) do
             @p = described_class.new(TestData + 'mm8_chr7_tiny.maf',
-                                     :chunk_size => 4096)
+                                     :chunk_size => 4096,
+                                     :random_chunk_size => 4096)
             @p.each_block { |b| nil }
           end
           it_behaves_like "any chunk size"
@@ -172,12 +180,27 @@ module Bio
         context "with 8M chunk size" do
           before(:each) do
             @p = described_class.new(TestData + 'mm8_chr7_tiny.maf',
-                                     :chunk_size => 8 * 1024 * 1024)
+                                     :chunk_size => 8 * 1024 * 1024,
+                                     :random_chunk_size => 8 * 1024 * 1024)
           end
           it_behaves_like "any chunk size"
         end
         after(:each) do
           @p.f.close
+        end
+      end
+
+      describe "sequence_filter" do
+        before(:each) do
+          @p = described_class.new(TestData + 'mm8_mod_a.maf')
+        end
+        it "restricts sequences parsed" do
+          @p.sequence_filter = { :only_species => %w(mm8 rn4) }
+          @p.parse_block.sequences.size.should == 2
+        end
+        it "matches at the species delimiter rather than a prefix" do
+          @p.sequence_filter = { :only_species => %w(mm8 hg18) }
+          @p.parse_block.sequences.size.should == 2
         end
       end
 

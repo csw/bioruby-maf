@@ -30,7 +30,7 @@ module Bio
         @vars, @sequences, @offset, @size = args
       end
 
-     def raw_seq(i)
+      def raw_seq(i)
         sequences.fetch(i)
       end
 
@@ -38,10 +38,15 @@ module Bio
         sequences.each { |s| yield s }
       end
 
+      def text_size
+        sequences.first.text.size
+      end
+
     end
 
     class Sequence
       attr_reader :source, :start, :size, :strand, :src_size, :text
+      attr_accessor :i_data, :quality
       alias_method :source_size, :src_size
 
       def initialize(*args)
@@ -88,13 +93,9 @@ module Bio
         return chunk
       end
 
-      # Reads a chunk of the file, starting at the specified
-      # offset. If the offset is not the start of a chunk, the read
-      # will be shortened so that it ends on a chunk boundary.
-      def read_chunk_at(offset)
+     def read_chunk_at(offset, size_hint=@chunk_size)
         f.seek(offset)
-        next_chunk_start = ((offset >> chunk_shift) + 1) << chunk_shift
-        chunk = f.read(next_chunk_start - offset)
+        chunk = f.read(size_hint)
         @pos = offset + chunk.bytesize
         return chunk
       end
@@ -105,12 +106,17 @@ module Bio
       ## Parses alignment blocks by reading a chunk of the file at a time.
 
       attr_reader :header, :file_spec, :f, :s, :cr, :at_end
-      attr_reader :chunk_start, :chunk_size, :last_block_pos
+      attr_reader :chunk_start, :last_block_pos
+      attr_accessor :sequence_filter
 
       SEQ_CHUNK_SIZE = 8 * 1024 * 1024
+      RANDOM_CHUNK_SIZE = 4096
+      MERGE_MAX = SEQ_CHUNK_SIZE
 
       def initialize(file_spec, opts={})
-        @chunk_size = opts[:chunk_size] || SEQ_CHUNK_SIZE
+        chunk_size = opts[:chunk_size] || SEQ_CHUNK_SIZE
+        @random_access_chunk_size = opts[:random_chunk_size] || RANDOM_CHUNK_SIZE
+        @merge_max = opts[:merge_max] || MERGE_MAX
         @chunk_start = 0
         @file_spec = file_spec
         @f = File.open(file_spec)
@@ -129,7 +135,7 @@ module Bio
         cr.read_chunk
       end
 
-     def fetch_blocks(fetch_list)
+      def fetch_blocks(fetch_list, filters=nil)
         ## fetch_list: array of [offset, length, block_count] tuples
         ## returns array of Blocks
         return fetch_blocks_merged(merge_fetch_list(fetch_list))
@@ -137,20 +143,28 @@ module Bio
 
       def fetch_blocks_merged(fetch_list)
         r = []
-        old_chunk_size = @chunk_size
-        @chunk_size = 4096
+        old_chunk_size = cr.chunk_size
+        cr.chunk_size = @random_access_chunk_size
         @at_end = false
         begin
+          # inhibit fragment joining
+          @last_block_pos = -1
           fetch_list.each do |offset, len, block_offsets|
             if (chunk_start <= offset) \
               && (offset < (chunk_start + s.string.size))
               ## the selected offset is in the current chunk
               s.pos = offset - chunk_start
             else
-              chunk = cr.read_chunk_at(offset)
+              chunk = cr.read_chunk_at(offset, len)
               @chunk_start = offset
               @s = StringScanner.new(chunk)
             end
+            # read chunks until we have the entire merged set of
+            # blocks ready to parse
+            while s.string.size < len
+              s.string << cr.read_chunk()
+            end
+            # parse the blocks
             block_offsets.each do |expected_offset|
               block = parse_block
               unless block
@@ -164,7 +178,8 @@ module Bio
           end
           return r
         ensure
-          @chunk_size = old_chunk_size
+          cr.chunk_size = old_chunk_size
+          set_last_block_pos!
         end
       end
 
@@ -173,7 +188,9 @@ module Bio
         r = []
         until fl.empty? do
           cur = fl.shift
-          if r.last && (r.last[0] + r.last[1]) == cur[0]
+          if r.last \
+            && (r.last[0] + r.last[1]) == cur[0] \
+            && (r.last[1] + cur[1]) <= @merge_max
             # contiguous with the previous one
             # add to length and increment count
             r.last[1] += cur[1]
@@ -253,10 +270,15 @@ module Bio
               parse_error("no leading fragment match!")
             end
             # Join the fragments and parse them
-            joined_block = s.rest + leading_frag
+            trailing_frag = s.rest
+            joined_block = trailing_frag + leading_frag
             @chunk_start = chunk_start + s.pos
             @s = StringScanner.new(joined_block)
-            block = parse_block_data
+            begin
+              block = parse_block_data
+            rescue ParseError => pe
+              parse_error "Could not parse joined fragments: #{pe}\nTRAILING: #{trailing_frag}\nLEADING: #{leading_frag}"
+            end
             # Set up to parse the next block
             @s = next_scanner
             @chunk_start = next_chunk_start
@@ -279,7 +301,7 @@ module Bio
           left = ''
         end
         right = s.string[s.pos..s_end]
-        extra = "pos #{s.pos}, last #{last_block_pos}"
+        extra = "pos #{s.pos} [#{chunk_start + s.pos}], last #{last_block_pos}"
 
         raise ParseError, "#{msg} at: '#{left}>><<#{right}' (#{extra})"
       end
@@ -299,13 +321,32 @@ module Bio
           case line[0]
           when 's'
             _, src, start, size, strand, src_size, text = line.split
-            seqs << Sequence.new(src,
-                                 start.to_i,
-                                 size.to_i,
-                                 STRAND_SYM.fetch(strand),
-                                 src_size.to_i,
-                                 text)
-          when 'i', 'e', 'q', '#', nil
+            if sequence_filter
+              if sequence_filter[:only_species]
+                src_sp = src.split('.', 2)[0]
+                m = sequence_filter[:only_species].find { |sp| src_sp == sp }
+                next unless m
+              end
+            end
+            begin
+              seqs << Sequence.new(src,
+                                   start.to_i,
+                                   size.to_i,
+                                   STRAND_SYM.fetch(strand),
+                                   src_size.to_i,
+                                   text)
+            rescue KeyError
+              parse_error "invalid sequence line: #{line}"
+            end
+          when 'i'
+            parts = line.split
+            parse_error("wrong i source #{src}!") unless seqs.last.src == src
+            seqs.last.i_data = parts.slice(2..6)
+          when 'q'
+            _, src, quality = line.split
+            parse_error("wrong q source #{src}!") unless seqs.last.src == src
+            seqs.last.quality = quality
+          when 'i', 'e', '#', nil
             next
           else
             parse_error "unexpected line: '#{line}'"

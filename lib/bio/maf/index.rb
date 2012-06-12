@@ -11,15 +11,66 @@ module Bio
 
   module MAF
 
-    class KyotoIndex
+    module KVHelpers
 
-      attr_reader :db
+      KEY = Struct.new([[:marker,    :uint8],
+                        [:seq_id,    :uint8],
+                        [:bin,       :uint16],
+                        [:seq_start, :uint32],
+                        [:seq_end,   :uint32]])
+
+      VAL = Struct.new([[:offset,      :uint64],
+                        [:length,      :uint32],
+                        [:text_size,   :uint32],
+                        [:n_seq,       :uint8],
+                        [:species_vec, :uint64]])
+
+      KEY_FMT = KEY.fmt
+      KEY_SCAN_FMT = KEY.extractor_fmt(:seq_id, :bin, :seq_start, :seq_end)
+      CHROM_BIN_PREFIX_FMT = KEY.extractor_fmt(:marker, :seq_id, :bin)
+
+      VAL_FMT = VAL.fmt
+      VAL_IDX_OFFSET_FMT = VAL.extractor_fmt(:offset, :length)
+      VAL_TEXT_SIZE_FMT = VAL.extractor_fmt(:text_size)
+      VAL_N_SEQ_FMT = VAL.extractor_fmt(:n_seq)
+      VAL_SPECIES_FMT = VAL.extractor_fmt(:species_vec)
+
+      module_function
+
+      def extract_species_vec(entry)
+        entry[1].unpack(VAL_SPECIES_FMT)[0]
+      end
+
+      def extract_n_sequences(entry)
+        entry[1].unpack(VAL_N_SEQ_FMT)[0]
+      end
+
+      def extract_index_offset(entry)
+        entry[1].unpack(VAL_IDX_OFFSET_FMT)
+      end
+
+      def extract_text_size(entry)
+        entry[1].unpack(VAL_TEXT_SIZE_FMT)[0]
+      end
+
+      def unpack_key(ks)
+        ks.unpack(KEY_FMT)
+      end
+
+      def bin_start_prefix(chrom_id, bin)
+        [0xFF, chrom_id, bin].pack(CHROM_BIN_PREFIX_FMT)
+      end
+    end
+
+    class KyotoIndex
+      include KVHelpers
+
+      attr_reader :db, :species, :species_max_id
       attr_accessor :index_sequences
 
-      KEY_FMT = "CCS>L>L>"
-      KEY_SCAN_FMT = "xCS>L>L>"
-      CHROM_BIN_PREFIX_FMT = "CCS>"
-      VAL_FMT = "Q>L>"
+      FORMAT_VERSION_KEY = 'bio-maf:index-format-version'
+      FORMAT_VERSION = 2
+      MAX_SPECIES = 64
 
       ## Key-value store index format
       ##
@@ -39,6 +90,15 @@ module Bio
       ##     name as found in the MAF file, e.g. mm8.chr7. The <id>
       ##     parameter is assigned when the sequence is indexed, and
       ##     can be from 0 to 255.
+      ##
+      ##   Species IDs:
+      ##     species:<name> => <id>
+      ##
+      ##     Each indexed species has a corresponding entry of this
+      ##     kind. The <name> parameter is the species part of the
+      ##     sequence name as found in the MAF file, e.g. 'mm8' for
+      ##     'mm8.chr7'. The <id> parameter is assigned when the
+      ##     species is indexed, and can be from 0 to 255.
       ##
       ## Index data:
       ##
@@ -62,10 +122,13 @@ module Bio
       ##   Sequence start, zero-based, inclusive (32 bits)
       ##   Sequence end, zero-based, exclusive (32 bits)
       ##
-      ## Values (12 bytes) [Q>L>]
+      ## Values (25 bytes) [Q>L>L>CQ>]
       ##
       ##   MAF file offset (64 bits)
       ##   MAF alignment block length (32 bits)
+      ##   Block text size (32 bits)
+      ##   Number of sequences in block (8 bits)
+      ##   Species bit vector (64 bits)
       ##
       ## Example:
       ##
@@ -75,8 +138,8 @@ module Bio
       ##     |  |id| bin | seq_start | seq_end   |
       ## key: FF 00 04 AB 04 C5 F5 9E 04 C5 F5 C0
       ##
-      ##     |         offset        |  length   |
-      ## val: 00 00 00 00 00 00 00 10 00 00 04 3F
+      ##     |         offset        |  length   |   ts   |ns|  species_vec  |
+      ## val: 00 00 00 00 00 00 00 10 00 00 04 3F  [TODO]
 
       #### Public API
 
@@ -96,8 +159,8 @@ module Bio
       # Find all alignment blocks in the genomic regions in the list
       # of Bio::GenomicInterval objects INTERVALS, and parse them with
       # PARSER.
-      def find(intervals, parser)
-        parser.fetch_blocks(fetch_list(intervals))
+      def find(intervals, parser, filter={})
+        parser.fetch_blocks(fetch_list(intervals, filter))
       end
 
       # Close the underlying Kyoto Cabinet database handle.
@@ -107,19 +170,54 @@ module Bio
 
       #### KyotoIndex Internals
 
-      def initialize(path)
-        if (path.size > 1) and File.exist?(path)
+      def initialize(path, db_arg=nil)
+        @species = {}
+        @species_max_id = -1
+        if db_arg || ((path.size > 1) and File.exist?(path))
           mode = KyotoCabinet::DB::OREADER
         else
           mode = KyotoCabinet::DB::OWRITER | KyotoCabinet::DB::OCREATE
         end
-        @db = KyotoCabinet::DB.new
+        @db = db_arg || KyotoCabinet::DB.new
         @path = path
-        unless db.open(path.to_s, mode)
+        unless db_arg || db.open(path.to_s, mode)
           raise "Could not open DB file!"
         end
         if mode == KyotoCabinet::DB::OREADER
           load_index_sequences
+          load_species
+        end
+      end
+
+      # Reopen the same DB handle read-only. Only useful for unit tests.
+      def reopen
+        KyotoIndex.new(@path, @db)
+      end
+
+      def dump(stream=$stdout)
+        stream.puts "KyotoIndex dump: #{@path}"
+        stream.puts
+        db.cursor_process do |cur|
+          stream.puts "== Metadata =="
+          cur.jump('')
+          while true
+            k, v = cur.get(false)
+            break if k[0] == "\xff"
+            stream.puts "#{k}: #{v}"
+            unless cur.step
+              raise "could not advance cursor!"
+            end
+          end
+          stream.puts "== Index records =="
+          while pair = cur.get(true)
+            _, chr, bin, s_start, s_end = pair[0].unpack(KEY_FMT)
+            offset, len, text_size, n_seq, species_vec = pair[1].unpack(VAL_FMT)
+            stream.puts "#{chr} [bin #{bin}] #{s_start}:#{s_end}"
+            stream.puts "  offset #{offset}, length #{len}"
+            stream.puts "  text size: #{text_size}"
+            stream.puts "  sequences in block: #{n_seq}"
+            stream.printf("  species vector: %016x\n", species_vec)
+          end
         end
       end
 
@@ -145,8 +243,10 @@ module Bio
 
       # Build a fetch list of alignment blocks to read, given an array
       # of Bio::GenomicInterval objects
-      def fetch_list(intervals)
+      def fetch_list(intervals, filter_spec={})
         to_fetch = []
+        filter_spec ||= {}
+        filters = Filters.build(filter_spec, self)
         chrom = intervals.first.chrom
         chrom_id = index_sequences[chrom]
         unless chrom_id
@@ -180,7 +280,9 @@ module Bio
               if c_end >= spanning_start # possible overlap
                 c_int = GenomicInterval.zero_based(chrom, c_start, c_end)
                 if bin_intervals.find { |i| i.overlapped?(c_int) }
-                  to_fetch << pair[1].unpack(VAL_FMT)
+                  if filters.match(pair)
+                    to_fetch << extract_index_offset(pair)
+                  end
                 end
               end
             end
@@ -189,17 +291,10 @@ module Bio
         return to_fetch
       end # #fetch_list
 
-      def unpack_key(ks)
-        ks.unpack(KEY_FMT)
-      end
-
-      def bin_start_prefix(chrom_id, bin)
-        [0xFF, chrom_id, bin].pack(CHROM_BIN_PREFIX_FMT)
-      end
-
-      def build_default(parser)
+     def build_default(parser)
         first_block = parser.parse_block
         ref_seq = first_block.sequences.first.source
+        db[FORMAT_VERSION_KEY] = FORMAT_VERSION
         @index_sequences = { ref_seq => 0 }
         store_index_sequences!
         index_block(first_block)
@@ -222,27 +317,150 @@ module Bio
         end
       end
 
+      def load_species
+        db.match_prefix("species:").each do |key|
+          _, name = key.split(':', 2)
+          id = db[key].to_i
+          @species[name] = id
+        end
+        @species_max_id = @species.values.sort.last || -1
+      end
+
+      def species_id_for_seq(seq)
+        # NB can have multiple dots
+        # example: otoGar1.scaffold_104707.1-93001
+        parts = seq.split('.', 2)
+        if parts.size == 2
+          species_name = parts[0]
+          if species.has_key? species_name
+            return species[species_name]
+          else
+            species_id = @species_max_id + 1
+            if species_id >= MAX_SPECIES
+              raise "cannot index MAF file with more than #{MAX_SPECIES} species"
+            end
+            species[species_name] = species_id
+            db["species:#{species_name}"] = species_id
+            @species_max_id = species_id
+            return species_id
+          end
+        else
+          # not in species.sequence format, apparently
+          return nil
+        end
+      end
+
       def index_block(block)
         entries_for(block).each do |k, v|
           db.set(k, v)
         end
       end
 
+      def build_block_value(block)
+        bits = block.sequences.collect {|s| 1 << species_id_for_seq(s.source) }
+        vec = bits.reduce(0, :|)
+        return [block.offset,
+                block.size,
+                block.text_size,
+                block.sequences.size,
+                vec].pack(VAL_FMT)
+      end
+
       def entries_for(block)
         e = []
+        val = build_block_value(block)
         block.sequences.each do |seq|
           seq_id = index_sequences[seq.source]
           next unless seq_id
           seq_end = seq.start + seq.size
           bin = Bio::Ucsc::UcscBin.bin_from_range(seq.start, seq_end)
           key = [255, seq_id, bin, seq.start, seq_end].pack(KEY_FMT)
-          val = [block.offset, block.size].pack(VAL_FMT)
           e << [key, val]
         end
         return e
       end
+    end # class KyotoIndex
+
+    class Filter
+      include KVHelpers
+
+      def call(e)
+        match(e)
+      end
     end
 
-  end
+    class AllSpeciesFilter < Filter
+      attr_reader :bs
+      def initialize(species, idx)
+        ids = species.collect {|s| 1 << idx.species.fetch(s) }
+        @mask = ids.reduce(0, :|)
+      end
+
+      def match(entry)
+        vec = extract_species_vec(entry)
+        (@mask & vec) == @mask
+      end
+    end
+
+    class AtLeastNSequencesFilter < Filter
+      attr_reader :n
+      def initialize(n, idx)
+        @n = n
+      end
+
+      def match(entry)
+        extract_n_sequences(entry) >= @n
+      end
+    end
+
+    class MaxSizeFilter < Filter
+      def initialize(n, idx)
+        @n = n
+      end
+      def match(entry)
+        extract_text_size(entry) <= @n
+      end
+    end
+
+    class MinSizeFilter < Filter
+      def initialize(n, idx)
+        @n = n
+      end
+      def match(entry)
+        extract_text_size(entry) >= @n
+      end
+    end
+
+    class Filters
+      include KVHelpers
+
+      FILTER_CLASSES = {
+        :with_all_species => MAF::AllSpeciesFilter,
+        :at_least_n_sequences => MAF::AtLeastNSequencesFilter,
+        :min_size => MAF::MinSizeFilter,
+        :max_size => MAF::MaxSizeFilter
+      }
+
+      def self.build(spec, idx)
+        l = spec.collect do |key, val|
+          if FILTER_CLASSES.has_key? key
+            FILTER_CLASSES[key].new(val, idx)
+          else
+            raise "Unsupported filter key #{key}!"
+          end
+        end
+        return Filters.new(l)
+      end
+
+      def initialize(l)
+        @l = l
+      end
+
+      def match(entry)
+        return ! @l.find { |f| ! f.call(entry) }
+      end
+    end
+
+  end # module MAF
   
 end
