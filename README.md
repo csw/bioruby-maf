@@ -37,7 +37,11 @@ platform (with Homebrew on Mac OS X: `brew install kyoto-cabinet`).
 If you're using MRI, the `kyotocabinet-ruby` gem is included as a
 dependency. However, for best performance, you should consider using
 JRuby. Kyoto Cabinet support under JRuby requires that you build and
-install the [kyotocabinet-java][] JNI library on your system.
+install the [kyotocabinet-java][] JNI library on your system. By
+default, its `make install` target will install `libjkyotocabinet.so`
+in `/usr/local/lib`, which is on the JNI load path
+(`java.library.path`) on Mac OS X. Ubuntu users will need to copy this
+library elsewhere: `/usr/lib/jni` is one location that should work.
 
 [kyotocabinet-java]: http://fallabs.com/kyotocabinet/javapkg/
 
