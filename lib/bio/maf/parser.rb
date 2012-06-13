@@ -373,7 +373,9 @@ module Bio
           payload = s.rest
           s.pos = s.string.size # jump to EOS
         end
-        payload.split("\n").each do |line|
+        lines = payload.split("\n")
+        until lines.empty?
+          line = lines.shift
           first = line.getbyte(0)
           if first == S
             seq = parse_seq_line(line)
