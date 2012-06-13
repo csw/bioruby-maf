@@ -26,6 +26,21 @@ Google Summer of Code 2012, under the auspices of the Open
 Bioinformatics Foundation. The development
 [blog](http://csw.github.com/bioruby-maf/) may be of interest.
 
+## Dependencies
+
+[Kyoto Cabinet][] is a database library, required for building MAF
+indexes. Install the core library in the appropriate way for your
+platform (with Homebrew on Mac OS X: `brew install kyoto-cabinet`).
+
+[Kyoto Cabinet]: http://fallabs.com/kyotocabinet/
+
+If you're using MRI, the `kyotocabinet-ruby` gem is included as a
+dependency. However, for best performance, you should consider using
+JRuby. Kyoto Cabinet support under JRuby requires that you build and
+install the [kyotocabinet-java][] JNI library on your system.
+
+[kyotocabinet-java]: http://fallabs.com/kyotocabinet/javapkg/
+
 ## Installation
 
 ```sh
