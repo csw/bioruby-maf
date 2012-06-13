@@ -186,22 +186,19 @@ module Bio
             @idx.index_sequences = { 'mm8.chr7' => 0 }
             @e = @idx.entries_for(@block)
           end
-          it "returns a two-element array" do
-            @e[0].size.should == 2
-          end
           it "gives the correct key data" do
-            _, seq, bin, i_start, i_end = @e[0][0].unpack("CCS>L>L>")
+            _, seq, bin, i_start, i_end = @e.keys.first.unpack("CCS>L>L>")
             seq.should == 0
             bin.should == 1195
             i_start.should == 80082334
             i_end.should == 80082368
           end
           it "gives the correct offset" do
-            b_offset, b_len = @e[0][1].unpack("Q>L>")
+            b_offset, b_len = @e.values.first.unpack("Q>L>")
             b_offset.should == 16
           end
           it "gives the correct length" do
-            b_offset, b_len = @e[0][1].unpack("Q>L>")
+            b_offset, b_len = @e.values.first.unpack("Q>L>")
             b_len.should == 1087
           end
         end
