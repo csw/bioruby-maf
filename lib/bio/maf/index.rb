@@ -197,11 +197,16 @@ module Bio
       def dump(stream=$stdout)
         stream.puts "KyotoIndex dump: #{@path}"
         stream.puts
+        if db.count == 0
+          stream.puts "Empty database!"
+          return
+        end
         db.cursor_process do |cur|
           stream.puts "== Metadata =="
           cur.jump('')
           while true
             k, v = cur.get(false)
+            raise "unexpected end of records!" unless k
             break if k[0] == "\xff"
             stream.puts "#{k}: #{v}"
             unless cur.step
