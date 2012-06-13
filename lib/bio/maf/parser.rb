@@ -1,5 +1,5 @@
 require 'strscan'
-require 'thread_safe'
+require 'thread'
 
 module Bio
   module MAF
@@ -105,46 +105,53 @@ module Bio
    class ThreadedChunkReader < ChunkReader
      attr_reader :f
 
-     def initialize(f, chunk_size, buffer_size=8)
-       @buffer_size = buffer_size
+     def initialize(f, chunk_size, buffer_size=64)
        super(f, chunk_size)
-       @buffer = ThreadSafe::Array.new
-       @read_thread = Thread.new { read_ahead }
+       @buffer = SizedQueue.new(buffer_size)
        @eof_reached = false
+       start_read_ahead
+     end
+
+     def start_read_ahead
+       @do_read_ahead = true
+       @read_thread = Thread.new { read_ahead }
+     end
+
+     def abort_read_ahead
+       @do_read_ahead = false
+       @buffer = ThreadSafe::Array.new
      end
 
      def read_ahead
+       n = 0
        begin
          f_pos = 0
          until f.eof?
            chunk = f.read(@chunk_size)
-           while @buffer.size > @buffer_size
-             sleep(0.1)
-           end
            @buffer << [f_pos, chunk]
            f_pos += chunk.bytesize
+           n += 1
+           if (n % 100) == 0
+             $stderr.puts "buffer size: #{@buffer.size}"
+           end
          end
          @eof_reached = true
        rescue Exception
+         @read_ahead_ex = $!
          $stderr.puts "read_ahead aborting: #{$!}"
        end
      end
 
-    def read_chunk
-      while @buffer.empty? && ! @eof_reached
-        sleep(0.1)
-      end
-      # either the buffer is non-empty or the read thread is dead
-      rec = @buffer.shift
-      if rec
-        c_pos, chunk = rec
-        @pos = c_pos
-        return chunk
-      else
-        # EOF
-        return nil
-      end
-    end
+     def read_chunk
+       raise "readahead failed: #{@read_ahead_ex}" if @read_ahead_ex
+       if @eof_reached && @buffer.empty?
+         return nil
+       else
+         c_pos, chunk = @buffer.shift()
+         @pos = c_pos
+         return chunk
+       end
+     end
 
    end
 
