@@ -20,9 +20,7 @@ end
 
 require 'java'
 
-begin
-  Java::Kyotocabinet::DB
-rescue NameError
+unless Java.const_defined? :Kyotocabinet
   # need to require kyotocabinet.jar
   if File.exist? '/usr/local/lib/kyotocabinet.jar'
     require '/usr/local/lib/kyotocabinet.jar'
@@ -40,9 +38,18 @@ module KyotoCabinet
   module Adaptation
     BYTE_ARRAY = [1].to_java(:byte).java_class
 
-    def self.with_method_handle(mname, *args)
-      yield self.java_method(mname, args)
+    def self.included(mod)
+      super(mod)
+      mod.class_eval do
+        def self.with_method_handle(mname, *args)
+          $stderr.puts "in #{self}.with_method_handle(#{mname.inspect}, #{args.inspect})"
+          mh = self.java_method(mname, args)
+          $stderr.puts "got method handle #{mh}"
+          yield mh
+        end
+      end
     end
+
   end
 end
 
@@ -50,33 +57,30 @@ module Java::Kyotocabinet
   class Cursor
     include KyotoCabinet::Adaptation
 
-    with_method_handle(:get, BYTE_ARRAY, BYTE_ARRAY) do |m|
-      def get(step=false)
-        r = m.call(step)
-        if r
-          return [String.from_java_bytes(r[0]),
-                  String.from_java_bytes(r[1])]
-        else
-          return nil
-        end
+    alias_method :_get, :get
+    def get(step=false)
+      r = self._get(step)
+      if r
+        return [String.from_java_bytes(r[0]),
+                String.from_java_bytes(r[1])]
+      else
+        return nil
       end
     end
 
-    with_method_handle(:get_key, java.lang.Boolean) do |m|
-      def get_key(step=false)
-        r = m.call(step)
-        if r
-          return String.from_java_bytes(r)
-        else
-          return nil
-        end
+    alias_method :_get_key, :get_key
+    def get_key(step=false)
+      r = self._get_key(step)
+      if r
+        return String.from_java_bytes(r)
+      else
+        return nil
       end
     end
 
-    with_method_handle(:jump, BYTE_ARRAY) do |m|
-      def jump(key)
-        m.call(key.to_java_bytes)
-      end
+    alias_method :_jump, :jump
+    def jump(key)
+      self._jump(key.to_java_bytes)
     end
   end # class Cursor
 
@@ -84,24 +88,21 @@ module Java::Kyotocabinet
     include KyotoCabinet::Adaptation
 
     alias_method :_match_prefix, :match_prefix
-    with_method_handle(:match_prefix, java.lang.String, java.lang.Integer) do |m|
-      def match_prefix(prefix, limit=-1)
-        m.call(prefix, limit)
-      end
+    def match_prefix(prefix, limit=-1)
+      self._match_prefix(prefix, limit)
     end
 
-    with_method_handle(:get, BYTE_ARRAY) do |m|
-      def get(key)
-        m.call(key)
-      end
-      alias_method :[], :get
+    alias_method :_get, :get
+    def get(key)
+      String.from_java_bytes(self._get(key.to_java_bytes))
     end
+    alias_method :[], :get
 
-    with_method_handle(:set, BYTE_ARRAY, BYTE_ARRAY) do |m|
-      def set(k, v)
-        m.call(k.to_java_bytes, v.to_java_bytes)
-      end
+    alias_method :_set, :set
+    def set(k, v)
+      self._set(k.to_java_bytes, v.to_s.to_java_bytes)
     end
+    alias_method :[]=, :set
 
     def cursor_process
       cur = self.cursor()
