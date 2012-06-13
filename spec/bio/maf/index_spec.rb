@@ -4,6 +4,18 @@ module Bio
   module MAF
 
     describe KyotoIndex do
+      def has_at_least_n_with_prefix(n, start)
+        @idx.db.cursor_process do |cur|
+          i = 0
+          cur.jump(start)
+          k = cur.get_key(true)
+          $stderr.puts "saw key: #{k}"
+          while k && k.start_with?(start) && i < n
+            i += 1
+          end
+          return i == n
+        end
+      end
 
       describe ".build" do
         it "accepts '%' as a path for an in-memory DB" do
@@ -25,8 +37,7 @@ module Bio
             @idx.index_sequences.to_a.should == [["mm8.chr7", 0]]
           end
           it "creates 8 index entries" do
-            keys = @idx.db.match_prefix("\xFF\x00")
-            keys.size.should == 8
+            has_at_least_n_with_prefix(8, "\xFF\x00").should be_true
           end
           it "stores the sequence IDs" do
             @idx.db.match_prefix("sequence:").size.should == 1
@@ -175,22 +186,19 @@ module Bio
             @idx.index_sequences = { 'mm8.chr7' => 0 }
             @e = @idx.entries_for(@block)
           end
-          it "returns a two-element array" do
-            @e[0].size.should == 2
-          end
           it "gives the correct key data" do
-            _, seq, bin, i_start, i_end = @e[0][0].unpack("CCS>L>L>")
+            _, seq, bin, i_start, i_end = @e.keys.first.unpack("CCS>L>L>")
             seq.should == 0
             bin.should == 1195
             i_start.should == 80082334
             i_end.should == 80082368
           end
           it "gives the correct offset" do
-            b_offset, b_len = @e[0][1].unpack("Q>L>")
+            b_offset, b_len = @e.values.first.unpack("Q>L>")
             b_offset.should == 16
           end
           it "gives the correct length" do
-            b_offset, b_len = @e[0][1].unpack("Q>L>")
+            b_offset, b_len = @e.values.first.unpack("Q>L>")
             b_len.should == 1087
           end
         end

@@ -1,4 +1,5 @@
 require 'strscan'
+require 'thread'
 
 module Bio
   module MAF
@@ -89,7 +90,7 @@ module Bio
       # Reads the next chunk of the file.
       def read_chunk
         chunk = f.read(@chunk_size)
-        @pos += chunk.bytesize
+        @pos += chunk.bytesize if chunk
         return chunk
       end
 
@@ -99,9 +100,56 @@ module Bio
         @pos = offset + chunk.bytesize
         return chunk
       end
-    end
+   end
 
-    class Parser
+   class ThreadedChunkReader < ChunkReader
+     attr_reader :f
+
+     def initialize(f, chunk_size, buffer_size=64)
+       super(f, chunk_size)
+       @buffer = SizedQueue.new(buffer_size)
+       @eof_reached = false
+       start_read_ahead
+     end
+
+     def start_read_ahead
+       @read_thread = Thread.new { read_ahead }
+     end
+
+     def read_ahead
+       # n = 0
+       begin
+         f_pos = 0
+         until f.eof?
+           chunk = f.read(@chunk_size)
+           @buffer << [f_pos, chunk]
+           f_pos += chunk.bytesize
+           # n += 1
+           # if (n % 100) == 0
+           #   $stderr.puts "buffer size: #{@buffer.size}"
+           # end
+         end
+         @eof_reached = true
+       rescue Exception
+         @read_ahead_ex = $!
+         $stderr.puts "read_ahead aborting: #{$!}"
+       end
+     end
+
+     def read_chunk
+       raise "readahead failed: #{@read_ahead_ex}" if @read_ahead_ex
+       if @eof_reached && @buffer.empty?
+         return nil
+       else
+         c_pos, chunk = @buffer.shift()
+         @pos = c_pos
+         return chunk
+       end
+     end
+
+   end
+
+   class Parser
 
       ## Parses alignment blocks by reading a chunk of the file at a time.
 
@@ -109,7 +157,7 @@ module Bio
       attr_reader :chunk_start, :last_block_pos
       attr_accessor :sequence_filter
 
-      SEQ_CHUNK_SIZE = 8 * 1024 * 1024
+      SEQ_CHUNK_SIZE = 131072
       RANDOM_CHUNK_SIZE = 4096
       MERGE_MAX = SEQ_CHUNK_SIZE
 
@@ -120,7 +168,8 @@ module Bio
         @chunk_start = 0
         @file_spec = file_spec
         @f = File.open(file_spec)
-        @cr = ChunkReader.new(@f, chunk_size)
+        reader = opts[:chunk_reader] || ChunkReader
+        @cr = reader.new(@f, chunk_size)
         @s = StringScanner.new(read_chunk())
         set_last_block_pos!
         @at_end = false
@@ -242,7 +291,9 @@ module Bio
           block = parse_block_data
         else
           # in trailing block fragment
-          if f.eof?
+          next_chunk_start = cr.pos
+          next_chunk = read_chunk
+          if next_chunk.nil?
             # last block, parse it as is
             block = parse_block_data
             @at_end = true
@@ -253,8 +304,7 @@ module Bio
             # fragment with the leading fragment before the start of
             # that next block. Parse the resulting joined block, then
             # position the scanner to parse the next block.
-            next_chunk_start = cr.pos
-            next_chunk = read_chunk
+
             # Find the next alignment block
             next_scanner = StringScanner.new(next_chunk)
             # If this trailing fragment ends with a newline, then an
@@ -306,6 +356,12 @@ module Bio
         raise ParseError, "#{msg} at: '#{left}>><<#{right}' (#{extra})"
       end
 
+      S = 's'.getbyte(0)
+      I = 'i'.getbyte(0)
+      E = 'e'.getbyte(0)
+      Q = 'q'.getbyte(0)
+      COMMENT = '#'.getbyte(0)
+
       def parse_block_data
         block_start_pos = s.pos
         block_offset = chunk_start + block_start_pos
@@ -317,36 +373,22 @@ module Bio
           payload = s.rest
           s.pos = s.string.size # jump to EOS
         end
-        payload.split("\n").each do |line|
-          case line[0]
-          when 's'
-            _, src, start, size, strand, src_size, text = line.split
-            if sequence_filter
-              if sequence_filter[:only_species]
-                src_sp = src.split('.', 2)[0]
-                m = sequence_filter[:only_species].find { |sp| src_sp == sp }
-                next unless m
-              end
-            end
-            begin
-              seqs << Sequence.new(src,
-                                   start.to_i,
-                                   size.to_i,
-                                   STRAND_SYM.fetch(strand),
-                                   src_size.to_i,
-                                   text)
-            rescue KeyError
-              parse_error "invalid sequence line: #{line}"
-            end
+        lines = payload.split("\n")
+        until lines.empty?
+          line = lines.shift
+          first = line.getbyte(0)
+          if first == S
+            seq = parse_seq_line(line)
+            seqs << seq if seq
           # when 'i'
           #   parts = line.split
-          #   parse_error("wrong i source #{src}!") unless seqs.last.src == src
+          #   parse_error("wrong i source #{src}!") unless seqs.last.source == src
           #   seqs.last.i_data = parts.slice(2..6)
           # when 'q'
           #   _, src, quality = line.split
-          #   parse_error("wrong q source #{src}!") unless seqs.last.src == src
+          #   parse_error("wrong q source #{src}!") unless seqs.last.source == src
           #   seqs.last.quality = quality
-          when 'i', 'e', 'q', '#', nil
+          elsif [I, E, Q, COMMENT, nil].include? first
             next
           else
             parse_error "unexpected line: '#{line}'"
@@ -356,6 +398,31 @@ module Bio
                          seqs,
                          block_offset,
                          s.pos - block_start_pos)
+      end
+
+      def parse_seq_line(line)
+        _, src, start, size, strand, src_size, text = line.split
+        return nil if sequence_filter && ! seq_filter_ok?(src)
+        begin
+          Sequence.new(src,
+                       start.to_i,
+                       size.to_i,
+                       STRAND_SYM.fetch(strand),
+                       src_size.to_i,
+                       text)
+        rescue KeyError
+          parse_error "invalid sequence line: #{line}"
+        end
+      end
+
+      def seq_filter_ok?(src)
+        if sequence_filter[:only_species]
+          src_sp = src.split('.', 2)[0]
+          m = sequence_filter[:only_species].find { |sp| src_sp == sp }
+          return m
+        else
+          return true
+        end
       end
 
       def parse_maf_vars

@@ -1,6 +1,8 @@
 language: ruby
 before_install:
+  - sudo update-java-alternatives -s java-1.7.0-openjdk-i386
   - sudo ./travis-ci/install_kc
+  - sudo ./travis-ci/install_kc_java
 bundler_args: --without development
 script: "bundle exec rake test"
 rvm:
@@ -9,8 +11,4 @@ rvm:
   - rbx-19mode
 matrix:
   allow_failures:
-    - rvm: jruby-19mode
     - rvm: rbx-19mode
-
-# uncomment this line if your project needs to run something other than `rake`:
-# script: bundle exec rspec spec

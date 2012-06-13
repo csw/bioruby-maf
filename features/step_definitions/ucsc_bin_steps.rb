@@ -1,4 +1,4 @@
-require 'bio-ucsc-api'
+#require 'bio-ucsc-api'
 
 Given /^I have a region with start (\d+) and end (\d+)$/ do |r_start, r_end|
   @r_start = r_start.to_i

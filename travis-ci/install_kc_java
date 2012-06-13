@@ -1,0 +1,13 @@
+#!/bin/bash
+
+## NOTE: I am aware that this shell script is horrible.
+
+export JAVA_HOME=/usr/lib/jvm/java-7-openjdk-i386
+
+cd /tmp
+wget http://fallabs.com/kyotocabinet/javapkg/kyotocabinet-java-1.24.tar.gz
+tar xzf kyotocabinet-java-1.24.tar.gz
+cd kyotocabinet-java-1.24
+./configure && make && make install
+cp -Rf /usr/local/lib/libjkyotocabinet.so* /usr/lib/jni/
+ldconfig

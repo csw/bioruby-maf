@@ -1,5 +1,10 @@
-require 'kyotocabinet'
-require 'bio-ucsc-api'
+if RUBY_PLATFORM != 'java'
+  require 'kyotocabinet'
+else
+  require 'kyotocabinet-java'
+end
+
+#require 'bio-ucsc-api'
 require 'bio-genomic-interval'
 
 module Bio
@@ -175,7 +180,7 @@ module Bio
         end
         @db = db_arg || KyotoCabinet::DB.new
         @path = path
-        unless db_arg || db.open(path, mode)
+        unless db_arg || db.open(path.to_s, mode)
           raise "Could not open DB file!"
         end
         if mode == KyotoCabinet::DB::OREADER
@@ -192,11 +197,16 @@ module Bio
       def dump(stream=$stdout)
         stream.puts "KyotoIndex dump: #{@path}"
         stream.puts
+        if db.count == 0
+          stream.puts "Empty database!"
+          return
+        end
         db.cursor_process do |cur|
           stream.puts "== Metadata =="
           cur.jump('')
           while true
             k, v = cur.get(false)
+            raise "unexpected end of records!" unless k
             break if k[0] == "\xff"
             stream.puts "#{k}: #{v}"
             unless cur.step
@@ -286,14 +296,22 @@ module Bio
         return to_fetch
       end # #fetch_list
 
-     def build_default(parser)
+      def build_default(parser)
         first_block = parser.parse_block
         ref_seq = first_block.sequences.first.source
         db[FORMAT_VERSION_KEY] = FORMAT_VERSION
         @index_sequences = { ref_seq => 0 }
         store_index_sequences!
-        index_block(first_block)
-        parser.each_block { |b| index_block(b) }
+        index_blocks([first_block])
+        parser.enum_for(:each_block).each_slice(1000).each do |blocks|
+          index_blocks(blocks)
+        end
+        db.synchronize(true)
+      end
+
+      def index_blocks(blocks)
+        h = blocks.map { |b| entries_for(b) }.reduce(:merge!)
+        db.set_bulk(h, false)
       end
 
       def load_index_sequences
@@ -345,12 +363,6 @@ module Bio
         end
       end
 
-      def index_block(block)
-        entries_for(block).each do |k, v|
-          db.set(k, v)
-        end
-      end
-
       def build_block_value(block)
         bits = block.sequences.collect {|s| 1 << species_id_for_seq(s.source) }
         vec = bits.reduce(0, :|)
@@ -362,7 +374,7 @@ module Bio
       end
 
       def entries_for(block)
-        e = []
+        h = {}
         val = build_block_value(block)
         block.sequences.each do |seq|
           seq_id = index_sequences[seq.source]
@@ -370,9 +382,9 @@ module Bio
           seq_end = seq.start + seq.size
           bin = Bio::Ucsc::UcscBin.bin_from_range(seq.start, seq_end)
           key = [255, seq_id, bin, seq.start, seq_end].pack(KEY_FMT)
-          e << [key, val]
+          h[key] = val
         end
-        return e
+        return h
       end
     end # class KyotoIndex
 
