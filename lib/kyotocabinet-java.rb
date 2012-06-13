@@ -104,6 +104,23 @@ module Java::Kyotocabinet
     end
     alias_method :[]=, :set
 
+    alias_method :_set_bulk, :set_bulk
+    def set_bulk(rec_h, atomic)
+      ba = Java::byte[rec_h.size * 2, 0].new
+      i = 0
+      rec_h.each_pair do |k, v|
+        ba[i]   = k.to_java_bytes
+        ba[i+1] = v.to_java_bytes
+        i += 2
+      end
+      self._set_bulk(ba, atomic)
+    end
+
+    alias_method :_synchronize, :synchronize
+    def synchronize(hard=false, proc=nil)
+      self._synchronize(hard, proc)
+    end
+
     def cursor_process
       cur = self.cursor()
       begin
