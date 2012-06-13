@@ -5,60 +5,64 @@ require 'bio-maf'
 require 'optparse'
 require 'ostruct'
 
-def build_index(maf, index)
-  parser = Bio::MAF::Parser.new(maf)
-  idx = Bio::MAF::KyotoIndex.build(parser, index)
-  idx.close
-end
-
 PRINTERS = {
   'flat' => :FlatPrinter,
   'stack' => :CallStackPrinter,
   'graph' => :GraphHtmlPrinter
 }
 
-options = OpenStruct.new
-options.mode = :build
+$options = OpenStruct.new
+$options.mode = :build
+$options.reader = Bio::MAF::ChunkReader
+
+def build_index(maf, index)
+  parser = Bio::MAF::Parser.new(maf, :chunk_reader => $options.reader)
+  idx = Bio::MAF::KyotoIndex.build(parser, index)
+  idx.close
+end
 
 op = OptionParser.new do |opts|
   opts.banner = "Usage: maf_index [options] <maf> <index>"
   #opts.separator ""
   #opts.separator "Options:"
   opts.on("--time", "print elapsed time") do
-    options.bench = true
+    $options.bench = true
   end
   opts.on("-d", "--dump") do
-    options.mode = :dump
+    $options.mode = :dump
+  end
+  opts.on("-t", "--threaded") do
+    $options.reader = Bio::MAF::ThreadedChunkReader
   end
   opts.on("--ruby-prof PATH", "Profile with ruby-prof") do |pspec|
     require 'ruby-prof'
     if pspec =~ /(\w+):(.+)/
-      options.ruby_prof_printer = RubyProf.const_get(PRINTERS.fetch($1))
-      options.ruby_prof_path = $2
+      $options.ruby_prof_printer = RubyProf.const_get(PRINTERS.fetch($1))
+      $options.ruby_prof_path = $2
     else
-      options.ruby_prof_printer = Ruby_Prof::FlatPrinter
-      options.ruby_prof_path = pspec
+      $options.ruby_prof_printer = Ruby_Prof::FlatPrinter
+      $options.ruby_prof_path = pspec
     end
   end
 end
 
 op.parse!(ARGV)
 
-maf_p = ARGV.shift if options.mode == :build
+maf_p = ARGV.shift if $options.mode == :build
 index_p = ARGV.shift
 
-unless (maf_p || options.mode == :dump) && index_p
+unless (maf_p || $options.mode == :dump) && index_p
   $stderr.puts op
   exit 1
 end
 
-if options.ruby_prof_path
+if $options.ruby_prof_path
   RubyProf.start
 end
 
-case options.mode
+case $options.mode
 when :build
-  if ! options.bench
+  if ! $options.bench
     build_index(maf_p, index_p)
   else
     bm_res = Benchmark.measure do
@@ -70,13 +74,13 @@ when :dump
   idx = Bio::MAF::KyotoIndex.open(index_p)
   idx.dump
 else
-  raise "Unsupported mode: #{options.mode}"
+  raise "Unsupported mode: #{$options.mode}"
 end
 
-if options.ruby_prof_path
+if $options.ruby_prof_path
   res = RubyProf.stop
-  printer = options.ruby_prof_printer.new(res)
-  File.open(options.ruby_prof_path, 'w') do |f|
+  printer = $options.ruby_prof_printer.new(res)
+  File.open($options.ruby_prof_path, 'w') do |f|
     printer.print(f)
   end
 end

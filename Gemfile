@@ -5,6 +5,7 @@ gem "bio-bigbio"
 #gem "bio-ucsc-api", "~> 0.4.0"
 gem "bio-genomic-interval", "~> 0.1.2"
 gem "kyotocabinet-ruby", "~> 1.27.1", :platforms => :mri
+gem "thread_safe", "~> 0.0.3"
 
 
 # Add dependencies to develop your gem here.

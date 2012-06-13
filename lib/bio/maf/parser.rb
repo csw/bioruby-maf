@@ -1,4 +1,5 @@
 require 'strscan'
+require 'thread_safe'
 
 module Bio
   module MAF
@@ -89,7 +90,7 @@ module Bio
       # Reads the next chunk of the file.
       def read_chunk
         chunk = f.read(@chunk_size)
-        @pos += chunk.bytesize
+        @pos += chunk.bytesize if chunk
         return chunk
       end
 
@@ -99,9 +100,55 @@ module Bio
         @pos = offset + chunk.bytesize
         return chunk
       end
+   end
+
+   class ThreadedChunkReader < ChunkReader
+     attr_reader :f
+
+     def initialize(f, chunk_size, buffer_size=8)
+       @buffer_size = buffer_size
+       super(f, chunk_size)
+       @buffer = ThreadSafe::Array.new
+       @read_thread = Thread.new { read_ahead }
+       @eof_reached = false
+     end
+
+     def read_ahead
+       begin
+         f_pos = 0
+         until f.eof?
+           chunk = f.read(@chunk_size)
+           while @buffer.size > @buffer_size
+             sleep(0.1)
+           end
+           @buffer << [f_pos, chunk]
+           f_pos += chunk.bytesize
+         end
+         @eof_reached = true
+       rescue Exception
+         $stderr.puts "read_ahead aborting: #{$!}"
+       end
+     end
+
+    def read_chunk
+      while @buffer.empty? && ! @eof_reached
+        sleep(0.1)
+      end
+      # either the buffer is non-empty or the read thread is dead
+      rec = @buffer.shift
+      if rec
+        c_pos, chunk = rec
+        @pos = c_pos
+        return chunk
+      else
+        # EOF
+        return nil
+      end
     end
 
-    class Parser
+   end
+
+   class Parser
 
       ## Parses alignment blocks by reading a chunk of the file at a time.
 
@@ -120,7 +167,8 @@ module Bio
         @chunk_start = 0
         @file_spec = file_spec
         @f = File.open(file_spec)
-        @cr = ChunkReader.new(@f, chunk_size)
+        reader = opts[:chunk_reader] || ChunkReader
+        @cr = reader.new(@f, chunk_size)
         @s = StringScanner.new(read_chunk())
         set_last_block_pos!
         @at_end = false
@@ -242,7 +290,9 @@ module Bio
           block = parse_block_data
         else
           # in trailing block fragment
-          if f.eof?
+          next_chunk_start = cr.pos
+          next_chunk = read_chunk
+          if next_chunk.nil?
             # last block, parse it as is
             block = parse_block_data
             @at_end = true
@@ -253,8 +303,7 @@ module Bio
             # fragment with the leading fragment before the start of
             # that next block. Parse the resulting joined block, then
             # position the scanner to parse the next block.
-            next_chunk_start = cr.pos
-            next_chunk = read_chunk
+
             # Find the next alignment block
             next_scanner = StringScanner.new(next_chunk)
             # If this trailing fragment ends with a newline, then an
