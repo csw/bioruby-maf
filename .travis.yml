@@ -1,6 +1,7 @@
 language: ruby
 before_install:
-  - sudo apt-get install openjdk-6-jdk
+  - sudo apt-get install openjdk-7-jdk
+  - sudo update-java-alternatives -s java-1.7.0-openjdk-i386
   - sudo ./travis-ci/install_kc
   - sudo ./travis-ci/install_kc_java
 bundler_args: --without development
