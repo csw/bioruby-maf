@@ -113,27 +113,21 @@ module Bio
      end
 
      def start_read_ahead
-       @do_read_ahead = true
        @read_thread = Thread.new { read_ahead }
      end
 
-     def abort_read_ahead
-       @do_read_ahead = false
-       @buffer = ThreadSafe::Array.new
-     end
-
      def read_ahead
-       n = 0
+       # n = 0
        begin
          f_pos = 0
          until f.eof?
            chunk = f.read(@chunk_size)
            @buffer << [f_pos, chunk]
            f_pos += chunk.bytesize
-           n += 1
-           if (n % 100) == 0
-             $stderr.puts "buffer size: #{@buffer.size}"
-           end
+           # n += 1
+           # if (n % 100) == 0
+           #   $stderr.puts "buffer size: #{@buffer.size}"
+           # end
          end
          @eof_reached = true
        rescue Exception
