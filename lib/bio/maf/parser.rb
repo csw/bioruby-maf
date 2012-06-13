@@ -362,6 +362,12 @@ module Bio
         raise ParseError, "#{msg} at: '#{left}>><<#{right}' (#{extra})"
       end
 
+      S = 's'.getbyte(0)
+      I = 'i'.getbyte(0)
+      E = 'e'.getbyte(0)
+      Q = 'q'.getbyte(0)
+      COMMENT = '#'.getbyte(0)
+
       def parse_block_data
         block_start_pos = s.pos
         block_offset = chunk_start + block_start_pos
@@ -374,26 +380,10 @@ module Bio
           s.pos = s.string.size # jump to EOS
         end
         payload.split("\n").each do |line|
-          case line[0]
-          when 's'
-            _, src, start, size, strand, src_size, text = line.split
-            if sequence_filter
-              if sequence_filter[:only_species]
-                src_sp = src.split('.', 2)[0]
-                m = sequence_filter[:only_species].find { |sp| src_sp == sp }
-                next unless m
-              end
-            end
-            begin
-              seqs << Sequence.new(src,
-                                   start.to_i,
-                                   size.to_i,
-                                   STRAND_SYM.fetch(strand),
-                                   src_size.to_i,
-                                   text)
-            rescue KeyError
-              parse_error "invalid sequence line: #{line}"
-            end
+          first = line.getbyte(0)
+          if first == S
+            seq = parse_seq_line(line)
+            seqs << seq if seq
           # when 'i'
           #   parts = line.split
           #   parse_error("wrong i source #{src}!") unless seqs.last.source == src
@@ -402,7 +392,7 @@ module Bio
           #   _, src, quality = line.split
           #   parse_error("wrong q source #{src}!") unless seqs.last.source == src
           #   seqs.last.quality = quality
-          when 'i', 'e', 'q', '#', nil
+          elsif [I, E, Q, COMMENT, nil].include? first
             next
           else
             parse_error "unexpected line: '#{line}'"
@@ -412,6 +402,31 @@ module Bio
                          seqs,
                          block_offset,
                          s.pos - block_start_pos)
+      end
+
+      def parse_seq_line(line)
+        _, src, start, size, strand, src_size, text = line.split
+        return nil if sequence_filter && ! seq_filter_ok?(sec)
+        begin
+          Sequence.new(src,
+                       start.to_i,
+                       size.to_i,
+                       STRAND_SYM.fetch(strand),
+                       src_size.to_i,
+                       text)
+        rescue KeyError
+          parse_error "invalid sequence line: #{line}"
+        end
+      end
+
+      def seq_filter_ok?(src)
+        if sequence_filter[:only_species]
+          src_sp = src.split('.', 2)[0]
+          m = sequence_filter[:only_species].find { |sp| src_sp == sp }
+          return m
+        else
+          return true
+        end
       end
 
       def parse_maf_vars
