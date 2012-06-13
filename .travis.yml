@@ -6,6 +6,8 @@ before_install:
   - sudo ./travis-ci/install_kc_java
 bundler_args: --without development
 script: "bundle exec rake test"
+env:
+  - JAVA_HOME=/usr/lib/jvm/default-java
 rvm:
   - 1.9.3
   - jruby-19mode # JRuby in 1.9 mode
@@ -14,6 +16,3 @@ matrix:
   allow_failures:
     - rvm: jruby-19mode
     - rvm: rbx-19mode
-
-# uncomment this line if your project needs to run something other than `rake`:
-# script: bundle exec rspec spec
