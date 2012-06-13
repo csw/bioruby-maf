@@ -402,7 +402,7 @@ module Bio
 
       def parse_seq_line(line)
         _, src, start, size, strand, src_size, text = line.split
-        return nil if sequence_filter && ! seq_filter_ok?(sec)
+        return nil if sequence_filter && ! seq_filter_ok?(src)
         begin
           Sequence.new(src,
                        start.to_i,
