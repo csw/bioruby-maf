@@ -9,4 +9,5 @@ wget http://fallabs.com/kyotocabinet/javapkg/kyotocabinet-java-1.24.tar.gz
 tar xzf kyotocabinet-java-1.24.tar.gz
 cd kyotocabinet-java-1.24
 ./configure && make && make install
+cp -Rf /usr/local/lib/libjkyotocabinet.so* /usr/jni/lib/
 ldconfig
