@@ -1,6 +1,7 @@
 language: ruby
 before_install:
   - sudo ./travis-ci/install_kc
+  - sudo ./travis-ci/install_kc_java
 bundler_args: --without development
 script: "bundle exec rake test"
 rvm:
