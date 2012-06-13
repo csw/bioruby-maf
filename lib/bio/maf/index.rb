@@ -4,7 +4,7 @@ else
   require 'kyotocabinet-java'
 end
 
-require 'bio-ucsc-api'
+#require 'bio-ucsc-api'
 require 'bio-genomic-interval'
 
 module Bio
