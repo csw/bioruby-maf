@@ -156,7 +156,7 @@ module Bio
       attr_reader :chunk_start, :last_block_pos
       attr_accessor :sequence_filter
 
-      SEQ_CHUNK_SIZE = 8 * 1024 * 1024
+      SEQ_CHUNK_SIZE = 131072
       RANDOM_CHUNK_SIZE = 4096
       MERGE_MAX = SEQ_CHUNK_SIZE
 
