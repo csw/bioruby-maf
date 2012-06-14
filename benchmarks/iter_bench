@@ -1,0 +1,44 @@
+#!/usr/bin/env ruby
+
+require 'benchmark'
+
+n = 1000000
+data = <<EOF
+a score=28680.000000
+s hg19.chr22                    16050711 61 + 51304566 atctccaagagggcataaaacac-tgagtaaacagctcttttatatgtgtttcctggatgag
+s panTro2.chrUn                  7681110 59 + 58616431 atctccaagagggcataaaacac-tgagtaaacagctctt--atatgtgtttcctggatgag
+q panTro2.chrUn                                        99999999999999999999999-9999999999999999--99999999999999999999
+i panTro2.chrUn                 C 0 C 0
+s tarSyr1.scaffold_75923            2859 50 -     8928 atctccaagagggctgaaaatgc-caaatga-----------tcacacgtttcctggacaag
+q tarSyr1.scaffold_75923                               79295966999999999999998-9999799-----------99999999997657759999
+i tarSyr1.scaffold_75923        N 0 C 0
+s micMur1.scaffold_22105            5493 59 -    10683 acctccgagagggctcaaaacgc-cgagtgatcagctctt--atgcgcgtttcctggacgag
+q micMur1.scaffold_22105                               99999999999999999999999-9999999999999999--99999999999999999999
+i micMur1.scaffold_22105        C 0 C 0
+s tupBel1.scaffold_3803.1-85889    33686 61 +    85889 ttcaggaagggggcccaaaacgcttgagtggtcagctctta-ttttgcgtttactggatggg
+q tupBel1.scaffold_3803.1-85889                        79648579699867994997775679665662767577569-69987455976776322888
+i tupBel1.scaffold_3803.1-85889 I 1 C 0
+s vicPac1.scaffold_12713            6831 55 -    10681 actgccatgggggctcagcgtac-tgaatggttaattact------gtggtccccgaatgag
+q vicPac1.scaffold_12713                               99999999999999999999999-9999999999999999------9999999999999999
+EOF
+
+Benchmark.bmbm do |x|
+  x.report("split/each") do
+    n.times do
+      i = 0
+      data.split("\n").each do |line|
+        i += line.size
+      end
+    end
+  end
+  x.report("until/shift") do
+    n.times do
+      i = 0
+      lines = data.split("\n")
+      until lines.empty?
+        line = lines.shift
+        i += line.size
+      end
+    end
+  end
+end

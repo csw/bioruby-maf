@@ -1,0 +1,53 @@
+#!/usr/bin/env ruby
+
+require 'benchmark'
+
+n = 10000000
+line = 's tupBel1.scaffold_3803.1-85889    33686 61 +    85889 ttcaggaagggggcccaaaacgcttgagtggtcagctctta-ttttgcgtttactggatggg'
+
+Benchmark.bmbm do |x|
+  x.report("case with strings") do
+    n.times do
+      i = 0
+      case line[0]
+      when 's'
+        i += 1
+      when 'i', 'e', 'q', '#', nil
+        next
+      else
+        raise "foo"
+      end
+    end
+  end
+  S = 's'.getbyte(0)
+  I = 'i'.getbyte(0)
+  E = 'e'.getbyte(0)
+  Q = 'q'.getbyte(0)
+  COMMENT = '#'.getbyte(0)
+  x.report("case with bytes") do
+    n.times do
+      i = 0
+      case line.getbyte(0)
+      when S
+        i += 1
+      when I, E, Q, COMMENT, nil
+        next
+      else
+        raise "foo"
+      end
+    end
+  end
+  x.report("if/else with bytes") do
+    n.times do
+      i = 0
+      b = line.getbyte(0)
+      if b == S
+        i += 1
+      elsif [I, E, Q, COMMENT, nil].contain?(b)
+        next
+      else
+        raise "foo"
+      end
+    end
+  end
+end
