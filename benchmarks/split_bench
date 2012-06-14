@@ -1,0 +1,33 @@
+#!/usr/bin/env ruby
+
+require 'benchmark'
+
+n = 2000000
+line = 's tupBel1.scaffold_3803.1-85889    33686 61 +    85889 ttcaggaagggggcccaaaacgcttgagtggtcagctctta-ttttgcgtttactggatggg'
+
+Benchmark.bmbm do |x|
+  x.report("basic String#split") do
+    n.times do
+      parts = line.split
+    end
+  end
+  x.report("regex split") do
+    n.times do
+      parts = line.split(/\s+/)
+    end
+  end
+  x.report("regex fields") do
+    n.times do
+      if m = /^s\s+(\S+)\s+(\d+)\s+(\d+)\s+([+-])\s+(\d+)\s+(\S+)/.match(line)
+        parts = m.captures
+      end
+    end
+  end
+  x.report("regex fields") do
+    n.times do
+      if m = /^s\s+(\S+)\s+(\d+)\s+(\d+)\s+([+-])\s+(\d+)\s+(\S+)/.match(line)
+        parts = m.captures
+      end
+    end
+  end
+end
