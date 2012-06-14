@@ -432,8 +432,8 @@ module Bio
               # parse the blocks
               block_offsets.each do |expected_offset|
                 block = ctx.parse_block
-                parse_error("expected a block at offset #{expected_offset} but could not parse one!") unless block
-                parse_error("got block with offset #{block.offset}, expected #{expected_offset}!") unless block.offset == expected_offset
+                ctx.parse_error("expected a block at offset #{expected_offset} but could not parse one!") unless block
+                ctx.parse_error("got block with offset #{block.offset}, expected #{expected_offset}!") unless block.offset == expected_offset
                 y << block
               end
             end
