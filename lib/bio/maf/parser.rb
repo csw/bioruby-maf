@@ -1,5 +1,6 @@
 require 'strscan'
 require 'thread'
+require 'java' if RUBY_PLATFORM == 'java'
 
 module Bio
   module MAF
@@ -344,6 +345,23 @@ module Bio
         @last_block_pos = s.string.rindex(BLOCK_START)
       end
 
+      def fetch_blocks(offset, len, block_offsets)
+        start_chunk_read_if_needed(offset, len)
+        # read chunks until we have the entire merged set of
+        # blocks ready to parse
+        # to avoid fragment joining
+        append_chunks_to(len)
+        # parse the blocks
+        Enumerator.new do |y|
+          block_offsets.each do |expected_offset|
+            block = parse_block
+            ctx.parse_error("expected a block at offset #{expected_offset} but could not parse one!") unless block
+            ctx.parse_error("got block with offset #{block.offset}, expected #{expected_offset}!") unless block.offset == expected_offset
+            y << block
+          end
+        end
+      end
+
       def start_chunk_read_if_needed(offset, len)
         if chunk_start \
           && (chunk_start <= offset) \
@@ -396,8 +414,9 @@ module Bio
       end
 
       def context(chunk_size)
-        # IO#dup calls dup(2) internally
-        ParseContext.new(@f.dup, chunk_size, self, @opts)
+        # IO#dup calls dup(2) internally, but seems broken on JRuby...
+        fd = File.open(file_spec)
+        ParseContext.new(fd, chunk_size, self, @opts)
       end
 
       def with_context(chunk_size)
@@ -416,28 +435,50 @@ module Bio
       def fetch_blocks(fetch_list, filters=nil)
         ## fetch_list: array of [offset, length, block_count] tuples
         ## returns array of Blocks
-        return fetch_blocks_merged(merge_fetch_list(fetch_list))
+        merged = merge_fetch_list(fetch_list)
+        if RUBY_PLATFORM == 'java' && @opts.fetch(:threads, 1) > 1
+          fetch_blocks_merged_parallel(merged)
+        else
+          fetch_blocks_merged(merged)
+        end
       end
 
       def fetch_blocks_merged(fetch_list)
-        # inhibit fragment joining
         Enumerator.new do |y|
           with_context(@random_access_chunk_size) do |ctx|
-            fetch_list.each do |offset, len, block_offsets|
-              ctx.start_chunk_read_if_needed(offset, len)
-              # read chunks until we have the entire merged set of
-              # blocks ready to parse
-              # to avoid fragment joining
-              ctx.append_chunks_to(len)
-              # parse the blocks
-              block_offsets.each do |expected_offset|
-                block = ctx.parse_block
-                ctx.parse_error("expected a block at offset #{expected_offset} but could not parse one!") unless block
-                ctx.parse_error("got block with offset #{block.offset}, expected #{expected_offset}!") unless block.offset == expected_offset
+            fetch_list.each do |e|
+              ctx.fetch_blocks(*e).each do |block|
                 y << block
               end
             end
           end
+        end
+      end
+
+      def fetch_blocks_merged_parallel(fetch_list)
+        Enumerator.new do |y|
+          n_threads = @opts.fetch(:threads, 1)
+          tpe = java.util.concurrent.Executors.newFixedThreadPool(n_threads)
+          ecs = java.util.concurrent.ExecutorCompletionService.new(tpe)
+          fetch_list.each do |e|
+            ecs.submit() do
+              worker_fetch_blocks(*e)
+            end
+          end
+          tpe.shutdown()
+          completed = 0
+          while completed < fetch_list.size
+            ecs.take.get.each do |block|
+              y << block
+            end
+            completed += 1
+          end
+        end
+      end
+
+      def worker_fetch_blocks(*args)
+        with_context(@random_access_chunk_size) do |ctx|
+          ctx.fetch_blocks(*args).to_a
         end
       end
 
