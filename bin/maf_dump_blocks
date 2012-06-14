@@ -1,0 +1,27 @@
+#!/usr/bin/env ruby
+
+require 'bio-maf'
+require 'bigbio'
+require 'optparse'
+require 'ostruct'
+
+options = OpenStruct.new
+options.parser = Bio::MAF::Parser
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: maf_dump_blocks [options] <maf>"
+  opts.separator ""
+  opts.separator "Options:"
+  opts.on("--parser PARSER", "parser") do |name|
+    options.parser = Bio::MAF.const_get(name)
+  end
+end.parse!(ARGV)
+
+src_path = ARGV.shift
+
+parser = options.parser.new(src_path)
+
+parser.each_block do |block|
+  $stdout.printf("%12d\t%7d\n", block.offset, block.size)
+end
+
