@@ -282,6 +282,14 @@ module Bio
       ##       Parse the resulting block
       ##       Promote the next scanner, positioned
 
+      def trailing_nl(string)
+        if string.empty?
+          false
+        else
+          s.string[s.string.size - 1] == "\n"
+        end
+      end
+
       def parse_block
         return nil if at_end
         block = nil
@@ -291,52 +299,50 @@ module Bio
           block = parse_block_data
         else
           # in trailing block fragment
-          next_chunk_start = cr.pos
-          next_chunk = read_chunk
-          if next_chunk.nil?
-            # last block, parse it as is
-            block = parse_block_data
-            @at_end = true
-          else
-            # Trailing block fragment, but there is another chunk.
-            # Read the next chunk, find the start of the first
-            # alignment block, and concatenate this trailing block
-            # fragment with the leading fragment before the start of
-            # that next block. Parse the resulting joined block, then
-            # position the scanner to parse the next block.
-
-            # Find the next alignment block
-            next_scanner = StringScanner.new(next_chunk)
-            # If this trailing fragment ends with a newline, then an
-            # 'a' at the beginning of the leading fragment is the
-            # start of the next alignment block.
-            if s.string[s.string.size - 1] == "\n"
-              pat = BLOCK_START_OR_EOS
+          leading_frag = ''
+          while true
+            next_chunk_start = cr.pos
+            next_chunk = read_chunk
+            if next_chunk
+              next_scanner = StringScanner.new(next_chunk)
+              # If this trailing fragment ends with a newline, then an
+              # 'a' at the beginning of the leading fragment is the
+              # start of the next alignment block.
+              if trailing_nl(leading_frag) || trailing_nl(s.string)
+                pat = BLOCK_START
+              else
+                pat = /(?:\n(?=a))/
+              end
+              frag = next_scanner.scan_until(pat)
+              if frag
+                # got block start
+                leading_frag << frag
+                break
+              else
+                # no block start in this
+                leading_frag << next_chunk
+              end
             else
-              pat = /(?:\n(?=a))|\z/
-            end
-            leading_frag = next_scanner.scan_until(pat)
-            unless leading_frag
-              parse_error("no leading fragment match!")
-            end
-            # Join the fragments and parse them
-            trailing_frag = s.rest
-            joined_block = trailing_frag + leading_frag
-            @chunk_start = chunk_start + s.pos
-            @s = StringScanner.new(joined_block)
-            begin
-              block = parse_block_data
-            rescue ParseError => pe
-              parse_error "Could not parse joined fragments: #{pe}\nTRAILING: #{trailing_frag}\nLEADING: #{leading_frag}"
-            end
-            # Set up to parse the next block
-            @s = next_scanner
-            @chunk_start = next_chunk_start
-            if s.eos?
+              # EOF
               @at_end = true
-            else
-              set_last_block_pos!
+              break
             end
+          end
+          # join fragments and parse
+          trailing_frag = s.rest
+          joined_block = trailing_frag + leading_frag
+          @chunk_start = chunk_start + s.pos
+          @s = StringScanner.new(joined_block)
+          begin
+            block = parse_block_data
+          rescue ParseError => pe
+            parse_error "Could not parse joined fragments: #{pe}\nTRAILING: #{trailing_frag}\nLEADING: #{leading_frag}"
+          end
+          # Set up to parse the next block
+          @s = next_scanner
+          @chunk_start = next_chunk_start
+          unless @at_end
+            set_last_block_pos!
           end
         end
         return block
