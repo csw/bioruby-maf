@@ -7,6 +7,7 @@ require 'ostruct'
 
 options = OpenStruct.new
 options.parser = Bio::MAF::Parser
+options.reader = Bio::MAF::ChunkReader
 
 PRINTERS = {
   'flat' => :FlatPrinter,
@@ -36,6 +37,9 @@ OptionParser.new do |opts|
   opts.on("--parser PARSER", "parser") do |name|
     options.parser = Bio::MAF.const_get(name)
   end
+  opts.on("-t", "--threaded") do
+    options.reader = Bio::MAF::ThreadedChunkReader
+  end
 end.parse!(ARGV)
 
 src_path = ARGV.shift
@@ -52,7 +56,8 @@ if options.profile_gc
   GC::Profiler.enable
 end
 
-parser = options.parser.new(src_path)
+parser = options.parser.new(src_path,
+                            :chunk_reader => options.reader)
 
 n = 0
 parser.each_block do |block|
