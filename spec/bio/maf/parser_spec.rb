@@ -263,6 +263,13 @@ module Bio
         block.size.should == 1087
       end
 
+      it "parses very large blocks" do
+        p = described_class.new(TestData + 'big-block.maf')
+        n = 0
+        p.each_block { |b| n += 1 }
+        n.should == 490
+      end
+
     end
 
     describe Parser do
