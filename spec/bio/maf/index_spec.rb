@@ -174,6 +174,55 @@ module Bio
         end
       end
 
+      describe "#overlaps?" do
+        before(:each) do
+          @idx = KyotoIndex.new('%')
+        end
+        def check_overlap(x, y)
+          i = GenomicInterval.zero_based('x', x[0], x[1])
+          @idx.overlaps?(i, y[0], y[1])
+        end
+        it "handles equal intervals" do
+          check_overlap([0, 10],
+                        [0, 10]).should be_true
+        end
+        it "handles X contains Y" do
+          check_overlap([0, 10],
+                        [0, 9]).should be_true
+          check_overlap([0, 10],
+                        [1, 9]).should be_true
+          check_overlap([0, 10],
+                        [1, 10]).should be_true
+        end
+        it "handles Y contains X" do
+          check_overlap([0, 9],
+                        [0, 10]).should be_true
+          check_overlap([1, 9],
+                        [0, 10]).should be_true
+          check_overlap([1, 10],
+                        [0, 10]).should be_true
+        end
+        it "handles partial overlap" do
+          check_overlap([0, 9],
+                        [1, 10]).should be_true
+          check_overlap([1, 10],
+                        [0, 9]).should be_true
+        end
+        it "handles end cases" do
+          check_overlap([0, 10],
+                        [10, 15]).should be_false
+          check_overlap([10, 15],
+                        [0, 10]).should be_false
+        end
+        it "handles separated intervals" do
+          check_overlap([0, 10], [15, 20]).should be_false
+          check_overlap([15, 20], [0, 10]).should be_false
+        end
+        after(:each) do
+          @idx.db.close
+        end
+      end
+
       describe "#entries_for" do
         before(:each) do
           @p = Parser.new(TestData + 'mm8_chr7_tiny.maf')

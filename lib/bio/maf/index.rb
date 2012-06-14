@@ -283,8 +283,9 @@ module Bio
                 break
               end
               if c_end >= spanning_start # possible overlap
-                c_int = GenomicInterval.zero_based(chrom, c_start, c_end)
-                if bin_intervals.find { |i| i.overlapped?(c_int) }
+                #c_int = GenomicInterval.zero_based(chrom, c_start, c_end)
+                #if bin_intervals.find { |i| i.overlapped?(c_int) }
+                if bin_intervals.find { |i| overlaps?(i, c_start, c_end) }
                   if filters.match(pair)
                     to_fetch << extract_index_offset(pair)
                   end
@@ -295,6 +296,14 @@ module Bio
         end # #cursor_process
         return to_fetch
       end # #fetch_list
+
+      def overlaps?(gi, i_start, i_end)
+        g_start = gi.zero_start
+        g_end = gi.zero_end
+
+        (i_start <= g_start && g_start < i_end) \
+         || (g_start <= i_start && i_start < g_end)
+      end
 
       def build_default(parser)
         first_block = parser.parse_block
