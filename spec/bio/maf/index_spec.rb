@@ -9,7 +9,6 @@ module Bio
           i = 0
           cur.jump(start)
           k = cur.get_key(true)
-          $stderr.puts "saw key: #{k}"
           while k && k.start_with?(start) && i < n
             i += 1
           end
