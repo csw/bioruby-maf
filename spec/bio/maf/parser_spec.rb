@@ -25,6 +25,10 @@ module Bio
       it "provides arbitrary parameters"
     end
 
+    describe ParseContext do
+      it "tracks the last block position"
+    end
+
     describe ChunkReader do
       before(:each) do
         @f = (TestData + 'mm8_chr7_tiny.maf').open
@@ -129,25 +133,25 @@ module Bio
         shared_examples_for "any chunk size" do
           it "parses a single block" do
             fl = [[16, 1087]]
-            blocks = @p.fetch_blocks(fl)
+            blocks = @p.fetch_blocks(fl).to_a
             blocks.size.should == 1
             blocks[0].offset.should == 16
           end
           it "parses several consecutive blocks" do
             fl = [[16, 1087], [1103, 1908], [3011, 2027]]
-            blocks = @p.fetch_blocks(fl)
+            blocks = @p.fetch_blocks(fl).to_a
             blocks.size.should == 3
             blocks.collect {|b| b.offset}.should == [16, 1103, 3011]
           end
           it "parses consecutive blocks further ahead" do
             fl = [[5038, 1647], [6685, 829]]
-            blocks = @p.fetch_blocks(fl)
+            blocks = @p.fetch_blocks(fl).to_a
             blocks.size.should == 2
             blocks.collect {|b| b.offset}.should == [5038, 6685]
           end
           it "parses nonconsecutive blocks" do
             fl = [[16, 1087], [3011, 2027]]
-            blocks = @p.fetch_blocks(fl)
+            blocks = @p.fetch_blocks(fl).to_a
             blocks.size.should == 2
             blocks.collect {|b| b.offset}.should == [16, 3011]
           end

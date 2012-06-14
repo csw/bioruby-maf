@@ -82,7 +82,7 @@ module Bio
             l = @idx.find([GenomicInterval.zero_based('mm8.chr7',
                                                       80082334,
                                                       80082338)],
-                                @p)
+                                @p).to_a
             l.size.should == 1
             l[0].offset.should == 16
           end
