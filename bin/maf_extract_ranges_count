@@ -21,4 +21,4 @@ $stdin.each_line { |line| intervals << parse_interval(line) }
 
 blocks = index.find(intervals, parser)
 
-puts "TOTAL: #{blocks.size} blocks parsed."
+puts "TOTAL: #{blocks.count} blocks parsed."
