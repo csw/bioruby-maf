@@ -16,7 +16,9 @@ $options.mode = :build
 $options.reader = Bio::MAF::ChunkReader
 
 def build_index(maf, index)
-  parser = Bio::MAF::Parser.new(maf, :chunk_reader => $options.reader)
+  parser = Bio::MAF::Parser.new(maf,
+                                :chunk_reader => $options.reader,
+                                :parse_extended => false)
   idx = Bio::MAF::KyotoIndex.build(parser, index)
   idx.close
 end

@@ -54,9 +54,34 @@ module Bio
         @source, @start, @size, @strand, @src_size, @text = args
       end
 
+      def empty?
+        false
+      end
+
       def write_fasta(writer)
         writer.write("#{source}:#{start}-#{start + size}",
                      text)
+      end
+    end
+
+    class EmptySequence < Sequence
+      attr_reader :status
+
+      def initialize(*args)
+        super(*args[0..4])
+        @status = args[5]
+      end
+
+      def text
+        ''
+      end
+
+      def empty?
+        true
+      end
+
+      def write_fasta(writer)
+        raise "empty sequence output not implemented!"
       end
     end
 
@@ -264,14 +289,17 @@ module Bio
           if first == S
             seq = parse_seq_line(line, sequence_filter)
             seqs << seq if seq
-            # when 'i'
-            #   parts = line.split
-            #   parse_error("wrong i source #{src}!") unless seqs.last.source == src
-            #   seqs.last.i_data = parts.slice(2..6)
-            # when 'q'
-            #   _, src, quality = line.split
-            #   parse_error("wrong q source #{src}!") unless seqs.last.source == src
-            #   seqs.last.quality = quality
+          elsif first == E && @parse_empty
+            e_seq = parse_empty_line(line, filter)
+            seqs << e_seq if e_seq
+          elsif first == I && @parse_extended
+            parts = line.split
+            parse_error("wrong i source #{parts[1]}!") unless seqs.last.source == parts[1]
+            seqs.last.i_data = parts.slice(2..6)
+          elsif first == Q && @parse_extended
+            _, src, quality = line.split
+            parse_error("wrong q source #{src}!") unless seqs.last.source == src
+            seqs.last.quality = quality
           elsif [I, E, Q, COMMENT, nil].include? first
             next
           else
@@ -296,6 +324,21 @@ module Bio
                        text)
         rescue KeyError
           parse_error "invalid sequence line: #{line}"
+        end
+      end
+
+      def parse_empty_line(line, filter)
+        _, src, start, size, strand, src_size, status = line.split
+        return nil if filter && ! seq_filter_ok?(src, filter)
+        begin
+          EmptySequence.new(src,
+                            start.to_i,
+                            size.to_i,
+                            STRAND_SYM.fetch(strand),
+                            src_size.to_i,
+                            status)
+        rescue KeyError
+          parse_error "invalid empty sequence line: #{line}"
         end
       end
 
@@ -391,6 +434,7 @@ module Bio
       attr_reader :header, :file_spec, :f, :s, :cr, :at_end
       attr_reader :chunk_start, :last_block_pos
       attr_accessor :sequence_filter
+      attr_accessor :parse_extended, :parse_empty
 
       SEQ_CHUNK_SIZE = 131072
       RANDOM_CHUNK_SIZE = 4096
@@ -401,6 +445,8 @@ module Bio
         chunk_size = opts[:chunk_size] || SEQ_CHUNK_SIZE
         @random_access_chunk_size = opts[:random_chunk_size] || RANDOM_CHUNK_SIZE
         @merge_max = opts[:merge_max] || MERGE_MAX
+        @parse_extended = opts[:parse_extended] || false
+        @parse_empty = opts[:parse_empty] || false
         @chunk_start = 0
         @file_spec = file_spec
         @f = File.open(file_spec)

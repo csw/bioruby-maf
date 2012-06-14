@@ -57,7 +57,8 @@ if options.profile_gc
 end
 
 parser = options.parser.new(src_path,
-                            :chunk_reader => options.reader)
+                            :chunk_reader => options.reader,
+                            :parse_extended => false)
 
 n = 0
 parser.each_block do |block|
