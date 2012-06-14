@@ -1,8 +1,8 @@
-unless ENV.has_key? 'TRAVIS'
+unless ENV.has_key?('TRAVIS') || RUBY_PLATFORM == 'java'
   begin
     require 'simplecov'
   rescue LoadError
-    $stderr.puts "WARNING: could not require 'simplecov': $!"
+    $stderr.puts "WARNING: could not require 'simplecov': #{$!}"
   end
 end
 
