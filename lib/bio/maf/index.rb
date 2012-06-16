@@ -1,7 +1,7 @@
-if RUBY_PLATFORM != 'java'
-  require 'kyotocabinet'
-else
+if RUBY_PLATFORM == 'java'
   require 'kyotocabinet-java'
+else
+  require 'kyotocabinet'
 end
 
 #require 'bio-ucsc-api'
@@ -250,7 +250,6 @@ module Bio
       # of Bio::GenomicInterval objects
       def fetch_list(intervals, filter_spec={})
         to_fetch = []
-        filter_spec ||= {}
         filters = Filters.build(filter_spec, self)
         chrom = intervals.first.chrom
         chrom_id = index_sequences[chrom]
