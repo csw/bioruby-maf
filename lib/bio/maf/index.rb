@@ -160,7 +160,11 @@ module Bio
       # of Bio::GenomicInterval objects INTERVALS, and parse them with
       # PARSER.
       def find(intervals, parser, filter={})
-        parser.fetch_blocks(fetch_list(intervals, filter))
+        start = Time.now
+        fl = fetch_list(intervals, filter)
+        $stderr.printf("Built fetch list in %.3fs.\n",
+                       Time.now - start)
+        parser.fetch_blocks(fl)
       end
 
       # Close the underlying Kyoto Cabinet database handle.

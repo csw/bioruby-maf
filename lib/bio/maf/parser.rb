@@ -445,6 +445,7 @@ module Bio
 
       def fetch_blocks_merged(fetch_list)
         Enumerator.new do |y|
+          start = Time.now
           with_context(@random_access_chunk_size) do |ctx|
             fetch_list.each do |e|
               ctx.fetch_blocks(*e).each do |block|
@@ -452,26 +453,72 @@ module Bio
               end
             end
           end
+          $stderr.printf("Fetched blocks in %.3fs.", Time.now - start)
         end
       end
 
       def fetch_blocks_merged_parallel(fetch_list)
         Enumerator.new do |y|
+          start = Time.now
           n_threads = @opts.fetch(:threads, 1)
-          tpe = java.util.concurrent.Executors.newFixedThreadPool(n_threads)
-          ecs = java.util.concurrent.ExecutorCompletionService.new(tpe)
-          fetch_list.each do |e|
-            ecs.submit() do
-              worker_fetch_blocks(*e)
-            end
-          end
-          tpe.shutdown()
-          completed = 0
-          while completed < fetch_list.size
-            ecs.take.get.each do |block|
+          jobs = java.util.concurrent.ConcurrentLinkedQueue.new(fetch_list)
+          completed = java.util.concurrent.ArrayBlockingQueue.new(128)
+          latch = java.util.concurrent.CountDownLatch.new(n_threads)
+          threads = []
+          n_threads.times { make_worker(jobs, completed, latch) }
+
+          n_completed = 0
+          bytes = 0
+          while (n_completed < fetch_list.size) \
+            && ! latch.await(0, java.util.concurrent.TimeUnit::MILLISECONDS)
+            c = completed.take
+            raise "worker failed: #{c}" if c.is_a? Exception
+            c.each do |block|
               y << block
+              bytes += block.size
             end
-            completed += 1
+            n_completed += 1
+          end
+          if n_completed < fetch_list.size
+            raise "No threads alive, completed #{n_completed}/#{jobs.size} jobs!"
+          end
+          elapsed = Time.now - start
+          $stderr.printf("Fetched blocks from %d threads in %.3fs.\n",
+                         n_threads,
+                         elapsed)
+          mb = bytes / 1048576.0
+          $stderr.printf("%.3f MB processed (%.3f MB/s).",
+                         mb,
+                         mb / elapsed)
+        end
+      end
+
+      def make_worker(jobs, completed, latch)
+        Thread.new do
+          with_context(@random_access_chunk_size) do |ctx|
+            total_size = 0
+            n = 0
+            while true
+              req = jobs.poll
+              break unless req
+              begin
+                n_blocks = req[2].size
+                blocks = ctx.fetch_blocks(*req).to_a
+                if blocks.size != n_blocks
+                  raise "expected #{n_blocks}, got #{blocks.size}: #{e.inspect}"
+                end
+                completed.put(blocks)
+                total_size += req[1]
+                n += 1
+              rescue Exception => e
+                completed.put(e)
+                $stderr.puts "Worker failing: #{e.class}: #{e}"
+                $stderr.puts e.backtrace.join("\n")
+                raise e
+              end
+            end
+            latch.countDown
+            $stderr.puts "Worker finished, processed #{n} jobs, parsed #{total_size} bytes."
           end
         end
       end

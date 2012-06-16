@@ -1,12 +1,27 @@
 #!/usr/bin/env ruby
 
+require 'optparse'
+require 'ostruct'
+
 require 'bio-maf'
 require 'bio-genomic-interval'
+
+options = OpenStruct.new
+options.p = { :threads => 1 }
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: maf_extract_ranges_count [options] <maf> <index>"
+  opts.separator ""
+  opts.separator "Options:"
+  opts.on("-t", "--threads N", "Parser threads") do |n|
+    options.p[:threads] = n.to_i
+  end
+end.parse!(ARGV)
 
 maf_p = ARGV.shift
 index_p = ARGV.shift
 
-parser = Bio::MAF::Parser.new(maf_p)
+parser = Bio::MAF::Parser.new(maf_p, options.p)
 index = Bio::MAF::KyotoIndex.open(index_p)
 
 def parse_interval(line)
