@@ -463,14 +463,13 @@ module Bio
           n_threads = @opts.fetch(:threads, 1)
           jobs = java.util.concurrent.ConcurrentLinkedQueue.new(fetch_list)
           completed = java.util.concurrent.ArrayBlockingQueue.new(128)
-          latch = java.util.concurrent.CountDownLatch.new(n_threads)
           threads = []
-          n_threads.times { make_worker(jobs, completed, latch) }
+          n_threads.times { threads << make_worker(jobs, completed) }
 
           n_completed = 0
           bytes = 0
           while (n_completed < fetch_list.size) \
-            && ! latch.await(0, java.util.concurrent.TimeUnit::MILLISECONDS)
+            && threads.find { |t| t.alive? }
             c = completed.take
             raise "worker failed: #{c}" if c.is_a? Exception
             c.each do |block|
@@ -487,13 +486,13 @@ module Bio
                          n_threads,
                          elapsed)
           mb = bytes / 1048576.0
-          $stderr.printf("%.3f MB processed (%.3f MB/s).",
+          $stderr.printf("%.3f MB processed (%.3f MB/s).\n",
                          mb,
                          mb / elapsed)
         end
       end
 
-      def make_worker(jobs, completed, latch)
+      def make_worker(jobs, completed)
         Thread.new do
           with_context(@random_access_chunk_size) do |ctx|
             total_size = 0
@@ -517,8 +516,6 @@ module Bio
                 raise e
               end
             end
-            latch.countDown
-            $stderr.puts "Worker finished, processed #{n} jobs, parsed #{total_size} bytes."
           end
         end
       end
