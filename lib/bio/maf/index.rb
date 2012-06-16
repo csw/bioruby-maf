@@ -253,7 +253,6 @@ module Bio
       # Build a fetch list of alignment blocks to read, given an array
       # of Bio::GenomicInterval objects
       def fetch_list(intervals, filter_spec={})
-        to_fetch = []
         filter_spec ||= {}
         filters = Filters.build(filter_spec, self)
         chrom = intervals.first.chrom
@@ -269,37 +268,47 @@ module Bio
         intervals.each do |i|
           i.bin_all.each { |bin| bin_intervals[bin] << i }
         end
+        scan_bins(chrom_id, bin_intervals, filters)
+      end # #fetch_list
+
+      def scan_bins(chrom_id, bin_intervals, filters)
+        to_fetch = []
         db.cursor_process do |cur|
           bin_intervals.each do |bin, bin_intervals_raw|
-            bin_intervals = bin_intervals_raw.sort_by { |i| i.zero_start }
-            # compute the start and end of all intervals of interest
-            spanning_start = bin_intervals.first.zero_start
-            spanning_end = bin_intervals.collect {|i| i.zero_end}.sort.last
-            # scan from the start of the bin
-            cur.jump(bin_start_prefix(chrom_id, bin))
-            while pair = cur.get(true)
-              c_chr, c_bin, c_start, c_end = pair[0].unpack(KEY_SCAN_FMT)
-              if (c_chr != chrom_id) \
-                || (c_bin != bin) \
-                || c_start >= spanning_end
-                # we've hit the next bin, or chromosome, or gone past
-                # the spanning interval, so we're done with this bin
-                break
-              end
-              if c_end >= spanning_start # possible overlap
-                #c_int = GenomicInterval.zero_based(chrom, c_start, c_end)
-                #if bin_intervals.find { |i| i.overlapped?(c_int) }
-                if bin_intervals.find { |i| overlaps?(i, c_start, c_end) }
-                  if filters.match(pair)
-                    to_fetch << extract_index_offset(pair)
-                  end
-                end
+            matches = scan_bin(cur, chrom_id, bin, bin_intervals_raw, filters)
+            to_fetch.concat(matches)
+          end 
+        end
+        to_fetch
+      end
+
+      def scan_bin(cur, chrom_id, bin, raw_intervals, filters)
+        bin_intervals = raw_intervals.sort_by { |i| i.zero_start }
+        # compute the start and end of all intervals of interest
+        spanning_start = bin_intervals.first.zero_start
+        spanning_end = bin_intervals.collect {|i| i.zero_end}.sort.last
+        # scan from the start of the bin
+        cur.jump(bin_start_prefix(chrom_id, bin))
+        matches = []
+        while pair = cur.get(true)
+          c_chr, c_bin, c_start, c_end = pair[0].unpack(KEY_SCAN_FMT)
+          if (c_chr != chrom_id) \
+            || (c_bin != bin) \
+            || c_start >= spanning_end
+            # we've hit the next bin, or chromosome, or gone past
+            # the spanning interval, so we're done with this bin
+            break
+          end
+          if c_end >= spanning_start # possible overlap
+            if bin_intervals.find { |i| overlaps?(i, c_start, c_end) }
+              if filters.match(pair)
+                matches << extract_index_offset(pair)
               end
             end
-          end # bin_intervals.each
-        end # #cursor_process
-        return to_fetch
-      end # #fetch_list
+          end
+        end
+        matches
+      end
 
       def overlaps?(gi, i_start, i_end)
         g_start = gi.zero_start
