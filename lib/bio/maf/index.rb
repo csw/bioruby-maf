@@ -162,7 +162,8 @@ module Bio
       def find(intervals, parser, filter={})
         start = Time.now
         fl = fetch_list(intervals, filter)
-        $stderr.printf("Built fetch list in %.3fs.\n",
+        $stderr.printf("Built fetch list of %d items in %.3fs.\n",
+                       fl.size,
                        Time.now - start)
         parser.fetch_blocks(fl)
       end
@@ -253,6 +254,7 @@ module Bio
       # Build a fetch list of alignment blocks to read, given an array
       # of Bio::GenomicInterval objects
       def fetch_list(intervals, filter_spec={})
+        start = Time.now
         filter_spec ||= {}
         filters = Filters.build(filter_spec, self)
         chrom = intervals.first.chrom
@@ -268,7 +270,13 @@ module Bio
         intervals.each do |i|
           i.bin_all.each { |bin| bin_intervals[bin] << i }
         end
-        scan_bins(chrom_id, bin_intervals, filters)
+        ready = Time.now
+        $stderr.puts "bin intervals computed after #{ready - start} seconds."
+        if RUBY_PLATFORM == 'java'
+          scan_bins_parallel(chrom_id, bin_intervals, filters)
+        else
+          scan_bins(chrom_id, bin_intervals, filters)
+        end
       end # #fetch_list
 
       def scan_bins(chrom_id, bin_intervals, filters)
@@ -279,6 +287,30 @@ module Bio
             to_fetch.concat(matches)
           end 
         end
+        to_fetch
+      end
+
+      def scan_bins_parallel(chrom_id, bin_intervals, filters)
+        start = Time.now
+        n_threads = 2
+        es = java.util.concurrent.Executors.newFixedThreadPool(n_threads)
+        ecs = java.util.concurrent.ExecutorCompletionService.new(es)
+        bin_intervals.each do |bin, intervals|
+          ecs.submit do
+            db.cursor_process do |cur|
+              scan_bin(cur, chrom_id, bin, intervals, filters)
+            end            
+          end
+        end
+        es.shutdown
+        to_fetch = []
+        completed = 0
+        while completed < bin_intervals.size
+          to_fetch.concat(ecs.take.get)
+          completed += 1
+        end
+        $stderr.printf("Matched %d index records with %d threads in %.3f seconds.\n",
+                       to_fetch.size, n_threads, Time.now - start)
         to_fetch
       end
 
