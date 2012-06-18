@@ -324,6 +324,50 @@ module Bio
       }
     end
 
+    class FragmentParseContext
+      include MAFParsing
+      attr_reader :at_end, :s, :last_block_pos, :chunk_start, :parser
+
+      def initialize(req, parser)
+        @chunk_start = req.offset
+        @block_offsets = req.block_offsets
+        @s = StringScanner.new(req.data)
+        @parser = parser
+        @last_block_pos = -1
+        @at_end = false
+      end
+
+      def sequence_filter
+        parser.sequence_filter
+      end
+
+      def parse_blocks
+        Enumerator.new do |y|
+          @block_offsets.each do |expected_offset|
+            block = parse_block
+            ctx.parse_error("expected a block at offset #{expected_offset} but could not parse one!") unless block
+            ctx.parse_error("got block with offset #{block.offset}, expected #{expected_offset}!") unless block.offset == expected_offset
+            y << block
+          end
+        end
+      end
+    end
+
+    class FragmentIORequest
+      attr_reader :offset, :length, :block_offsets
+      attr_accessor :data
+
+      def initialize(offset, length, block_offsets)
+        @offset = offset
+        @length = length
+        @block_offsets = block_offsets
+      end
+
+      def context(parser)
+        FragmentParseContext.new(self, parser)
+      end
+    end
+
     class ParseContext
       include MAFParsing
       attr_accessor :f, :s, :cr, :parser
@@ -437,7 +481,7 @@ module Bio
         ## returns array of Blocks
         merged = merge_fetch_list(fetch_list)
         if RUBY_PLATFORM == 'java' && @opts.fetch(:threads, 1) > 1
-          fetch_blocks_merged_parallel(merged)
+          fetch_blocks_merged_parallel2(merged)
         else
           fetch_blocks_merged(merged)
         end
@@ -457,10 +501,40 @@ module Bio
         end
       end
 
+      def fetch_blocks_merged_parallel2(fetch_list)
+        Enumerator.new do |y|
+          queue = java.util.concurrent.LinkedBlockingQueue.new(32)
+          ctl = ParallelIO::Controller.new(file_spec)
+          fetch_list.each do |entry|
+            ctl.read_queue.add FragmentIORequest.new(*entry)
+          end
+          ctl.on_data do |data|
+            ctx = data.context(self)
+            ctx.parse_blocks.each do |block|
+              queue.put(block)
+            end
+          end
+          ctl.start
+          $stderr.puts "starting parallel I/O"
+          while true
+            block = queue.poll(30, java.util.concurrent.TimeUnit::MILLISECONDS)
+            if block
+              y << block
+            elsif ctl.finished?
+              $stderr.puts "finished, shutting down parallel I/O"
+              ctl.shutdown
+              break
+            end
+          end
+        end        
+      end
+
       def fetch_blocks_merged_parallel(fetch_list)
         Enumerator.new do |y|
           start = Time.now
           n_threads = @opts.fetch(:threads, 1)
+          # TODO: break entries up into longer runs for more
+          # sequential I/O
           jobs = java.util.concurrent.ConcurrentLinkedQueue.new(fetch_list)
           completed = java.util.concurrent.ArrayBlockingQueue.new(128)
           threads = []
@@ -492,7 +566,7 @@ module Bio
         end
       end
 
-      def make_worker(jobs, completed)
+      def make_io_worker(jobs, completed)
         Thread.new do
           with_context(@random_access_chunk_size) do |ctx|
             total_size = 0
