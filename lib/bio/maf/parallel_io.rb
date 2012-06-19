@@ -15,10 +15,10 @@ module Bio::MAF
       attr_reader :read_queue, :data_queue
       attr_reader :process_data
 
-      r_attribute :n_cpu, :int, "Number of CPUs"
-      r_attribute :min_io, :int, "Minimum I/O tasks"
-      r_attribute :n_workers, :int, "Number of worker threads"
+      rw_attribute :n_cpu, :int, "Number of CPUs"
+      rw_attribute :min_io, :int, "Minimum I/O tasks"
 
+      r_attribute :n_workers, :int, "Number of worker threads"
       r_attribute :n_processing, :int, "Current number of processing threads"
       r_attribute :n_reading, :int, "Current number of reading threads"
       r_attribute :n_blocked, :int, "Current number of blocked threads"
@@ -30,15 +30,15 @@ module Bio::MAF
         super()
         @path = path
         @n_workers = 12
-        @min_io = 4
+        @min_io = 1
         @n_cpu = 4
         @workers = []
         @mutex = Mutex.new
         @read_queue = ArrayDeque.new
         @data_queue = ArrayDeque.new
         @blocked_stack = ArrayDeque.new
-        @hi_wat = 16
-        @lo_wat = 4
+        @hi_wat = 256
+        @lo_wat = 64
         @overflow = false
         @count_by_state = {
           :read => 0,
@@ -88,7 +88,8 @@ module Bio::MAF
           [:read, :process, :block].each do |state|
             s << sprintf("%s: %2d  ", state.to_s, count_by_state[state])
           end
-          s << sprintf("data queue: %3d  ", data_queue.size)
+          s << sprintf("data queue: %3d ", data_queue.size)
+          s << "[O] " if in_overflow?
           if read_queue.is_empty()
             s << "read queue empty"
           else
@@ -125,8 +126,10 @@ module Bio::MAF
       def unblock_if_appropriate
         # caller must hold mutex
         if ((n_reading < min_io) || (n_reading < n_processing)) \
-          && (! in_overflow? && ! blocked_stack.is_empty) \
+          && ! in_overflow? \
+          && ! blocked_stack.is_empty \
           && ! read_queue.is_empty
+
           blocked_stack.remove.unblock
           # $stderr.puts "unblocking a thread"
         end
@@ -135,18 +138,18 @@ module Bio::MAF
       def in_overflow?
         if @overflow
           # already in overflow, have we reached low watermark?
-          @overflow = @data_queue.size <= @lo_wat
+          @overflow = (@data_queue.size >= @lo_wat)
         else
           # not in overflow, have we reached high watermark?
-          @overflow = @data_queue.size >= @hi_wat
+          @overflow = (@data_queue.size >= @hi_wat)
         end
         @overflow
       end
 
       def needs_readers?
-        (n_reading < min_io \
-         || n_reading < n_processing) \
-        && ! read_queue.is_empty
+        (n_reading < min_io || n_reading < n_processing) \
+        && (! read_queue.is_empty)
+        #&& (! in_overflow?) \
       end
 
     end
@@ -284,7 +287,7 @@ module Bio::MAF
       end
 
       def unblock
-        transition_to(:read)
+        transition_to(:read) if should_run
         @block_barrier.await
       end
 
