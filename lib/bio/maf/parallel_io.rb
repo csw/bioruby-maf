@@ -11,7 +11,7 @@ module Bio::MAF
 
     class Controller < JMX::DynamicMBean
       r_attribute :path, :string, "File path"
-      attr_reader :mutex
+      attr_reader :mutex, :workers
       attr_reader :read_queue, :data_queue
       attr_reader :process_data
 
@@ -30,11 +30,11 @@ module Bio::MAF
         super()
         @path = path
         @n_workers = 12
-        @min_io = 2
+        @min_io = 4
         @n_cpu = 4
         @workers = []
         @mutex = Mutex.new
-        @read_queue = ConcurrentLinkedQueue.new
+        @read_queue = ArrayDeque.new
         @data_queue = ArrayDeque.new
         @blocked_stack = ArrayDeque.new
         @hi_wat = 16
@@ -82,6 +82,22 @@ module Bio::MAF
         end
       end
 
+      def dump_state
+        s = ''
+        mutex.synchronize do
+          [:read, :process, :block].each do |state|
+            s << sprintf("%s: %2d  ", state.to_s, count_by_state[state])
+          end
+          s << sprintf("data queue: %3d  ", data_queue.size)
+          if read_queue.is_empty()
+            s << "read queue empty"
+          else
+            s << "read queue not empty"
+          end
+        end
+        $stderr.puts s
+      end
+
       def n_processing
         count_by_state[:process]
       end
@@ -112,6 +128,7 @@ module Bio::MAF
           && (! in_overflow? && ! blocked_stack.is_empty) \
           && ! read_queue.is_empty
           blocked_stack.remove.unblock
+          # $stderr.puts "unblocking a thread"
         end
       end
 
@@ -142,7 +159,7 @@ module Bio::MAF
         @controller = controller
         @fd = File.open(controller.path)
         @should_run = true
-        @state = :read
+        @state = :start
         @new_state = @state
         @block_barrier = CyclicBarrier.new(2)
       end
@@ -151,31 +168,41 @@ module Bio::MAF
         @thread = Thread.new { run }
       end
 
+      def transition_to(new_state)
+        unless @cur_data
+          case new_state
+          when :read
+            @cur_data = controller.read_queue.remove
+          when :process
+            @cur_data = controller.data_queue.remove
+          end
+        end
+
+        if new_state != @state
+          unless @state == :start
+            controller.count_by_state[@state] -= 1
+          end
+          controller.count_by_state[new_state] += 1
+          @state = new_state
+        end
+      end
+
       def run
         begin
-          controller.mutex.synchronize do
-            controller.count_by_state[@state] += 1
-          end
           begin
             $stderr.puts "Worker running, state = #{@state}."
             while should_run
               case @state
               when :read
                 do_read
-              when :block
-                do_block
               when :process
                 do_process
+              when :block
+                do_block
+              when :start
+                do_start
               else
                 raise "invalid state: #{@state}"
-              end
-              if @new_state != @state
-                controller.mutex.synchronize do
-                  controller.count_by_state[@state] -= 1
-                  controller.count_by_state[@new_state] += 1
-                end
-                # $stderr.puts "Worker: #{@state} -> #{@new_state}"
-                @state = @new_state
               end
             end
           ensure
@@ -189,17 +216,26 @@ module Bio::MAF
         end
       end
 
-      def unblock
-        @new_state = :read
-        @block_barrier.await
+      def do_start
+        controller.mutex.synchronize do
+          transition_to(:read)
+          # if controller.needs_readers?
+          #   transition_to(:read)
+          # elsif ! controller.data_queue.isEmpty()
+          #   transition_to(:process)
+          # else
+          #   transition_to(:block)
+          # end
+        end
       end
 
-      def do_block
-        @block_barrier.reset
-        controller.mutex.synchronize do
-          controller.blocked_stack.add_first(self)
+      def cur_req
+        req = @cur_data
+        unless req
+          raise "No current request!"
         end
-        @block_barrier.await
+        @cur_data = nil
+        req
       end
 
       def read_data(req)
@@ -208,50 +244,59 @@ module Bio::MAF
       end
 
       def do_read
-        req = controller.read_queue.poll
+        req = cur_req()
         read_data(req)
         controller.mutex.synchronize do
           if controller.n_processing < controller.n_cpu
-            @new_state = :process
+            # keep block and process it
             @cur_data = req
+            transition_to(:process)
             controller.unblock_if_appropriate
-            # keep block
           elsif controller.needs_readers?
             # stay in :read
             controller.data_queue.add(req)
+            transition_to(:read)
+            controller.unblock_if_appropriate
           else
-            @new_state = :block
             controller.data_queue.add(req)
+            # $stderr.puts "read -> block"
+            transition_to(:block)
           end
         end
-      end
-
-      def get_data
-        if @cur_data
-          data = @cur_data
-          @cur_data = nil
-        else
-          controller.mutex.synchronize do
-            data = controller.data_queue.poll
-          end
-        end
-        data
       end
 
       def do_process
-        data = get_data
+        data = cur_req()
         controller.process_data.call(data)
         controller.mutex.synchronize do
           if (! controller.data_queue.isEmpty()) \
             && (controller.n_processing < controller.n_cpu)
-            # stay in :process
+            transition_to(:process)
             controller.unblock_if_appropriate
           elsif controller.needs_readers?
-            @new_state = :read
+            transition_to(:read)
+            controller.unblock_if_appropriate
           else
-            @new_state = :block
+            # $stderr.puts "process -> block"
+            transition_to(:block)
           end
         end
+      end
+
+      def unblock
+        transition_to(:read)
+        @block_barrier.await
+      end
+
+      def do_block
+        start = Time.now
+        @block_barrier.reset
+        controller.mutex.synchronize do
+          controller.blocked_stack.add_first(self)
+        end
+        @block_barrier.await
+        elapsed = Time.now - start
+        # $stderr.printf("Unblocked after %.1fs.\n", elapsed)
       end
 
     end

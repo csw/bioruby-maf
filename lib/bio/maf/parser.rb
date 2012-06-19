@@ -516,6 +516,17 @@ module Bio
           end
           ctl.start
           $stderr.puts "starting parallel I/O"
+          dumper = Thread.new do
+            begin
+              while ctl.workers.find { |w| w.thread.alive? }
+                ctl.dump_state
+                sleep(0.1)
+              end
+            rescue
+              $stderr.puts "#{$!.class}: #{$!}"
+              $stderr.puts $!.backtrace.join("\n")
+            end
+          end
           while true
             block = queue.poll(30, java.util.concurrent.TimeUnit::MILLISECONDS)
             if block
