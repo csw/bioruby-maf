@@ -151,7 +151,7 @@ module Bio
     end
 
     module MAFParsing
- 
+      
       BLOCK_START = /^(?=a)/
       BLOCK_START_OR_EOS = /(?:^(?=a))|\z/
       EOL_OR_EOF = /\n|\z/
@@ -363,6 +363,11 @@ module Bio
         @block_offsets = block_offsets
       end
 
+      def execute(f)
+        f.seek(offset)
+        @data = f.read(length)
+      end
+
       def context(parser)
         FragmentParseContext.new(self, parser)
       end
@@ -472,7 +477,7 @@ module Bio
         end
       end
 
-     def read_chunk
+      def read_chunk
         cr.read_chunk
       end
 
@@ -482,7 +487,8 @@ module Bio
         merged = merge_fetch_list(fetch_list)
         if RUBY_PLATFORM == 'java' && @opts.fetch(:threads, 1) > 1
           #fetch_blocks_merged_parallel(merged)
-          fetch_blocks_merged_parallel2(merged)
+          #fetch_blocks_merged_parallel2(merged)
+          fetch_blocks_merged_parallel3(merged)
         else
           fetch_blocks_merged(merged)
         end
@@ -547,11 +553,88 @@ module Bio
               rate = (total_size / 1048576.0) / elapsed
               $stderr.printf("Fetched blocks in %.3fs, %.1f MB/s.",
                              elapsed, rate)
-              ctl.shutdown
+v              ctl.shutdown
               break
             end
           end
         end        
+      end
+
+      def fetch_blocks_merged_parallel3(fetch_list)
+        io_parallelism = 3
+        n_cpu = 3
+        total_size = fetch_list.collect { |e| e[1] }.reduce(:+)
+
+        jobs_q = java.util.concurrent.ConcurrentLinkedQueue.new()
+        data_q = java.util.concurrent.LinkedBlockingQueue.new(128)
+        yield_q = java.util.concurrent.LinkedBlockingQueue.new(128)
+        fetch_list.each do |entry|
+          jobs_q.add FragmentIORequest.new(*entry)
+        end
+
+        Enumerator.new do |y|
+          io_threads = []
+          parse_threads = []
+          start = Time.now
+          io_parallelism.times { io_threads << make_io_worker(file_spec,
+                                                              jobs_q,
+                                                              data_q) }
+          n_cpu.times { parse_threads << make_parse_worker(data_q,
+                                                           yield_q) }
+          n_completed = 0
+          while n_completed < fetch_list.size
+            blocks = yield_q.take
+            blocks.each do |block|
+              y << block
+            end
+            n_completed += 1
+          end
+          elapsed = Time.now - start
+          $stderr.printf("Fetched blocks in %.3fs.\n",
+                         elapsed)
+          mb = total_size / 1048576.0
+          $stderr.printf("%.3f MB processed (%.3f MB/s).\n",
+                         mb,
+                         mb / elapsed)
+        end
+      end
+
+      def make_io_worker(path, jobs, completed)
+        Thread.new do
+          begin
+            fd = File.open(path)
+            begin
+              while true
+                req = jobs.poll
+                break unless req
+                req.execute(fd)
+                completed.put(req)
+              end
+            ensure
+              fd.close
+            end
+          rescue Exception => e
+            $stderr.puts "Worker failing: #{e.class}: #{e}"
+            $stderr.puts e.backtrace.join("\n")
+            raise e
+          end
+        end
+      end
+
+      def make_parse_worker(jobs, completed)
+        Thread.new do
+          begin
+            while true do
+              data = jobs.take
+              ctx = data.context(self)
+              completed.put(ctx.parse_blocks)
+            end
+          rescue Exception => e
+            $stderr.puts "Worker failing: #{e.class}: #{e}"
+            $stderr.puts e.backtrace.join("\n")
+            raise e
+          end
+        end
       end
 
       def fetch_blocks_merged_parallel(fetch_list)
@@ -564,7 +647,7 @@ module Bio
           jobs = java.util.concurrent.ConcurrentLinkedQueue.new(fetch_list)
           completed = java.util.concurrent.ArrayBlockingQueue.new(128)
           threads = []
-          n_threads.times { threads << make_io_worker(jobs, completed) }
+          n_threads.times { threads << make_worker(jobs, completed) }
 
           n_completed = 0
           while (n_completed < fetch_list.size) \
@@ -591,7 +674,7 @@ module Bio
         end
       end
 
-      def make_io_worker(jobs, completed)
+      def make_worker(jobs, completed)
         Thread.new do
           with_context(@random_access_chunk_size) do |ctx|
             total_size = 0
