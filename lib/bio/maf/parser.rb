@@ -481,6 +481,7 @@ module Bio
         ## returns array of Blocks
         merged = merge_fetch_list(fetch_list)
         if RUBY_PLATFORM == 'java' && @opts.fetch(:threads, 1) > 1
+          #fetch_blocks_merged_parallel(merged)
           fetch_blocks_merged_parallel2(merged)
         else
           fetch_blocks_merged(merged)
@@ -490,14 +491,19 @@ module Bio
       def fetch_blocks_merged(fetch_list)
         Enumerator.new do |y|
           start = Time.now
+          total_size = fetch_list.collect { |e| e[1] }.reduce(:+)
           with_context(@random_access_chunk_size) do |ctx|
             fetch_list.each do |e|
               ctx.fetch_blocks(*e).each do |block|
                 y << block
+                #total_size += block.size
               end
             end
           end
-          $stderr.printf("Fetched blocks in %.3fs.", Time.now - start)
+          elapsed = Time.now - start
+          rate = (total_size / 1048576.0) / elapsed
+          $stderr.printf("Fetched blocks in %.3fs, %.1f MB/s.\n",
+                         elapsed, rate)
         end
       end
 
@@ -505,6 +511,7 @@ module Bio
         Enumerator.new do |y|
           queue = java.util.concurrent.LinkedBlockingQueue.new(32)
           ctl = ParallelIO::Controller.new(file_spec)
+          ctl.min_io = 3
           fetch_list.each do |entry|
             ctl.read_queue.add FragmentIORequest.new(*entry)
           end
@@ -515,6 +522,8 @@ module Bio
             end
           end
           ctl.start
+          start = Time.now
+          total_size = 0
           $stderr.puts "starting parallel I/O"
           dumper = Thread.new do
             begin
@@ -531,8 +540,13 @@ module Bio
             block = queue.poll(30, java.util.concurrent.TimeUnit::MILLISECONDS)
             if block
               y << block
+              total_size += block.size
             elsif ctl.finished?
               $stderr.puts "finished, shutting down parallel I/O"
+              elapsed = Time.now - start
+              rate = (total_size / 1048576.0) / elapsed
+              $stderr.printf("Fetched blocks in %.3fs, %.1f MB/s.",
+                             elapsed, rate)
               ctl.shutdown
               break
             end
@@ -542,6 +556,7 @@ module Bio
 
       def fetch_blocks_merged_parallel(fetch_list)
         Enumerator.new do |y|
+          total_size = fetch_list.collect { |e| e[1] }.reduce(:+)
           start = Time.now
           n_threads = @opts.fetch(:threads, 1)
           # TODO: break entries up into longer runs for more
@@ -549,17 +564,16 @@ module Bio
           jobs = java.util.concurrent.ConcurrentLinkedQueue.new(fetch_list)
           completed = java.util.concurrent.ArrayBlockingQueue.new(128)
           threads = []
-          n_threads.times { threads << make_worker(jobs, completed) }
+          n_threads.times { threads << make_io_worker(jobs, completed) }
 
           n_completed = 0
-          bytes = 0
           while (n_completed < fetch_list.size) \
             && threads.find { |t| t.alive? }
             c = completed.take
             raise "worker failed: #{c}" if c.is_a? Exception
             c.each do |block|
               y << block
-              bytes += block.size
+              #bytes += block.size
             end
             n_completed += 1
           end
@@ -570,7 +584,7 @@ module Bio
           $stderr.printf("Fetched blocks from %d threads in %.3fs.\n",
                          n_threads,
                          elapsed)
-          mb = bytes / 1048576.0
+          mb = total_size / 1048576.0
           $stderr.printf("%.3f MB processed (%.3f MB/s).\n",
                          mb,
                          mb / elapsed)
