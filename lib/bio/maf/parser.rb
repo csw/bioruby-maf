@@ -581,6 +581,8 @@ v              ctl.shutdown
                                                               data_q) }
           n_cpu.times { parse_threads << make_parse_worker(data_q,
                                                            yield_q) }
+
+          io_parallelism.times { jobs_q.add(:stop) }
           n_completed = 0
           while n_completed < fetch_list.size
             blocks = yield_q.take
@@ -589,11 +591,12 @@ v              ctl.shutdown
             end
             n_completed += 1
           end
+          n_cpu.times { data_q.put(:stop) }
           elapsed = Time.now - start
-          $stderr.printf("Fetched blocks in %.3fs.\n",
+          $stderr.printf("Fetched blocks in %.1fs.\n",
                          elapsed)
           mb = total_size / 1048576.0
-          $stderr.printf("%.3f MB processed (%.3f MB/s).\n",
+          $stderr.printf("%.3f MB processed (%.1f MB/s).\n",
                          mb,
                          mb / elapsed)
         end
@@ -606,7 +609,7 @@ v              ctl.shutdown
             begin
               while true
                 req = jobs.poll
-                break unless req
+                break if req == :stop
                 req.execute(fd)
                 completed.put(req)
               end
@@ -626,6 +629,7 @@ v              ctl.shutdown
           begin
             while true do
               data = jobs.take
+              break if data == :stop
               ctx = data.context(self)
               completed.put(ctx.parse_blocks.to_a)
             end
