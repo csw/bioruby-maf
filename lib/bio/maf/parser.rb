@@ -627,7 +627,7 @@ v              ctl.shutdown
             while true do
               data = jobs.take
               ctx = data.context(self)
-              completed.put(ctx.parse_blocks)
+              completed.put(ctx.parse_blocks.to_a)
             end
           rescue Exception => e
             $stderr.puts "Worker failing: #{e.class}: #{e}"
