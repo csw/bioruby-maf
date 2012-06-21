@@ -262,7 +262,7 @@ module Bio
           line = lines.shift
           first = line.getbyte(0)
           if first == S
-            seq = parse_seq_line(line)
+            seq = parse_seq_line(line, sequence_filter)
             seqs << seq if seq
             # when 'i'
             #   parts = line.split
@@ -284,9 +284,9 @@ module Bio
                          s.pos - block_start_pos)
       end
 
-      def parse_seq_line(line)
+      def parse_seq_line(line, filter)
         _, src, start, size, strand, src_size, text = line.split
-        return nil if sequence_filter && ! seq_filter_ok?(src)
+        return nil if filter && ! seq_filter_ok?(src, filter)
         begin
           Sequence.new(src,
                        start.to_i,
@@ -299,10 +299,10 @@ module Bio
         end
       end
 
-      def seq_filter_ok?(src)
-        if sequence_filter[:only_species]
+      def seq_filter_ok?(src, filter)
+        if filter[:only_species]
           src_sp = src.split('.', 2)[0]
-          m = sequence_filter[:only_species].find { |sp| src_sp == sp }
+          m = filter[:only_species].find { |sp| src_sp == sp }
           return m
         else
           return true
