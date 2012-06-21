@@ -649,7 +649,7 @@ v              ctl.shutdown
           # TODO: break entries up into longer runs for more
           # sequential I/O
           jobs = java.util.concurrent.ConcurrentLinkedQueue.new(fetch_list)
-          completed = java.util.concurrent.ArrayBlockingQueue.new(128)
+          completed = java.util.concurrent.LinkedBlockingQueue.new(128)
           threads = []
           n_threads.times { threads << make_worker(jobs, completed) }
 
@@ -660,7 +660,6 @@ v              ctl.shutdown
             raise "worker failed: #{c}" if c.is_a? Exception
             c.each do |block|
               y << block
-              #bytes += block.size
             end
             n_completed += 1
           end
@@ -668,11 +667,11 @@ v              ctl.shutdown
             raise "No threads alive, completed #{n_completed}/#{jobs.size} jobs!"
           end
           elapsed = Time.now - start
-          $stderr.printf("Fetched blocks from %d threads in %.3fs.\n",
+          $stderr.printf("Fetched blocks from %d threads in %.1fs.\n",
                          n_threads,
                          elapsed)
           mb = total_size / 1048576.0
-          $stderr.printf("%.3f MB processed (%.3f MB/s).\n",
+          $stderr.printf("%.3f MB processed (%.1f MB/s).\n",
                          mb,
                          mb / elapsed)
         end
