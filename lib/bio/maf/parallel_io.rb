@@ -125,10 +125,7 @@ module Bio::MAF
 
       def unblock_if_appropriate
         # caller must hold mutex
-        if ((n_reading < min_io) || (n_reading < n_processing)) \
-          && ! in_overflow? \
-          && ! blocked_stack.is_empty \
-          && ! read_queue.is_empty
+        if needs_readers? && ! blocked_stack.is_empty
 
           blocked_stack.remove.unblock
           # $stderr.puts "unblocking a thread"
@@ -147,9 +144,9 @@ module Bio::MAF
       end
 
       def needs_readers?
-        (n_reading < min_io || n_reading < n_processing) \
+        #(n_reading < min_io) 
+        (! in_overflow?) \
         && (! read_queue.is_empty)
-        #&& (! in_overflow?) \
       end
 
     end
@@ -259,7 +256,7 @@ module Bio::MAF
             # stay in :read
             controller.data_queue.add(req)
             transition_to(:read)
-            controller.unblock_if_appropriate
+            #controller.unblock_if_appropriate
           else
             controller.data_queue.add(req)
             # $stderr.puts "read -> block"
@@ -278,7 +275,7 @@ module Bio::MAF
             controller.unblock_if_appropriate
           elsif controller.needs_readers?
             transition_to(:read)
-            controller.unblock_if_appropriate
+            #controller.unblock_if_appropriate
           else
             # $stderr.puts "process -> block"
             transition_to(:block)
