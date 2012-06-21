@@ -34,6 +34,12 @@ end
 intervals = []
 $stdin.each_line { |line| intervals << parse_interval(line) }
 
+#fl = index.fetch_list(intervals)
 blocks = index.find(intervals, parser)
-
+puts "TOTAL: #{blocks.count} blocks parsed."
+blocks = index.find(intervals, parser)
+puts "TOTAL: #{blocks.count} blocks parsed."
+blocks = index.find(intervals, parser)
+puts "TOTAL: #{blocks.count} blocks parsed."
+blocks = index.find(intervals, parser)
 puts "TOTAL: #{blocks.count} blocks parsed."
