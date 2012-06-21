@@ -1,5 +1,4 @@
 require 'strscan'
-require 'thread'
 require 'java' if RUBY_PLATFORM == 'java'
 
 module Bio
@@ -486,9 +485,7 @@ module Bio
         ## returns array of Blocks
         merged = merge_fetch_list(fetch_list)
         if RUBY_PLATFORM == 'java' && @opts.fetch(:threads, 1) > 1
-          #fetch_blocks_merged_parallel(merged)
-          #fetch_blocks_merged_parallel2(merged)
-          fetch_blocks_merged_parallel3(merged)
+          fetch_blocks_merged_parallel(merged)
         else
           fetch_blocks_merged(merged)
         end
@@ -510,134 +507,6 @@ module Bio
           rate = (total_size / 1048576.0) / elapsed
           $stderr.printf("Fetched blocks in %.3fs, %.1f MB/s.\n",
                          elapsed, rate)
-        end
-      end
-
-      def fetch_blocks_merged_parallel2(fetch_list)
-        Enumerator.new do |y|
-          queue = java.util.concurrent.LinkedBlockingQueue.new(32)
-          ctl = ParallelIO::Controller.new(file_spec)
-          ctl.min_io = 3
-          fetch_list.each do |entry|
-            ctl.read_queue.add FragmentIORequest.new(*entry)
-          end
-          ctl.on_data do |data|
-            ctx = data.context(self)
-            ctx.parse_blocks.each do |block|
-              queue.put(block)
-            end
-          end
-          ctl.start
-          start = Time.now
-          total_size = 0
-          $stderr.puts "starting parallel I/O"
-          dumper = Thread.new do
-            begin
-              while ctl.workers.find { |w| w.thread.alive? }
-                ctl.dump_state
-                sleep(0.1)
-              end
-            rescue
-              $stderr.puts "#{$!.class}: #{$!}"
-              $stderr.puts $!.backtrace.join("\n")
-            end
-          end
-          while true
-            block = queue.poll(30, java.util.concurrent.TimeUnit::MILLISECONDS)
-            if block
-              y << block
-              total_size += block.size
-            elsif ctl.finished?
-              $stderr.puts "finished, shutting down parallel I/O"
-              elapsed = Time.now - start
-              rate = (total_size / 1048576.0) / elapsed
-              $stderr.printf("Fetched blocks in %.3fs, %.1f MB/s.",
-                             elapsed, rate)
-v              ctl.shutdown
-              break
-            end
-          end
-        end        
-      end
-
-      def fetch_blocks_merged_parallel3(fetch_list)
-        io_parallelism = 3
-        n_cpu = 3
-        total_size = fetch_list.collect { |e| e[1] }.reduce(:+)
-
-        jobs_q = java.util.concurrent.ConcurrentLinkedQueue.new()
-        data_q = java.util.concurrent.LinkedBlockingQueue.new(128)
-        yield_q = java.util.concurrent.LinkedBlockingQueue.new(128)
-        fetch_list.each do |entry|
-          jobs_q.add FragmentIORequest.new(*entry)
-        end
-
-        Enumerator.new do |y|
-          io_threads = []
-          parse_threads = []
-          start = Time.now
-          io_parallelism.times { io_threads << make_io_worker(file_spec,
-                                                              jobs_q,
-                                                              data_q) }
-          n_cpu.times { parse_threads << make_parse_worker(data_q,
-                                                           yield_q) }
-
-          io_parallelism.times { jobs_q.add(:stop) }
-          n_completed = 0
-          while n_completed < fetch_list.size
-            blocks = yield_q.take
-            blocks.each do |block|
-              y << block
-            end
-            n_completed += 1
-          end
-          n_cpu.times { data_q.put(:stop) }
-          elapsed = Time.now - start
-          $stderr.printf("Fetched blocks in %.1fs.\n",
-                         elapsed)
-          mb = total_size / 1048576.0
-          $stderr.printf("%.3f MB processed (%.1f MB/s).\n",
-                         mb,
-                         mb / elapsed)
-        end
-      end
-
-      def make_io_worker(path, jobs, completed)
-        Thread.new do
-          begin
-            fd = File.open(path)
-            begin
-              while true
-                req = jobs.poll
-                break if req == :stop
-                req.execute(fd)
-                completed.put(req)
-              end
-            ensure
-              fd.close
-            end
-          rescue Exception => e
-            $stderr.puts "Worker failing: #{e.class}: #{e}"
-            $stderr.puts e.backtrace.join("\n")
-            raise e
-          end
-        end
-      end
-
-      def make_parse_worker(jobs, completed)
-        Thread.new do
-          begin
-            while true do
-              data = jobs.take
-              break if data == :stop
-              ctx = data.context(self)
-              completed.put(ctx.parse_blocks.to_a)
-            end
-          rescue Exception => e
-            $stderr.puts "Worker failing: #{e.class}: #{e}"
-            $stderr.puts e.backtrace.join("\n")
-            raise e
-          end
         end
       end
 
@@ -680,8 +549,6 @@ v              ctl.shutdown
       def make_worker(jobs, completed)
         Thread.new do
           with_context(@random_access_chunk_size) do |ctx|
-            total_size = 0
-            n = 0
             while true
               req = jobs.poll
               break unless req
@@ -692,8 +559,6 @@ v              ctl.shutdown
                   raise "expected #{n_blocks}, got #{blocks.size}: #{e.inspect}"
                 end
                 completed.put(blocks)
-                total_size += req[1]
-                n += 1
               rescue Exception => e
                 completed.put(e)
                 $stderr.puts "Worker failing: #{e.class}: #{e}"
@@ -702,12 +567,6 @@ v              ctl.shutdown
               end
             end
           end
-        end
-      end
-
-      def worker_fetch_blocks(*args)
-        with_context(@random_access_chunk_size) do |ctx|
-          ctx.fetch_blocks(*args).to_a
         end
       end
 
