@@ -432,6 +432,38 @@ module Bio
 
     end
 
+    
+    class FetchListQueue
+      attr_reader :queue, :count, :total_size
+      attr_accessor :filled
+
+      def initialize
+        @queue = java.util.concurrent.PriorityBlockingQueue.new(11) do |a, b|
+          a[0] <=> b[0]
+          
+        end
+        @count = 0
+        @total_size = 0
+      end
+
+      def take
+        v = queue.take
+        v << [v[0]]
+        while v2 = queue.peek && v2 && v2[0] == (v[0] + v[1])
+          break unless queue.remove(v2)
+          v[1] += v2[1]
+          v[2] << v2[0]
+        end
+        @total_size += v[1]
+        v
+      end
+
+      def <<(v)
+        queue.put(v)
+        @count += 1
+      end
+    end
+
     class Parser
       include MAFParsing
 
@@ -483,10 +515,10 @@ module Bio
       def fetch_blocks(fetch_list, filters=nil)
         ## fetch_list: array of [offset, length, block_count] tuples
         ## returns array of Blocks
-        merged = merge_fetch_list(fetch_list)
         if RUBY_PLATFORM == 'java' && @opts.fetch(:threads, 1) > 1
-          fetch_blocks_merged_parallel(merged)
+          fetch_blocks_parallel(fetch_list)
         else
+          merged = merge_fetch_list(fetch_list)
           fetch_blocks_merged(merged)
         end
       end
@@ -510,21 +542,22 @@ module Bio
         end
       end
 
-      def fetch_blocks_merged_parallel(fetch_list)
+      def fetch_blocks_parallel(fetch_list)
         Enumerator.new do |y|
-          total_size = fetch_list.collect { |e| e[1] }.reduce(:+)
           start = Time.now
           n_threads = @opts.fetch(:threads, 1)
           # TODO: break entries up into longer runs for more
           # sequential I/O
-          jobs = java.util.concurrent.ConcurrentLinkedQueue.new(fetch_list)
+          flq = FetchListQueue.new
           completed = java.util.concurrent.LinkedBlockingQueue.new(128)
+          loader = make_queue_loader(fetch_list, flq)
           threads = []
-          n_threads.times { threads << make_worker(jobs, completed) }
+          n_threads.times { threads << make_worker(flq, completed) }
 
           n_completed = 0
-          while (n_completed < fetch_list.size) \
-            && threads.find { |t| t.alive? }
+          until (flq.filled && n_completed == flq.count) \
+            || ! threads.find { |t| t.alive? } \
+            || ((! loader.alive?) && (! flq.filled))
             c = completed.take
             raise "worker failed: #{c}" if c.is_a? Exception
             c.each do |block|
@@ -532,40 +565,53 @@ module Bio
             end
             n_completed += 1
           end
-          if n_completed < fetch_list.size
-            raise "No threads alive, completed #{n_completed}/#{jobs.size} jobs!"
+          unless (flq.filled && n_completed == flq.count)
+            raise "No threads alive, completed #{n_completed}/#{flq.count} jobs!"
           end
           elapsed = Time.now - start
           $stderr.printf("Fetched blocks from %d threads in %.1fs.\n",
                          n_threads,
                          elapsed)
-          mb = total_size / 1048576.0
+          mb = flq.total_size / 1048576.0
           $stderr.printf("%.3f MB processed (%.1f MB/s).\n",
                          mb,
                          mb / elapsed)
         end
       end
 
+      def make_queue_loader(fetch_list, queue)
+        Thread.new do
+          begin
+            fetch_list.each { |e| queue << e }
+            queue.filled = true
+          rescue Exception => e
+            completed.put(e)
+            $stderr.puts "Worker failing: #{e.class}: #{e}"
+            $stderr.puts e.backtrace.join("\n")
+            raise e
+          end
+        end
+      end
+
       def make_worker(jobs, completed)
         Thread.new do
-          with_context(@random_access_chunk_size) do |ctx|
-            while true
-              req = jobs.poll
-              break unless req
-              begin
+          begin
+            with_context(@random_access_chunk_size) do |ctx|
+              while true
+                req = jobs.take
                 n_blocks = req[2].size
                 blocks = ctx.fetch_blocks(*req).to_a
                 if blocks.size != n_blocks
                   raise "expected #{n_blocks}, got #{blocks.size}: #{e.inspect}"
                 end
                 completed.put(blocks)
-              rescue Exception => e
-                completed.put(e)
-                $stderr.puts "Worker failing: #{e.class}: #{e}"
-                $stderr.puts e.backtrace.join("\n")
-                raise e
               end
             end
+          rescue Exception => e
+            completed.put(e)
+            $stderr.puts "Worker failing: #{e.class}: #{e}"
+            $stderr.puts e.backtrace.join("\n")
+            raise e
           end
         end
       end

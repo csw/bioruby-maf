@@ -162,9 +162,9 @@ module Bio
       def find(intervals, parser, filter={})
         start = Time.now
         fl = fetch_list(intervals, filter)
-        $stderr.printf("Built fetch list of %d items in %.3fs.\n",
-                       fl.size,
-                       Time.now - start)
+        # $stderr.printf("Built fetch list of %d items in %.3fs.\n",
+        #                fl.size,
+        #                Time.now - start)
         parser.fetch_blocks(fl)
       end
 
@@ -273,21 +273,24 @@ module Bio
         ready = Time.now
         $stderr.puts "bin intervals computed after #{ready - start} seconds."
         if RUBY_PLATFORM == 'java'
-          scan_bins_parallel(chrom_id, bin_intervals, filters)
+          #scan_bins_parallel(chrom_id, bin_intervals, filters)
+          scan_bins(chrom_id, bin_intervals, filters)
         else
           scan_bins(chrom_id, bin_intervals, filters)
         end
       end # #fetch_list
 
       def scan_bins(chrom_id, bin_intervals, filters)
-        to_fetch = []
-        db.cursor_process do |cur|
-          bin_intervals.each do |bin, bin_intervals_raw|
-            matches = scan_bin(cur, chrom_id, bin, bin_intervals_raw, filters)
-            to_fetch.concat(matches)
-          end 
+        Enumerator.new do |y|
+          db.cursor_process do |cur|
+            bin_intervals.each do |bin, bin_intervals_raw|
+              matches = scan_bin(cur, chrom_id, bin, bin_intervals_raw, filters)
+              matches.each do |match|
+                y << match
+              end
+            end 
+          end
         end
-        to_fetch
       end
 
       def scan_bins_parallel(chrom_id, bin_intervals, filters)
@@ -303,15 +306,17 @@ module Bio
           end
         end
         es.shutdown
-        to_fetch = []
-        completed = 0
-        while completed < bin_intervals.size
-          to_fetch.concat(ecs.take.get)
-          completed += 1
+        Enumerator.new do |y|
+          completed = 0
+          while completed < bin_intervals.size
+            ecs.take.get.each do |match|
+              y << match
+            end
+            completed += 1
+          end
+          # $stderr.printf("Matched %d index records with %d threads in %.3f seconds.\n",
+          #                to_fetch.size, n_threads, Time.now - start)
         end
-        $stderr.printf("Matched %d index records with %d threads in %.3f seconds.\n",
-                       to_fetch.size, n_threads, Time.now - start)
-        to_fetch
       end
 
       def scan_bin(cur, chrom_id, bin, raw_intervals, filters)
