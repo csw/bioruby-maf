@@ -323,55 +323,6 @@ module Bio
       }
     end
 
-    class FragmentParseContext
-      include MAFParsing
-      attr_reader :at_end, :s, :last_block_pos, :chunk_start, :parser
-
-      def initialize(req, parser)
-        @chunk_start = req.offset
-        @block_offsets = req.block_offsets
-        @s = StringScanner.new(req.data)
-        @parser = parser
-        @last_block_pos = -1
-        @at_end = false
-      end
-
-      def sequence_filter
-        parser.sequence_filter
-      end
-
-      def parse_blocks
-        Enumerator.new do |y|
-          @block_offsets.each do |expected_offset|
-            block = parse_block
-            ctx.parse_error("expected a block at offset #{expected_offset} but could not parse one!") unless block
-            ctx.parse_error("got block with offset #{block.offset}, expected #{expected_offset}!") unless block.offset == expected_offset
-            y << block
-          end
-        end
-      end
-    end
-
-    class FragmentIORequest
-      attr_reader :offset, :length, :block_offsets
-      attr_accessor :data
-
-      def initialize(offset, length, block_offsets)
-        @offset = offset
-        @length = length
-        @block_offsets = block_offsets
-      end
-
-      def execute(f)
-        f.seek(offset)
-        @data = f.read(length)
-      end
-
-      def context(parser)
-        FragmentParseContext.new(self, parser)
-      end
-    end
-
     class ParseContext
       include MAFParsing
       attr_accessor :f, :s, :cr, :parser
