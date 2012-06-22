@@ -621,6 +621,13 @@ module Bio
         end
       end
 
+      def parse_blocks
+        Enumerator.new do |y|
+          until at_end
+            y << parse_block()
+          end
+        end
+      end
 
       def each_block
         until at_end
