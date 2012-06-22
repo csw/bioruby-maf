@@ -30,6 +30,7 @@ module Bio::MAF
         # TODO: i, q
         write_seq(seq)
       end
+      f.puts
     end
 
     def write_seq(s)
