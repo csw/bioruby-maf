@@ -622,9 +622,43 @@ module Bio
       end
 
       def parse_blocks
+        if RUBY_PLATFORM == 'java' && @opts.has_key?(:threads)
+          parse_blocks_parallel
+        else
+          Enumerator.new do |y|
+            until at_end
+              y << parse_block()
+            end
+          end
+        end
+      end
+
+      def parse_blocks_parallel
+        queue = java.util.concurrent.LinkedBlockingQueue.new(128)
+        worker = Thread.new do
+          begin
+            until at_end
+              queue.put(parse_block())
+            end
+            queue.put(:eof)
+          rescue
+            $stderr.puts "worker exiting: #{$!.class}: #{$!}"
+            $stderr.puts $!.backtrace.join("\n")
+          end
+        end
         Enumerator.new do |y|
-          until at_end
-            y << parse_block()
+          saw_eof = false
+          while worker.alive?
+            block = queue.poll(1, java.util.concurrent.TimeUnit::SECONDS)
+            if block == :eof
+              saw_eof = true
+              break
+            elsif block
+              y << block
+            end
+          end
+          unless saw_eof
+            raise "worker exited unexpectedly!"
           end
         end
       end
