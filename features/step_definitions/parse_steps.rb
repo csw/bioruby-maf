@@ -1,5 +1,10 @@
 When /^I open it with a MAF reader$/ do
-  @parser = Bio::MAF::Parser.new(@src_f)
+  @parser = Bio::MAF::Parser.new(@src_f, @opts || {})
+end
+
+When /^I enable the :(\S+) parser option$/ do |opt_s|
+  @opts ||= {}
+  @opts[opt_s.to_sym] = true
 end
 
 Then /^the MAF version should be "(.*?)"$/ do |v_spec|

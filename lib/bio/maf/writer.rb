@@ -26,16 +26,29 @@ module Bio::MAF
 
     def write_block(block)
       f.puts "a #{flatten_vars(block.vars)}"
-      block.sequences.each do |s|
-        # TODO: i, e, q
-        write_seq(s)
+      block.sequences.each do |seq|
+        # TODO: i, q
+        write_seq(seq)
       end
     end
 
     def write_seq(s)
-      f.printf("s %-20s %12d %2d %s %9d %s\n",
-               s.source, s.start, s.size, s.strand,
-               s.src_size, s.text)
+      f.printf("%s %-20s %12d %2d %s %9d %s\n",
+               s.empty? ? "e" : "s",
+               s.source,
+               s.start,
+               s.size,
+               s.strand,
+               s.src_size,
+               s.empty? ? s.status : s.text)
+      if s.quality
+        f.printf("q %-20s                           %s\n",
+                 s.source, s.quality)
+      end
+      if s.i_data
+        f.printf("i %-20s %s %s %s %s\n",
+                 s.source, *s.i_data)
+      end
     end
   end
   

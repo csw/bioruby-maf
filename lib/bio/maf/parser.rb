@@ -290,7 +290,7 @@ module Bio
             seq = parse_seq_line(line, sequence_filter)
             seqs << seq if seq
           elsif first == E && @parse_empty
-            e_seq = parse_empty_line(line, filter)
+            e_seq = parse_empty_line(line, sequence_filter)
             seqs << e_seq if e_seq
           elsif first == I && @parse_extended
             parts = line.split
