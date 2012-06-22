@@ -9,9 +9,9 @@
   <meta name="author" content="Clayton Wheeler">
 
   
-  <meta name="description" content="I think I made good progress in the end this week, although it was a
-bit frustrating along the way, with a few dead ends and some
-challenges in &hellip;">
+  <meta name="description" content="Some applications of a MAF parser call for sequential processing of an
+entire MAF file, but in many cases random access is necessary. I found
+that a &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -66,6 +66,222 @@ challenges in &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/bioruby-maf/blog/2012/06/21/parallel_io/">Parallel I/O</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-06-21T00:47:00-04:00" pubdate data-updated="true">Jun 21<span>st</span>, 2012</time>
+        
+         | <a href="/bioruby-maf/blog/2012/06/21/parallel_io/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Some applications of a MAF parser call for sequential processing of an
+entire MAF file, but in many cases random access is necessary. I found
+that a single-threaded parsing approach worked tolerably well for
+sequential access, with OS-level readahead helping, but that
+single-threaded performance with random access was very poor
+indeed. With a test scenario, I was only able to parse 10.5 MB/s from
+a SATA hard disk, and 34.3 MB/s from a MacBook Air SSD.</p>
+
+<p>My next step was to parallelize random I/O for index-based
+queries. With Ruby 1.9.3, this was pointless, since its GIL prevents
+any useful parallelism, but with JRuby there was ample scope for
+improvement. In the end, I implemented several parallel I/O
+subsystems: one with a pool of independent threads reading and parsing
+groups of blocks, one with separate pools of reader and parser
+threads, and one using an <a href="https://github.com/csw/bioruby-maf/blob/0b7210716be6ce3eb47c167db2fecf6f5539a240/lib/bio/maf/parallel_io.rb">adaptive parallel I/O subsystem</a> modeled
+after Dmitry Vyukov&#8217;s <a href="http://www.1024cores.net/home/scalable-architecture/wide-finder-2">Wide Finder entry</a>.</p>
+
+<p>As test data for this, I used chr22.maf from the <a href="http://hgdownload.cse.ucsc.edu/goldenPath/hg18/multiz28way/maf/">hg18</a> data set and
+a set of 10,000 randomly generated genomic intervals from its
+reference sequence, along with an index for the MAF file. I tested
+performance with all three I/O subsystems on hard disk and SSD
+storage, and of course with various numbers of threads, queue sizes,
+and so forth.</p>
+
+<p>To my surprise, I found that my first implementation, with independent
+worker threads reading and immediately parsing MAF blocks,
+outperformed the others. Quite possibly this is because the data being
+parsed has just been read into cache by the same thread. It is
+possible that the adaptive implementation could be competitive with
+it, but it was challenging to tune it properly for this workload in a
+way that worked with slow and fast storage alike. Further work on this
+might be promising.</p>
+
+<p>In the end, the first implementation delivered a maximum of 26 MB/s
+from hard disk, and 136 MB/s from SSD; the implementation with
+separate reader and parser threads seemed to top out at 24 and 104
+MB/s respectively.</p>
+
+<p>Almost as striking, however, was the difference between a single run
+and the third or fourth run repeated back-to-back in the same JVM
+instance. In some cases, performance almost doubled, from 87 to 136
+MB/s in a representative case. File system caching was ruled out, but
+intensive HotSpot compiler activity was observed, so I would attribute
+this to the combined optimization activity of the JRuby and HotSpot
+JIT compilers.</p>
+
+<h2>Index scanning</h2>
+
+<p>An unexpected bottleneck was observed: at peak performance,
+single-threaded scanning of the 16 MB index to select the blocks to
+parse takes 6.9 seconds, nearly as long as it took to parse the 869 MB
+of MAF data. <a href="https://github.com/csw/bioruby-maf/commit/4deee8548bfbc2899baae0c1f81893f64a10b5eb">Optimizing the match test</a> used produced a significant
+speedup, but past that, no optimization attempts have had much
+success.</p>
+
+<p>Parallelizing the index scan showed a modest improvement with two
+threads, topping out around 5.2 seconds; more than two threads have
+resulted in negligible improvements. Currently, the two-thread
+parallel scan is the default under JRuby.</p>
+
+<p>Starting the scan <a href="https://github.com/csw/bioruby-maf/commit/50bbc0fdcab6906a80f00cd42bd4928aaec20403">at the first block of interest</a> rather than at
+the start of the bin added noticeable complexity for no detectable
+performance gain. [Running the index scan in parallel][] with the
+block parsing seemed like a reasonable approach, but turned out to be
+slower than performing the two operations sequentially.</p>
+
+<p>[Running the index scan in parallel][]: https://github.com/csw/bioruby-maf/commit/624447dd9d61f9b9b5acebfe669e10a7aae5596d</p>
+
+<h2>JRuby and java.util.concurrent</h2>
+
+<p>A significant benefit of using JRuby is having access to the
+<a href="http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/package-summary.html">java.util.concurrent</a> library. Its blocking queues made parallel
+parsing simple to implement, and parallel index scans were even easier
+with the ExecutorCompletionService. Since JRuby objects are JVM
+objects like any other, and JRuby threads are implemented atop JVM
+threads, it was perfectly easy to use these.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/bioruby-maf/blog/2012/06/13/jruby_support_and_performance_work/">JRuby Support and I/O Performance</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-06-13T22:54:00-04:00" pubdate data-updated="true">Jun 13<span>th</span>, 2012</time>
+        
+         | <a href="/bioruby-maf/blog/2012/06/13/jruby_support_and_performance_work/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><h2>I/O performance and the Magic Number</h2>
+
+<p>My MAF parser is designed to read data from disk in relatively large
+chunks before parsing it, to minimize read(2) calls. I started out
+using a chunk size of 8 MB, but using the <a href="">jvisualvm</a> profiler with
+JRuby, I observed that during index builds with <code>maf_index</code>, it was
+spending about 37% of its time in
+<code>org.jruby.util.io.ChannelDescriptor.read()</code> calls. (I had observed
+MRI spending a similar amount of time in read calls as well.) Since
+Mac OS X has DTrace, I used <a href="http://www.brendangregg.com/DTrace/iosnoop">iosnoop</a> to watch the I/O activity at
+the OS level, and observed that reads were actually being issued with
+sizes of 128k:</p>
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>  501 55424 R 1139635624 131072       java ??/maf/chr22.maf
+</span><span class='line'>  501 55424 R 1139635880 131072       java ??/maf/chr22.maf
+</span><span class='line'>  501 55424 R 1139636136 131072       java ??/maf/chr22.maf
+</span><span class='line'>  501 55424 R 1139636392 131072       java ??/maf/chr22.maf
+</span><span class='line'>  501 55424 R 1139636904 131072       java ??/maf/chr22.maf</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Suspecting that merging the data from these read calls into an 8 MB
+buffer might be a problem, I changed the chunk size constant
+(<code>SEQ_CHUNK_SIZE</code>) to 128k to match, and saw the processing rate jump
+from 19 MB/s to 30 MB/s, with only 2.4% of CPU time spent in
+<code>ChannelDescriptor.read()</code>.</p>
+
+<p>MRI 1.9.3 exhibited a similar improvement, from 18 to 24 MB/s.</p>
+
+<p>It turns out, though, that 128k is not, as I guessed, a hard-coded
+Ruby setting. I later ran the same test on my MacBook Air&#8217;s built-in
+SSD instead of a USB-attached SATA disk, and saw I/O sizes of 1048576
+instead. Here, changing the chunk size to match showed no significant
+improvement. Presumably this is due to the lower I/O latency of the
+SSD.</p>
+
+<p>Requiring users to divine the best I/O size for their environment to
+achieve the best parsing performance seems a bit arcane; I wonder if
+it might be worthwhile to try to automatically detect the
+best-performing chunk size at runtime by defaulting to 128k, varying
+it in both directions, and tracking average latencies.</p>
+
+<h2>JRuby support with Kyoto Cabinet</h2>
+
+<p>Kyoto Cabinet has turned out to perform well and be easy to
+use. However, while the parser code runs substantially faster under
+JRuby, there is not a straightforward out-of-the-box way to use Kyoto
+Cabinet with Ruby. The standard <code>kyotocabinet-ruby</code> gem uses the C
+Extension API, so it isn&#8217;t really practical to use with
+JRuby. (Technically, JRuby has partial support for the C Extension
+API, but at least on my machine, it&#8217;s broken in several ways under
+RVM, needs to be enabled with a specific runtime option, and is
+generally frowned upon.) However, Kyoto Cabinet also has a Java API;
+both it and the Ruby API are based on the same underlying C++ library,
+so the APIs are quite similar. I wrote a small Ruby <a href="https://github.com/csw/bioruby-maf/blob/8e90c5d5f58524052e5d19d9ea6956ec361bf85b/lib/kyotocabinet-java.rb">wrapper</a> around
+the Java library, so it can be used under JRuby in an identical way to
+the native Ruby library.</p>
+
+<p>Unfortunately, this still requires users to build and install the
+JNI-based [Java library][] for Kyoto Cabinet as well as Kyoto Cabinet
+itself. This isn&#8217;t ideal, but shouldn&#8217;t be too difficult. I plan to
+separate this out as its own gem.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -790,6 +1006,14 @@ which will be my reference implementation in many respects.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/bioruby-maf/blog/2012/06/21/parallel_io/">Parallel I/O</a>
+      </li>
+    
+      <li class="post">
+        <a href="/bioruby-maf/blog/2012/06/13/jruby_support_and_performance_work/">JRuby support and I/O performance</a>
+      </li>
+    
+      <li class="post">
         <a href="/bioruby-maf/blog/2012/06/09/filtering-work/">Filtering work</a>
       </li>
     
@@ -799,14 +1023,6 @@ which will be my reference implementation in many respects.</p>
     
       <li class="post">
         <a href="/bioruby-maf/blog/2012/05/25/first_milestone/">First milestone</a>
-      </li>
-    
-      <li class="post">
-        <a href="/bioruby-maf/blog/2012/05/21/basic-maf-parsing/">Basic MAF parsing</a>
-      </li>
-    
-      <li class="post">
-        <a href="/bioruby-maf/blog/2012/05/21/week_2_progress/">GSoC Week 2</a>
       </li>
     
   </ul>

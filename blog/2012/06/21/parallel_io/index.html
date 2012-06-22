@@ -1,0 +1,341 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>Parallel I/O - BioRuby MAF blog</title>
+  <meta name="author" content="Clayton Wheeler">
+
+  
+  <meta name="description" content="Some applications of a MAF parser call for sequential processing of an
+entire MAF file, but in many cases random access is necessary. I found
+that a &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://csw.github.com/bioruby-maf/blog/2012/06/21/parallel_io">
+  <link href="/bioruby-maf/favicon.png" rel="icon">
+  <link href="/bioruby-maf/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/bioruby-maf/javascripts/modernizr-2.0.js"></script>
+  <script src="/bioruby-maf/javascripts/ender.js"></script>
+  <script src="/bioruby-maf/javascripts/octopress.js" type="text/javascript"></script>
+  <link href="/bioruby-maf/atom.xml" rel="alternate" title="BioRuby MAF blog" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/bioruby-maf/">BioRuby MAF blog</a></h1>
+  
+    <h2>Multiple Alignment Format support for BioRuby and bio-alignment</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/bioruby-maf/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:csw.github.com/bioruby-maf" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/bioruby-maf/">Blog</a></li>
+  <li><a href="/bioruby-maf/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">Parallel I/O</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-06-21T00:47:00-04:00" pubdate data-updated="true">Jun 21<span>st</span>, 2012</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>Some applications of a MAF parser call for sequential processing of an
+entire MAF file, but in many cases random access is necessary. I found
+that a single-threaded parsing approach worked tolerably well for
+sequential access, with OS-level readahead helping, but that
+single-threaded performance with random access was very poor
+indeed. With a test scenario, I was only able to parse 10.5 MB/s from
+a SATA hard disk, and 34.3 MB/s from a MacBook Air SSD.</p>
+
+<p>My next step was to parallelize random I/O for index-based
+queries. With Ruby 1.9.3, this was pointless, since its GIL prevents
+any useful parallelism, but with JRuby there was ample scope for
+improvement. In the end, I implemented several parallel I/O
+subsystems: one with a pool of independent threads reading and parsing
+groups of blocks, one with separate pools of reader and parser
+threads, and one using an <a href="https://github.com/csw/bioruby-maf/blob/0b7210716be6ce3eb47c167db2fecf6f5539a240/lib/bio/maf/parallel_io.rb">adaptive parallel I/O subsystem</a> modeled
+after Dmitry Vyukov&#8217;s <a href="http://www.1024cores.net/home/scalable-architecture/wide-finder-2">Wide Finder entry</a>.</p>
+
+<p>As test data for this, I used chr22.maf from the <a href="http://hgdownload.cse.ucsc.edu/goldenPath/hg18/multiz28way/maf/">hg18</a> data set and
+a set of 10,000 randomly generated genomic intervals from its
+reference sequence, along with an index for the MAF file. I tested
+performance with all three I/O subsystems on hard disk and SSD
+storage, and of course with various numbers of threads, queue sizes,
+and so forth.</p>
+
+<p>To my surprise, I found that my first implementation, with independent
+worker threads reading and immediately parsing MAF blocks,
+outperformed the others. Quite possibly this is because the data being
+parsed has just been read into cache by the same thread. It is
+possible that the adaptive implementation could be competitive with
+it, but it was challenging to tune it properly for this workload in a
+way that worked with slow and fast storage alike. Further work on this
+might be promising.</p>
+
+<p>In the end, the first implementation delivered a maximum of 26 MB/s
+from hard disk, and 136 MB/s from SSD; the implementation with
+separate reader and parser threads seemed to top out at 24 and 104
+MB/s respectively.</p>
+
+<p>Almost as striking, however, was the difference between a single run
+and the third or fourth run repeated back-to-back in the same JVM
+instance. In some cases, performance almost doubled, from 87 to 136
+MB/s in a representative case. File system caching was ruled out, but
+intensive HotSpot compiler activity was observed, so I would attribute
+this to the combined optimization activity of the JRuby and HotSpot
+JIT compilers.</p>
+
+<h2>Index scanning</h2>
+
+<p>An unexpected bottleneck was observed: at peak performance,
+single-threaded scanning of the 16 MB index to select the blocks to
+parse takes 6.9 seconds, nearly as long as it took to parse the 869 MB
+of MAF data. <a href="https://github.com/csw/bioruby-maf/commit/4deee8548bfbc2899baae0c1f81893f64a10b5eb">Optimizing the match test</a> used produced a significant
+speedup, but past that, no optimization attempts have had much
+success.</p>
+
+<p>Parallelizing the index scan showed a modest improvement with two
+threads, topping out around 5.2 seconds; more than two threads have
+resulted in negligible improvements. Currently, the two-thread
+parallel scan is the default under JRuby.</p>
+
+<p>Starting the scan <a href="https://github.com/csw/bioruby-maf/commit/50bbc0fdcab6906a80f00cd42bd4928aaec20403">at the first block of interest</a> rather than at
+the start of the bin added noticeable complexity for no detectable
+performance gain. [Running the index scan in parallel][] with the
+block parsing seemed like a reasonable approach, but turned out to be
+slower than performing the two operations sequentially.</p>
+
+<p>[Running the index scan in parallel][]: https://github.com/csw/bioruby-maf/commit/624447dd9d61f9b9b5acebfe669e10a7aae5596d</p>
+
+<h2>JRuby and java.util.concurrent</h2>
+
+<p>A significant benefit of using JRuby is having access to the
+<a href="http://docs.oracle.com/javase/7/docs/api/java/util/concurrent/package-summary.html">java.util.concurrent</a> library. Its blocking queues made parallel
+parsing simple to implement, and parallel index scans were even easier
+with the ExecutorCompletionService. Since JRuby objects are JVM
+objects like any other, and JRuby threads are implemented atop JVM
+threads, it was perfectly easy to use these.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Clayton Wheeler</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-06-21T00:47:00-04:00" pubdate data-updated="true">Jun 21<span>st</span>, 2012</time>
+      
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://csw.github.com/bioruby-maf/blog/2012/06/21/parallel_io/" data-via="" data-counturl="http://csw.github.com/bioruby-maf/blog/2012/06/21/parallel_io/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/bioruby-maf/blog/2012/06/13/jruby_support_and_performance_work/" title="Previous Post: JRuby support and I/O performance">&laquo; JRuby support and I/O performance</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/bioruby-maf/blog/2012/06/21/parallel_io/">Parallel I/O</a>
+      </li>
+    
+      <li class="post">
+        <a href="/bioruby-maf/blog/2012/06/13/jruby_support_and_performance_work/">JRuby support and I/O performance</a>
+      </li>
+    
+      <li class="post">
+        <a href="/bioruby-maf/blog/2012/06/09/filtering-work/">Filtering work</a>
+      </li>
+    
+      <li class="post">
+        <a href="/bioruby-maf/blog/2012/06/04/indexed_maf_access/">Indexed MAF access</a>
+      </li>
+    
+      <li class="post">
+        <a href="/bioruby-maf/blog/2012/05/25/first_milestone/">First milestone</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/csw">@csw</a> on GitHub
+  
+  <script type="text/javascript">
+    $.domReady(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'csw',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/bioruby-maf/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2012 - Clayton Wheeler -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'biorubymafblog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://csw.github.com/bioruby-maf/blog/2012/06/21/parallel_io/';
+        var disqus_url = 'http://csw.github.com/bioruby-maf/blog/2012/06/21/parallel_io/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>
