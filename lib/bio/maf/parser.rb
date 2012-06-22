@@ -289,14 +289,14 @@ module Bio
           if first == S
             seq = parse_seq_line(line, sequence_filter)
             seqs << seq if seq
-          elsif first == E && @parse_empty
+          elsif first == E && parse_empty
             e_seq = parse_empty_line(line, sequence_filter)
             seqs << e_seq if e_seq
-          elsif first == I && @parse_extended
+          elsif first == I && parse_extended
             parts = line.split
             parse_error("wrong i source #{parts[1]}!") unless seqs.last.source == parts[1]
             seqs.last.i_data = parts.slice(2..6)
-          elsif first == Q && @parse_extended
+          elsif first == Q && parse_extended
             _, src, quality = line.split
             parse_error("wrong q source #{src}!") unless seqs.last.source == src
             seqs.last.quality = quality
@@ -431,7 +431,7 @@ module Bio
 
       ## Parses alignment blocks by reading a chunk of the file at a time.
 
-      attr_reader :header, :file_spec, :f, :s, :cr, :at_end
+      attr_reader :header, :file_spec, :f, :s, :cr, :at_end, :opts
       attr_reader :chunk_start, :last_block_pos
       attr_accessor :sequence_filter
       attr_accessor :parse_extended, :parse_empty
