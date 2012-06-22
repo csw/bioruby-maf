@@ -1,0 +1,84 @@
+#!/usr/bin/env ruby
+
+require 'bio-maf'
+require 'optparse'
+require 'ostruct'
+
+options = OpenStruct.new
+options.parser = Bio::MAF::Parser
+options.opts = {
+  :chunk_reader => Bio::MAF::ChunkReader,
+  :parse_extended => false
+}
+
+PRINTERS = {
+  'flat' => :FlatPrinter,
+  'stack' => :CallStackPrinter
+}
+
+OptionParser.new do |opts|
+  opts.banner = "Usage: maf_write [options] <maf>"
+  opts.separator ""
+  opts.separator "Options:"
+  opts.on("-p", "--profile PROF", "Profile with PerfTools") do |prof|
+    options.prof = prof
+  end
+  opts.on("--ruby-prof PATH", "Profile with ruby-prof") do |pspec|
+    if pspec =~ /(\w+):(.+)/
+      require 'ruby-prof'
+      options.ruby_prof_printer = RubyProf.const_get(PRINTERS.fetch($1))
+      options.ruby_prof_path = $2
+    else
+      options.ruby_prof_printer = RubyProf::FlatPrinter
+      options.ruby_prof_path = pspec
+    end
+  end
+  opts.on("--profile-gc", "Profile GC") do |prof|
+    options.profile_gc = true
+  end
+  opts.on("--parser PARSER", "parser") do |name|
+    options.parser = Bio::MAF.const_get(name)
+  end
+  opts.on("-t", "--threaded") do
+    options.opts[:chunk_reader] = Bio::MAF::ThreadedChunkReader
+    options.opts[:threads] = 1
+  end
+  opts.on("-e", "--extended") do
+    options.opts[:parse_extended] = true
+    options.opts[:parse_empty] = true
+  end
+end.parse!(ARGV)
+
+src_path = ARGV.shift
+
+if options.prof
+  require 'perftools'
+  PerfTools::CpuProfiler.start(options.prof)
+elsif options.ruby_prof_path
+  require 'ruby-prof'
+  RubyProf.start
+end
+
+if options.profile_gc
+  GC::Profiler.enable
+end
+
+parser = options.parser.new(src_path, options.opts)
+writer = Bio::MAF::Writer.new($stdout)
+writer.write_header(parser.header)
+writer.write_blocks(parser.parse_blocks)
+
+if options.profile_gc
+  $stderr.puts GC::Profiler.result
+  GC::Profiler.disable
+end
+
+if options.prof
+  PerfTools::CpuProfiler.stop
+elsif options.ruby_prof_path
+  res = RubyProf.stop
+  printer = options.ruby_prof_printer.new(res)
+  File.open(options.ruby_prof_path, 'w') do |f|
+    printer.print(f)
+  end
+end

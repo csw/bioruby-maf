@@ -3,9 +3,16 @@ module Bio::MAF
   class Writer
     attr_reader :f, :path
 
-    def initialize(path)
-      @path = path
-      @f = File.open(path, 'w')
+    def initialize(fspec)
+      if fspec.respond_to? :write
+        @f = fspec
+        if fspec.respond_to? :path
+          @path = fspec.path
+        end
+      else
+        @path = fspec
+        @f = File.open(fspec, 'w')
+      end
     end
 
     def flatten_vars(vars)
