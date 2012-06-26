@@ -1,6 +1,7 @@
 language: ruby
 before_install:
-  - sudo update-java-alternatives -s java-1.7.0-openjdk-i386
+  #- sudo update-java-alternatives -s java-1.7.0-openjdk-i386
+  - sudo update-java-alternatives -s java-1.6.0-openjdk
   - sudo ./travis-ci/install_kc
 bundler_args: --without development
 script: "bundle exec rake test"
