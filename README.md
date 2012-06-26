@@ -30,34 +30,22 @@ Bioinformatics Foundation. The development
 
 [Kyoto Cabinet][] is a database library, required for building MAF
 indexes. Install the core library in the appropriate way for your
-platform (with Homebrew on Mac OS X: `brew install kyoto-cabinet`).
+platform, as documented [here][].
 
 [Kyoto Cabinet]: http://fallabs.com/kyotocabinet/
+[here]: https://github.com/csw/bioruby-maf/wiki/Kyoto-Cabinet
 
-If you're using MRI, the `kyotocabinet-ruby` gem is included as a
-dependency. A quick install for MRI of the current version of Kyoto
-Cabinet (1.2.76) on Debian-like systems is
+If you're using MRI, the [kyotocabinet-ruby][] gem will be used to
+interact with Kyoto Cabinet. For best performance, however, you should
+really consider using JRuby. On JRuby, the [kyotocabinet-java][] gem
+will be used instead; this builds a Java library using JNI to call
+into Kyoto Cabinet. Please file a [bug report][] if you encounter
+problems building or using this gem, which is still fairly new.
 
-```sh
-  sudo apt-get install liblzo2-dev lzma-dev
-  ./configure --enable-zlib --enable-lzo --enable-lzma --prefix=/usr --disable-atomic
-  make
-  sudo make install
-```
+[kyotocabinet-ruby]: https://rubygems.org/gems/kyotocabinet-ruby
+[kyotocabinet-java]: https://github.com/csw/kyotocabinet-java
+[bug report]: https://github.com/csw/kyotocabinet-java/issues
 
-(you may need to comment out the lines in configure as suggested by
-this
-[patch](https://gitorious.org/kyotocabinet-debian/kyotocabinet/blobs/master/debian/patches/0001-disable-march-native.patch).
-
-For best performance, however, you should really consider using
-JRuby. Kyoto Cabinet support under JRuby requires that you build and
-install the [kyotocabinet-java][] JNI library on your system. By
-default, its `make install` target will install `libjkyotocabinet.so`
-in `/usr/local/lib`, which is on the JNI load path
-(`java.library.path`) on Mac OS X. Ubuntu users will need to copy this
-library elsewhere: `/usr/lib/jni` is one location that should work.
-
-[kyotocabinet-java]: http://fallabs.com/kyotocabinet/javapkg/
 
 ## Installation
 
