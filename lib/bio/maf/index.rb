@@ -1,8 +1,4 @@
-if RUBY_PLATFORM != 'java'
-  require 'kyotocabinet'
-else
-  require 'kyotocabinet-java'
-end
+require 'kyotocabinet'
 
 #require 'bio-ucsc-api'
 require 'bio-genomic-interval'
