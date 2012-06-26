@@ -35,7 +35,21 @@ platform (with Homebrew on Mac OS X: `brew install kyoto-cabinet`).
 [Kyoto Cabinet]: http://fallabs.com/kyotocabinet/
 
 If you're using MRI, the `kyotocabinet-ruby` gem is included as a
-dependency. However, for best performance, you should consider using
+dependency. A quick install for MRI of the current version of Kyoto
+Cabinet (1.2.76) on Debian-like systems is
+
+```sh
+  sudo apt-get install liblzo2-dev lzma-dev
+  ./configure --enable-zlib --enable-lzo --enable-lzma --prefix=/usr --disable-atomic
+  make
+  sudo make install
+```
+
+(you may need to comment out the lines in configure as suggested by
+this
+[patch](https://gitorious.org/kyotocabinet-debian/kyotocabinet/blobs/master/debian/patches/0001-disable-march-native.patch).
+
+For best performance, however, you should really consider using
 JRuby. Kyoto Cabinet support under JRuby requires that you build and
 install the [kyotocabinet-java][] JNI library on your system. By
 default, its `make install` target will install `libjkyotocabinet.so`
