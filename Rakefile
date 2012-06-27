@@ -38,6 +38,39 @@ end
 task :test => [ :spec, :cucumber ] 
 task :default => :test
 
+#### Man pages
+# (borrowed from matthewtodd/shoe)
+
+GEMSPEC = Gem::Specification.load('bio-maf.gemspec')
+
+def ronn(format, file)
+  sh "ronn --build #{format} --date #{GEMSPEC.date.strftime('%Y-%m-%d')} --manual='RubyGems Manual' --organization='#{GEMSPEC.author}' #{file}"
+end
+
+def ronn_files
+  GEMSPEC.files.grep /^man\/.*\.ronn$/
+end
+
+def man_files
+  ronn_files.map { |path| path.sub(/\.ronn$/, '') }
+end
+
+def html_man_files
+  ronn_files.map { |path| path.sub(/\.ronn$/, '.html') }
+end
+
+rule %r{\.\d$} => "%p.ronn" do |task|
+  ronn('--roff', task.source)
+end
+
+rule %r{\.\d.html$} => "%X.ronn" do |task|
+  ronn('--html', task.source)
+end
+
+task :man => (man_files + html_man_files)
+
+#### RDoc (not currently used)
+
 require 'rdoc/task'
 Rake::RDocTask.new do |rdoc|
   version = File.exist?('VERSION') ? File.read('VERSION') : ""

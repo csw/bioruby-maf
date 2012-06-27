@@ -15,6 +15,7 @@ group :development do
   gem "simplecov", "~> 0.6.4", :platforms => :mri
   gem "yard", "~> 0.8.1"
   gem "kramdown", "~> 0.13.6"
+  gem "ronn", "~> 0.7.3"
 end
 
 group :test do
