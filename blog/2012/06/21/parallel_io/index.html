@@ -156,11 +156,9 @@ parallel scan is the default under JRuby.</p>
 
 <p>Starting the scan <a href="https://github.com/csw/bioruby-maf/commit/50bbc0fdcab6906a80f00cd42bd4928aaec20403">at the first block of interest</a> rather than at
 the start of the bin added noticeable complexity for no detectable
-performance gain. [Running the index scan in parallel][] with the
+performance gain. <a href="https://github.com/csw/bioruby-maf/commit/624447dd9d61f9b9b5acebfe669e10a7aae5596d">Running the index scan in parallel</a> with the
 block parsing seemed like a reasonable approach, but turned out to be
 slower than performing the two operations sequentially.</p>
-
-<p>[Running the index scan in parallel][]: https://github.com/csw/bioruby-maf/commit/624447dd9d61f9b9b5acebfe669e10a7aae5596d</p>
 
 <h2>JRuby and java.util.concurrent</h2>
 
