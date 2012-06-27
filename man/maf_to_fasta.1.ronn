@@ -1,0 +1,51 @@
+maf_to_fasta(1) -- convert MAF file to FASTA
+============================================
+
+## SYNOPSIS
+
+`maf_to_fasta` [options] <maf> <fasta>
+
+## DESCRIPTION
+
+**maf_to_fasta**, part of the bioruby-maf library, converts Multiple
+Alignment Format (MAF) files to FASTA format. It does not attempt to
+combine alignment blocks, but simply writes out each sequence in
+order.
+
+## FILES
+
+The <maf> input file must be a valid MAF file of any length.
+
+The <fasta> output file will be written in FASTA format.
+
+## OPTIONS
+
+The options are only useful for performance measurement.
+
+## EXAMPLES
+
+Convert a MAF file to FASTA:
+
+    $ maf_to_fasta chrY.maf chrY.fa
+    
+## ENVIRONMENT
+
+`maf_to_fasta` is a Ruby program and relies on ordinary Ruby
+environment variables.
+
+## BUGS
+
+`maf_to_fasta` should provide flexibility in selecting the alignment
+blocks and sequences to convert, and perhaps allow alignment blocks to
+be spliced together. 
+
+## COPYRIGHT
+
+`maf_to_fasta` is copyright (C) 2012 Clayton Wheeler.
+
+## SEE ALSO
+
+ruby(1)
+
+ * <https://github.com/csw/bioruby-maf/>
+

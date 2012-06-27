@@ -1,0 +1,53 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "MAF_TO_FASTA" "1" "June 2012" "Clayton Wheeler" "BioRuby Manual"
+.
+.SH "NAME"
+\fBmaf_to_fasta\fR \- convert MAF file to FASTA
+.
+.SH "SYNOPSIS"
+\fBmaf_to_fasta\fR \fIoptions\fR \fImaf\fR \fIfasta\fR
+.
+.SH "DESCRIPTION"
+\fBmaf_to_fasta\fR, part of the bioruby\-maf library, converts Multiple Alignment Format (MAF) files to FASTA format\. It does not attempt to combine alignment blocks, but simply writes out each sequence in order\.
+.
+.SH "FILES"
+The \fImaf\fR input file must be a valid MAF file of any length\.
+.
+.P
+The \fIfasta\fR output file will be written in FASTA format\.
+.
+.SH "OPTIONS"
+The options are only useful for performance measurement\.
+.
+.SH "EXAMPLES"
+Convert a MAF file to FASTA:
+.
+.IP "" 4
+.
+.nf
+
+$ maf_to_fasta chrY\.maf chrY\.fa
+.
+.fi
+.
+.IP "" 0
+.
+.SH "ENVIRONMENT"
+\fBmaf_to_fasta\fR is a Ruby program and relies on ordinary Ruby environment variables\.
+.
+.SH "BUGS"
+\fBmaf_to_fasta\fR should provide flexibility in selecting the alignment blocks and sequences to convert, and perhaps allow alignment blocks to be spliced together\.
+.
+.SH "COPYRIGHT"
+\fBmaf_to_fasta\fR is copyright (C) 2012 Clayton Wheeler\.
+.
+.SH "SEE ALSO"
+ruby(1)
+.
+.IP "\(bu" 4
+\fIhttps://github\.com/csw/bioruby\-maf/\fR
+.
+.IP "" 0
+
