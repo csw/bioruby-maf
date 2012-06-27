@@ -12,16 +12,19 @@ end
 require 'rake'
 
 require 'jeweler'
+$gemspec = nil
 Jeweler::Tasks.new do |gem|
   # gem is a Gem::Specification... see http://docs.rubygems.org/read/chapter/20 for more options
   gem.name = "bio-maf"
   gem.homepage = "http://github.com/csw/bioruby-maf"
   gem.license = "MIT"
-  gem.summary = %Q{TODO: one-line summary of your gem}
-  gem.description = %Q{TODO: longer description of your gem}
+  gem.summary = %Q{MAF parser for BioRuby}
+  gem.description = %Q{Multiple Alignment Format parser for BioRuby.}
   gem.email = "cswh@umich.edu"
-  gem.authors = ["csw"]
+  gem.authors = ["Clayton Wheeler"]
   # dependencies defined in Gemfile
+  # kludgy, but it works
+  $gemspec = gem
 end
 Jeweler::RubygemsDotOrgTasks.new
 
@@ -48,35 +51,16 @@ ronn_avail = begin
              end
 
 if ronn_avail
-  GEMSPEC = Gem::Specification.load('bio-maf.gemspec')
+  RONN_FILES = Rake::FileList["man/*.?.ronn"]
 
-  def ronn(format, file)
-    sh "ronn --build #{format} --style toc --date #{GEMSPEC.date.strftime('%Y-%m-%d')} --manual='RubyGems Manual' --organization='#{GEMSPEC.author}' #{file}"
+  desc "Generate man pages"
+  task :man do
+    file_spec = RONN_FILES.join(' ')
+    sh "ronn --roff --html --style toc --date #{$gemspec.date.strftime('%Y-%m-%d')} --manual='BioRuby Manual' --organization='#{$gemspec.author}' #{file_spec}"
   end
-
-  def ronn_files
-    GEMSPEC.files.grep /^man\/.*\.ronn$/
-  end
-
-  def man_files
-    ronn_files.map { |path| path.sub(/\.ronn$/, '') }
-  end
-
-  def html_man_files
-    ronn_files.map { |path| path.sub(/\.ronn$/, '.html') }
-  end
-
-  rule %r{\.\d$} => "%p.ronn" do |task|
-    ronn('--roff', task.source)
-  end
-
-  rule %r{\.\d.html$} => "%X.ronn" do |task|
-    ronn('--html', task.source)
-  end
-
-  task :man => (man_files + html_man_files)
 
   namespace :man do
+    desc "Publish man pages to Octopress source dir"
     task :publish do
       html_man_files.each do |man|
         cp man, "../octopress/source/man/#{File.basename(man)}"
@@ -87,7 +71,7 @@ if ronn_avail
 
   namespace :ronn do
     task :server do
-      sh "ronn --server #{ronn_files.join(' ')}"
+      sh "ronn --server #{RONN_FILES.join(' ')}"
     end
   end
 end # if ronn_avail
