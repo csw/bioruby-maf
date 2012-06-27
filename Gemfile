@@ -16,6 +16,7 @@ group :development do
   gem "yard", "~> 0.8.1"
   gem "kramdown", "~> 0.13.6"
   gem "ronn", "~> 0.7.3"
+  gem "sinatra", "~> 1.3.2" # for ronn --server
 end
 
 group :test do

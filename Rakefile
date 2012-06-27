@@ -69,6 +69,12 @@ end
 
 task :man => (man_files + html_man_files)
 
+namespace :ronn do
+  task :server do
+    sh "ronn --server #{ronn_files.join(' ')}"
+  end
+end
+
 #### RDoc (not currently used)
 
 require 'rdoc/task'
