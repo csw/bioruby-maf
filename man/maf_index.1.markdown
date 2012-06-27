@@ -3,8 +3,8 @@ maf_index(1) -- build and examine MAF indexes
 
 ## SYNOPSIS
 
-`maf_index` [-t] <maf> <index><br>
-`maf_index` `-d`|`--dump` <index>
+`maf_index` [-t] <var>maf</var> <var>index</var><br>
+`maf_index` `-d`|`--dump` <var>index</var>
 
 ## DESCRIPTION
 
@@ -13,8 +13,8 @@ Kyoto Cabinet indexes for Multiple Alignment Format (MAF)
 files. These indexes enable other MAF tools to selectively extract
 alignment blocks of interest.
 
-In its default mode, `maf_index` parses the <maf> file given as an
-argument and creates an index in <index>. 
+In its default mode, `maf_index` parses the <var>maf</var> file given as an
+argument and creates an index in <var>index</var>. 
 
 The index data is stored in binary form, so with the `--dump`
 argument, `maf_index` can dump out the index data in human-readable
@@ -22,17 +22,17 @@ form for debugging.
 
 ## FILES
 
-The <maf> input file must be a valid MAF file of any length.
+The <var>maf</var> input file must be a valid MAF file of any length.
 
 The index created is a Kyoto Cabinet TreeDB (B+ tree) database;
-<index> must have a `.kct` extension.
+<var>index</var> must have a `.kct` extension.
 
 ## OPTIONS
 
 TODO
 
  * `-d`, `--dump`:
-   Instead of creating an index, dump out the given <index> in
+   Instead of creating an index, dump out the given <var>index</var> in
    human-readable form. Index records will appear like:
    
        0 [bin 1195] 80082334:80082368
@@ -81,3 +81,17 @@ ruby(1), kctreemgr(1)
  * <https://github.com/csw/bioruby-maf/>
  * <http://fallabs.com/kyotocabinet/>
 
+
+
+[SYNOPSIS]: #SYNOPSIS "SYNOPSIS"
+[DESCRIPTION]: #DESCRIPTION "DESCRIPTION"
+[FILES]: #FILES "FILES"
+[OPTIONS]: #OPTIONS "OPTIONS"
+[EXAMPLES]: #EXAMPLES "EXAMPLES"
+[ENVIRONMENT]: #ENVIRONMENT "ENVIRONMENT"
+[BUGS]: #BUGS "BUGS"
+[COPYRIGHT]: #COPYRIGHT "COPYRIGHT"
+[SEE ALSO]: #SEE-ALSO "SEE ALSO"
+
+
+[maf_index(1)]: maf_index.1.html
