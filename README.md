@@ -65,6 +65,10 @@ problems building or using this gem, which is still fairly new.
     end
 ```
 
+Man pages for command line tools:
+
+* [maf_index](http://csw.github.com/bioruby-maf/man/maf_index.1.html)
+
 The API doc is online. For more code examples see the
 [RSpec](https://github.com/csw/bioruby-maf/tree/master/spec/bio/maf)
 and
