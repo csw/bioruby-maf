@@ -3,15 +3,15 @@ maf_index(1) -- build and examine MAF indexes
 
 ## SYNOPSIS
 
-`maf_index` [-t] <maf> <index>
+`maf_index` [-t] <maf> <index><br>
 `maf_index` `-d`|`--dump` <index>
 
 ## DESCRIPTION
 
-**maf_index** is part of the bioruby-maf library and creates Kyoto
-Cabinet indexes for Multiple Alignment Format (MAF) files. These
-indexes enable other MAF tools to selectively extract alignment blocks
-of interest.
+**maf_index** is part of the bioruby-maf library and creates
+Kyoto Cabinet indexes for Multiple Alignment Format (MAF)
+files. These indexes enable other MAF tools to selectively extract
+alignment blocks of interest.
 
 In its default mode, `maf_index` parses the <maf> file given as an
 argument and creates an index in <index>. 
@@ -35,13 +35,11 @@ TODO
    Instead of creating an index, dump out the given <index> in
    human-readable form. Index records will appear like:
    
-```
-0 [bin 1195] 80082334:80082368
-  offset 16, length 1087
-  text size: 54
-  sequences in block: 10
-  species vector: 00000000000003ff
-```
+       0 [bin 1195] 80082334:80082368
+         offset 16, length 1087
+         text size: 54
+         sequences in block: 10
+         species vector: 00000000000003ff
 
  * `-t`, `--threaded`:
    Use a separate reader thread to do I/O in parallel with
@@ -78,6 +76,8 @@ to be set.
 
 ## SEE ALSO
 
-ruby(1)
+ruby(1), kctreemgr(1)
 
-https://github.com/csw/bioruby-maf/
+ * <https://github.com/csw/bioruby-maf/>
+ * <http://fallabs.com/kyotocabinet/>
+
