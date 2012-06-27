@@ -40,49 +40,57 @@ task :default => :test
 
 #### Man pages
 # (borrowed from matthewtodd/shoe)
+ronn_avail = begin
+               require 'ronn'
+               true
+             rescue LoadError
+               false
+             end
 
-GEMSPEC = Gem::Specification.load('bio-maf.gemspec')
+if ronn_avail
+  GEMSPEC = Gem::Specification.load('bio-maf.gemspec')
 
-def ronn(format, file)
-  sh "ronn --build #{format} --style toc --date #{GEMSPEC.date.strftime('%Y-%m-%d')} --manual='RubyGems Manual' --organization='#{GEMSPEC.author}' #{file}"
-end
+  def ronn(format, file)
+    sh "ronn --build #{format} --style toc --date #{GEMSPEC.date.strftime('%Y-%m-%d')} --manual='RubyGems Manual' --organization='#{GEMSPEC.author}' #{file}"
+  end
 
-def ronn_files
-  GEMSPEC.files.grep /^man\/.*\.ronn$/
-end
+  def ronn_files
+    GEMSPEC.files.grep /^man\/.*\.ronn$/
+  end
 
-def man_files
-  ronn_files.map { |path| path.sub(/\.ronn$/, '') }
-end
+  def man_files
+    ronn_files.map { |path| path.sub(/\.ronn$/, '') }
+  end
 
-def html_man_files
-  ronn_files.map { |path| path.sub(/\.ronn$/, '.html') }
-end
+  def html_man_files
+    ronn_files.map { |path| path.sub(/\.ronn$/, '.html') }
+  end
 
-rule %r{\.\d$} => "%p.ronn" do |task|
-  ronn('--roff', task.source)
-end
+  rule %r{\.\d$} => "%p.ronn" do |task|
+    ronn('--roff', task.source)
+  end
 
-rule %r{\.\d.html$} => "%X.ronn" do |task|
-  ronn('--html', task.source)
-end
+  rule %r{\.\d.html$} => "%X.ronn" do |task|
+    ronn('--html', task.source)
+  end
 
-task :man => (man_files + html_man_files)
+  task :man => (man_files + html_man_files)
 
-namespace :man do
-  task :publish do
-    html_man_files.each do |man|
-      cp man, "../octopress/source/man/#{File.basename(man)}"
+  namespace :man do
+    task :publish do
+      html_man_files.each do |man|
+        cp man, "../octopress/source/man/#{File.basename(man)}"
+      end
     end
   end
-end
-task 'man:publish' => :man
+  task 'man:publish' => :man
 
-namespace :ronn do
-  task :server do
-    sh "ronn --server #{ronn_files.join(' ')}"
+  namespace :ronn do
+    task :server do
+      sh "ronn --server #{ronn_files.join(' ')}"
+    end
   end
-end
+end # if ronn_avail
 
 #### RDoc (not currently used)
 
