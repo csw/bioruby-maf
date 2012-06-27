@@ -44,7 +44,7 @@ task :default => :test
 GEMSPEC = Gem::Specification.load('bio-maf.gemspec')
 
 def ronn(format, file)
-  sh "ronn --build #{format} --date #{GEMSPEC.date.strftime('%Y-%m-%d')} --manual='RubyGems Manual' --organization='#{GEMSPEC.author}' #{file}"
+  sh "ronn --build #{format} --style toc --date #{GEMSPEC.date.strftime('%Y-%m-%d')} --manual='RubyGems Manual' --organization='#{GEMSPEC.author}' #{file}"
 end
 
 def ronn_files
@@ -68,6 +68,15 @@ rule %r{\.\d.html$} => "%X.ronn" do |task|
 end
 
 task :man => (man_files + html_man_files)
+
+namespace :man do
+  task :publish do
+    html_man_files.each do |man|
+      cp man, "../octopress/source/man/#{File.basename(man)}"
+    end
+  end
+end
+task 'man:publish' => :man
 
 namespace :ronn do
   task :server do
