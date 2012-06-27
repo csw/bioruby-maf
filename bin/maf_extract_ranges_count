@@ -8,6 +8,7 @@ require 'bio-genomic-interval'
 
 options = OpenStruct.new
 options.p = { :threads => 1 }
+options.passes = 1
 
 OptionParser.new do |opts|
   opts.banner = "Usage: maf_extract_ranges_count [options] <maf> <index>"
@@ -15,6 +16,9 @@ OptionParser.new do |opts|
   opts.separator "Options:"
   opts.on("-t", "--threads N", "Parser threads") do |n|
     options.p[:threads] = n.to_i
+  end
+  opts.on("-p", "--passes N", "Number of passes") do |n|
+    options.passes = n.to_i
   end
 end.parse!(ARGV)
 
@@ -34,12 +38,7 @@ end
 intervals = []
 $stdin.each_line { |line| intervals << parse_interval(line) }
 
-#fl = index.fetch_list(intervals)
-blocks = index.find(intervals, parser)
-puts "TOTAL: #{blocks.count} blocks parsed."
-blocks = index.find(intervals, parser)
-puts "TOTAL: #{blocks.count} blocks parsed."
-blocks = index.find(intervals, parser)
-puts "TOTAL: #{blocks.count} blocks parsed."
-blocks = index.find(intervals, parser)
-puts "TOTAL: #{blocks.count} blocks parsed."
+options.passes.times do
+  blocks = index.find(intervals, parser)
+  puts "TOTAL: #{blocks.count} blocks parsed."
+end
