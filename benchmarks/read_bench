@@ -1,0 +1,40 @@
+#!/usr/bin/env ruby
+
+require 'benchmark'
+
+FILE = '/Users/csw/maf/chr22.maf'
+
+Benchmark.bm do |x|
+  x.report("8k") do
+    File.open(FILE) do |f|
+      while true
+        r = f.read(8192)
+        break unless r
+      end
+    end
+  end
+  x.report("128k") do
+    File.open(FILE) do |f|
+      while true
+        r = f.read(128 * 1024)
+        break unless r
+      end
+    end
+  end
+  x.report("1M") do
+    File.open(FILE) do |f|
+      while true
+        r = f.read(1024 * 1024)
+        break unless r
+      end
+    end
+  end
+  x.report("8M") do
+    File.open(FILE) do |f|
+      while true
+        r = f.read(8 * 1024 * 1024)
+        break unless r
+      end
+    end
+  end
+end

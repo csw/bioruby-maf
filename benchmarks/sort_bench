@@ -1,0 +1,33 @@
+#!/usr/bin/env ruby
+
+require 'benchmark'
+
+class Thing
+  attr_reader :part
+
+  def initialize(part)
+    @part = part
+  end
+end
+
+prng = Random.new
+v_max = 1 << 31
+ary = []
+1000.times do
+  ary << Thing.new(rand(v_max))
+end
+
+Benchmark.bmbm do |x|
+  x.report("sort!") do
+    1000.times do
+      ary2 = ary.dup
+      ary2.sort! { |a, b| a.part <=> b.part }
+    end
+  end
+  x.report("sort_by!") do
+    1000.times do
+      ary2 = ary.dup
+      ary2.sort_by! { |i| i.part }
+    end
+  end
+end
