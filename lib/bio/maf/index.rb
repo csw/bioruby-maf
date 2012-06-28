@@ -266,6 +266,9 @@ module Bio
         intervals.each do |i|
           i.bin_all.each { |bin| bin_intervals[bin] << i }
         end
+        bin_intervals.values.each do |intervals|
+          intervals.sort_by! {|i| i.zero_start}
+        end
         ready = Time.now
         $stderr.puts "bin intervals computed after #{ready - start} seconds."
         if RUBY_PLATFORM == 'java'
@@ -310,11 +313,11 @@ module Bio
         to_fetch
       end
 
-      def scan_bin(cur, chrom_id, bin, raw_intervals, filters)
-        bin_intervals = raw_intervals.sort_by { |i| i.zero_start }
+      def scan_bin(cur, chrom_id, bin, bin_intervals, filters)
+        # bin_intervals is sorted by zero_start
         # compute the start and end of all intervals of interest
         spanning_start = bin_intervals.first.zero_start
-        spanning_end = bin_intervals.collect {|i| i.zero_end}.sort.last
+        spanning_end = bin_intervals.map {|i| i.zero_end}.max
         # scan from the start of the bin
         cur.jump(bin_start_prefix(chrom_id, bin))
         matches = []
