@@ -3,7 +3,7 @@ maf_to_fasta(1) -- convert MAF file to FASTA
 
 ## SYNOPSIS
 
-`maf_to_fasta` [options] <maf> <fasta>
+`maf_to_fasta` [<options>...] <maf> <fasta>
 
 ## DESCRIPTION
 
