@@ -1,4 +1,5 @@
 require 'kyotocabinet'
+require 'jruby/profiler' if RUBY_PLATFORM == 'java'
 
 #require 'bio-ucsc-api'
 require 'bio-genomic-interval'
@@ -289,28 +290,70 @@ module Bio
         to_fetch
       end
 
+      def with_profiling
+        if RUBY_PLATFORM == 'java' && ENV['profile']
+          rv = nil
+          pdata = JRuby::Profiler.profile do
+            rv = yield
+          end
+          printer = JRuby::Profiler::FlatProfilePrinter.new(pdata)
+          printer.printProfile(STDERR)
+          return rv
+        else
+          yield
+        end
+      end
+
       def scan_bins_parallel(chrom_id, bin_intervals, filters)
         start = Time.now
         n_threads = 2
-        es = java.util.concurrent.Executors.newFixedThreadPool(n_threads)
-        ecs = java.util.concurrent.ExecutorCompletionService.new(es)
-        bin_intervals.each do |bin, intervals|
-          ecs.submit do
-            db.cursor_process do |cur|
-              scan_bin(cur, chrom_id, bin, intervals, filters)
-            end            
+        jobs = java.util.concurrent.ConcurrentLinkedQueue.new(bin_intervals.to_a)
+        completed = java.util.concurrent.LinkedBlockingQueue.new(128)
+        threads = []
+        n_threads.times do
+          threads << make_scan_worker(jobs, completed) do |cur, req|
+            bin, intervals = req
+            scan_bin(cur, chrom_id, bin, intervals, filters)
           end
         end
-        es.shutdown
+        n_completed = 0
         to_fetch = []
-        completed = 0
-        while completed < bin_intervals.size
-          to_fetch.concat(ecs.take.get)
-          completed += 1
+        while (n_completed < bin_intervals.size) \
+          && threads.find { |t| t.alive? }
+          c = completed.take
+          raise "worker failed: #{c}" if c.is_a? Exception
+          to_fetch.concat(c)
+          n_completed += 1
+        end
+        if n_completed < bin_intervals.size
+          raise "No threads alive, completed #{n_completed}/#{bin_intervals.size} jobs!"
+
         end
         $stderr.printf("Matched %d index records with %d threads in %.3f seconds.\n",
                        to_fetch.size, n_threads, Time.now - start)
         to_fetch
+      end
+
+      def make_scan_worker(jobs, completed)
+        Thread.new do
+          with_profiling do
+            db.cursor_process do |cur|
+              while true
+                req = jobs.poll
+                break unless req
+                begin
+                  result = yield(cur, req)
+                  completed.put(result)
+                rescue Exception => e
+                  completed.put(e)
+                  $stderr.puts "Worker failing: #{e.class}: #{e}"
+                  $stderr.puts e.backtrace.join("\n")
+                  raise e
+                end
+              end
+            end
+          end
+        end
       end
 
       def scan_bin(cur, chrom_id, bin, bin_intervals, filters)
