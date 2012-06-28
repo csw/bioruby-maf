@@ -331,10 +331,10 @@ module Bio
             break
           end
           if c_end >= spanning_start # possible overlap
-            if bin_intervals.find { |i| overlaps?(i, c_start, c_end) }
-              if filters.match(pair)
-                matches << extract_index_offset(pair)
-              end
+            match = bin_intervals.take_while {|i| i.zero_start <= c_end } \
+              .find{ |i| overlaps?(i, c_start, c_end) }
+            if match && filters.match(pair)
+              matches << extract_index_offset(pair)
             end
           end
         end
