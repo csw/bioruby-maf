@@ -62,7 +62,7 @@ if ronn_avail
   namespace :man do
     desc "Publish man pages to Octopress source dir"
     task :publish do
-      html_man_files.each do |man|
+      RONN_FILES.map { |path| path.sub(/\.ronn$/, '.html') }.each do |man|
         cp man, "../octopress/source/man/#{File.basename(man)}"
       end
     end
