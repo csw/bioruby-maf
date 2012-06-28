@@ -452,7 +452,7 @@ module Bio
         @f = File.open(file_spec)
         reader = opts[:chunk_reader] || ChunkReader
         @cr = reader.new(@f, chunk_size)
-        @s = StringScanner.new(read_chunk())
+        @s = StringScanner.new(cr.read_chunk())
         set_last_block_pos!
         @at_end = false
         _parse_header()
@@ -471,10 +471,6 @@ module Bio
         ensure
           ctx.f.close
         end
-      end
-
-      def read_chunk
-        cr.read_chunk
       end
 
       def fetch_blocks(fetch_list, filters=nil)
