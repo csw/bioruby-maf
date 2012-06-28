@@ -509,6 +509,14 @@ module Bio
         parser.sequence_filter
       end
 
+      def parse_empty
+        parser.parse_empty
+      end
+
+      def parse_extended
+        parser.parse_extended
+      end
+
       def set_last_block_pos!
         @last_block_pos = s.string.rindex(BLOCK_START)
       end
