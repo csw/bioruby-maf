@@ -68,6 +68,7 @@ problems building or using this gem, which is still fairly new.
 Man pages for command line tools:
 
 * [maf_index](http://csw.github.com/bioruby-maf/man/maf_index.1.html)
+* [maf_to_fasta](http://csw.github.com/bioruby-maf/man/maf_to_fasta.1.html)
 
 The API doc is online. For more code examples see the
 [RSpec](https://github.com/csw/bioruby-maf/tree/master/spec/bio/maf)
