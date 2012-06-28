@@ -473,7 +473,7 @@ module Bio
         end
       end
 
-      def fetch_blocks(fetch_list, filters=nil)
+      def fetch_blocks(fetch_list)
         ## fetch_list: array of [offset, length, block_count] tuples
         ## returns array of Blocks
         merged = merge_fetch_list(fetch_list)
