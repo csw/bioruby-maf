@@ -98,7 +98,7 @@ module Bio
         check_chunk_size(size)
         @chunk_size = size
         # power of 2 so don't worry about rounding
-        @chunk_shift = Math.log2(size).to_i
+        # @chunk_shift = Math.log2(size).to_i
       end
 
       def check_chunk_size(size)

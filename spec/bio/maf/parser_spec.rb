@@ -70,10 +70,10 @@ module Bio
             @r.chunk_size = 8192
             @r.chunk_size.should == 8192
           end
-          it "sets the chunk shift" do
-            @r.chunk_size = 8192
-            @r.chunk_shift.should == 13
-          end
+          # it "sets the chunk shift" do
+          #   @r.chunk_size = 8192
+          #   @r.chunk_shift.should == 13
+          # end
         end
 
         describe "#read_chunk" do
