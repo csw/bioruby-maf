@@ -308,7 +308,7 @@ module Bio
 
       def scan_bins_parallel(chrom_id, bin_intervals, filters)
         start = Time.now
-        n_threads = 2
+        n_threads = ENV['profile'] ? 1 : 4
         jobs = java.util.concurrent.ConcurrentLinkedQueue.new(bin_intervals.to_a)
         completed = java.util.concurrent.LinkedBlockingQueue.new(128)
         threads = []
