@@ -6,26 +6,48 @@ module Bio
 
     class ParseError < Exception; end
 
+    # A MAF header, containing the variable-value pairs from the first
+    # line of the file as well as the alignment parameters.
     class Header
-      attr_accessor :vars, :alignment_params
+      # Variable-value pairs from the ##maf line
+      # @return [Hash]
+      attr_accessor :vars
+      # Alignment parameters from the MAF header.
+      # @return [Hash]
+      attr_accessor :alignment_params
 
       def initialize(vars, params)
         @vars = vars
         @alignment_params = params
       end
 
+      # The required version parameter.
+      # @return [String]
       def version
         vars[:version]
       end
 
+      # The optional scoring parameter, if present.
+      # @return [String]
       def scoring
         vars[:scoring]
       end
 
     end
 
+    # A MAF alignment block.
     class Block
-      attr_reader :vars, :sequences, :offset, :size
+      # Parameters from the 'a' line starting the alignment block.
+      attr_reader :vars
+      # Sequences, one per 's' or 'e' line.
+      # @return [Array<Sequence>]
+      attr_reader :sequences
+      # Offset of the alignment block within the MAF file, in bytes.
+      # @return [Integer]
+      attr_reader :offset
+      # Size of the alignment block within the MAF file, in bytes.
+      # @return [Integer]
+      attr_reader :size
 
       def initialize(*args)
         @vars, @sequences, @offset, @size = args
@@ -39,21 +61,47 @@ module Bio
         sequences.each { |s| yield s }
       end
 
+      # Text size of the alignment block. This is the number of text
+      # characters in each line of sequence data, including dashes and
+      # other gaps in the sequence.
       def text_size
         sequences.first.text.size
       end
 
     end
 
+    # A sequence within an alignment block.
     class Sequence
-      attr_reader :source, :start, :size, :strand, :src_size, :text
-      attr_accessor :i_data, :quality
+      # @return [String] Source sequence name.
+      attr_reader :source
+      # @return [Integer] Zero-based start position.
+      attr_reader :start
+      # @return [Integer] Size of aligning region in source sequence.
+      attr_reader :size
+      # :+ or :-, indicating which strand the alignment is to.
+      # @return [Symbol]
+      attr_reader :strand
+      # Size of the entire source sequence, not just the aligning
+      # region.
+      # @return [Integer]
+      attr_reader :src_size
+      # Sequence data for the alignment, including insertions.
+      # @return [String]
+      attr_reader :text
+      # Array of raw synteny information from 'i' line.
+      # @return [Array<String>]
+      attr_accessor :i_data
+      # Quality string from 'q' line.
+      # @return [String]
+      attr_accessor :quality
       alias_method :source_size, :src_size
 
       def initialize(*args)
         @source, @start, @size, @strand, @src_size, @text = args
       end
 
+      # Whether this sequence is empty. Only true for {EmptySequence}
+      # instances from 'e' lines.
       def empty?
         false
       end
@@ -64,6 +112,11 @@ module Bio
       end
     end
 
+    # An empty sequence record from an 'e' line.
+    #
+    # This indicates that "there isn't aligning DNA for a species but
+    # that the current block is bridged by a chain that connects
+    # blocks before and after this block" (MAF spec).
     class EmptySequence < Sequence
       attr_reader :status
 
@@ -85,8 +138,16 @@ module Bio
       end
     end
 
+    # Reads MAF files in chunks.
     class ChunkReader
-      attr_accessor :chunk_size, :chunk_shift, :pos
+      # Size, in bytes, of the chunks to read. Must be a power of 2.
+      # @return [Integer]
+      attr_accessor :chunk_size
+      # Current position in the file.
+      # @return [Integer]
+      attr_accessor :pos
+      # {File} from which chunks are read.
+      # @return [File]
       attr_reader :f
       def initialize(f, chunk_size)
         @f = f
@@ -113,12 +174,21 @@ module Bio
       end
 
       # Reads the next chunk of the file.
+      # @return [String] Next {#chunk_size} bytes of MAF data.
       def read_chunk
         chunk = f.read(@chunk_size)
         @pos += chunk.bytesize if chunk
         return chunk
       end
 
+      # Reads a chunk of the file.
+      #
+      # Currently always reads size_hint bytes but this may change
+      # with BGZF support.
+      #
+      # @param [Integer] offset file offset to read from.
+      # @param [Integer] size_hint desired size of chunk.
+      # @return [String] Chunk of MAF data.
       def read_chunk_at(offset, size_hint=@chunk_size)
         f.seek(offset)
         chunk = f.read(size_hint)
@@ -127,8 +197,12 @@ module Bio
       end
     end
 
+    # Variant ChunkReader using a read-ahead thread with internal
+    # queue for sequential parsing. Not useful for random-access
+    # parsing.
+    #
+    # Only beneficial on JRuby.
     class ThreadedChunkReader < ChunkReader
-      attr_reader :f
 
       def initialize(f, chunk_size, buffer_size=64)
         super(f, chunk_size)
@@ -137,10 +211,12 @@ module Bio
         start_read_ahead
       end
 
+      # Spawn a read-ahead thread. Called from {#initialize}.
       def start_read_ahead
         @read_thread = Thread.new { read_ahead }
       end
 
+      # Read ahead into queue.
       def read_ahead
         # n = 0
         begin
@@ -161,6 +237,7 @@ module Bio
         end
       end
 
+      # @see ChunkReader#read_chunk
       def read_chunk
         raise "readahead failed: #{@read_ahead_ex}" if @read_ahead_ex
         if @eof_reached && @buffer.empty?
@@ -174,6 +251,7 @@ module Bio
 
     end
 
+    # MAF parsing code useful for sequential and random-access parsing.
     module MAFParsing
       
       BLOCK_START = /^(?=a)/
@@ -184,6 +262,21 @@ module Bio
         @last_block_pos = s.string.rindex(BLOCK_START)
       end
 
+      ## On finding the start of a block:
+      ## See whether we are at the last block in the chunk.
+      ##   If at the last block:
+      ##     If at EOF: last block.
+      ##     If not:
+      ##       Read the next chunk
+      ##       Find the start of the next block in that chunk
+      ##       Concatenate the two block fragments
+      ##       Parse the resulting block
+      ##       Promote the next scanner, positioned
+
+      # Parse the block at the current position, joining fragments
+      # across chunk boundaries if necessary.
+      #
+      # @return [Block] alignment block
       def parse_block
         return nil if at_end
         if s.pos != last_block_pos
@@ -201,13 +294,13 @@ module Bio
         leading_frag = ''
         while true
           next_chunk_start = cr.pos
-          next_chunk = read_chunk
+          next_chunk = cr.read_chunk
           if next_chunk
             next_scanner = StringScanner.new(next_chunk)
             # If this trailing fragment ends with a newline, then an
             # 'a' at the beginning of the leading fragment is the
             # start of the next alignment block.
-            if trailing_nl(leading_frag) || trailing_nl(s.string)
+            if trailing_nl?(leading_frag) || trailing_nl?(s.string)
               pat = BLOCK_START
             else
               pat = /(?:\n(?=a))/
@@ -230,6 +323,12 @@ module Bio
         return leading_frag, next_scanner, next_chunk_start
       end
 
+      # Join the trailing fragment of the current chunk with the
+      # leading fragment of the next chunk and parse the resulting
+      # block.
+      #
+      # @return [Block] the alignment block.
+
       def parse_trailing_fragment
         leading_frag, next_scanner, next_chunk_start = gather_leading_fragment
         # join fragments and parse
@@ -251,6 +350,11 @@ module Bio
         return block
       end
 
+      # Raise a {ParseError}, indicating position within the MAF file
+      # and the chunk as well as the text surrounding the current
+      # scanner position.
+      #
+      # @param [String] msg the error message
       def parse_error(msg)
         s_start = [s.pos - 10, 0].max
         s_end = [s.pos + 10, s.string.length].min
@@ -271,6 +375,10 @@ module Bio
       Q = 'q'.getbyte(0)
       COMMENT = '#'.getbyte(0)
 
+      # Parse a {Block} from the current position. Requires that {#s}
+      # and {#chunk_start} be set correctly.
+      #
+      # @return [Block] the alignment block.
       def parse_block_data
         block_start_pos = s.pos
         block_offset = chunk_start + block_start_pos
@@ -312,6 +420,8 @@ module Bio
                          s.pos - block_start_pos)
       end
 
+      # Parse an 's' line.
+      # @return [Sequence]
       def parse_seq_line(line, filter)
         _, src, start, size, strand, src_size, text = line.split
         return nil if filter && ! seq_filter_ok?(src, filter)
@@ -327,6 +437,8 @@ module Bio
         end
       end
 
+      # Parse an 'e' line.
+      # @return [EmptySequence]
       def parse_empty_line(line, filter)
         _, src, start, size, strand, src_size, status = line.split
         return nil if filter && ! seq_filter_ok?(src, filter)
@@ -342,6 +454,8 @@ module Bio
         end
       end
 
+      # Indicates whether the given sequence source should be parsed,
+      # given the current sequence filters.
       def seq_filter_ok?(src, filter)
         if filter[:only_species]
           src_sp = src.split('.', 2)[0]
@@ -352,6 +466,8 @@ module Bio
         end
       end
 
+      # Parse key-value pairs from the MAF header or an 'a' line.
+      # @return [Hash]
       def parse_maf_vars
         vars = {}
         while s.scan(/(\w+)=(\S*)\s+/) do
@@ -360,12 +476,22 @@ module Bio
         vars
       end
 
+      # Does `string` have a trailing newline?
+      def trailing_nl?(string)
+        if string.empty?
+          false
+        else
+          s.string[s.string.size - 1] == "\n"
+        end
+      end
+
       STRAND_SYM = {
         '+' => :+,
         '-' => :-
       }
     end
 
+    # A MAF parsing context, used for random-access parsing.
     class ParseContext
       include MAFParsing
       attr_accessor :f, :s, :cr, :parser
@@ -387,6 +513,10 @@ module Bio
         @last_block_pos = s.string.rindex(BLOCK_START)
       end
 
+      # Fetch and parse blocks at given `offset` and `len`
+      # @param [Integer] offset Offset to start parsing at.
+      # @param [Integer] len Number of bytes to read.
+      # @param [Array] block_offsets Offsets of blocks to parse.
       def fetch_blocks(offset, len, block_offsets)
         start_chunk_read_if_needed(offset, len)
         # read chunks until we have the entire merged set of
@@ -426,20 +556,56 @@ module Bio
 
     end
 
+    # MAF parser, used for sequential and random-access parsing.
+    #
+    # Options:
+    #
+    #  * `:parse_extended`: whether to parse 'i' and 'q' lines
+    #  * `:parse_empty`: whether to parse 'e' lines
+    #  * `:chunk_size`: read MAF file in chunks of this many bytes
+    #  * `:random_chunk_size`: as above, but for random access ({#fetch_blocks})
+    #  * `:merge_max`: merge up to this many bytes of blocks for
+    #    random access
+    #  * `:chunk_reader`: use the specified class to read
+    #    chunks. (Only useful with {ThreadedChunkReader}).
+    #  * `:threads`: number of threads to use for parallel
+    #    parsing. Only useful under JRuby.
+    
     class Parser
       include MAFParsing
 
-      ## Parses alignment blocks by reading a chunk of the file at a time.
-
-      attr_reader :header, :file_spec, :f, :s, :cr, :at_end, :opts
-      attr_reader :chunk_start, :last_block_pos
+      # @return [Header] header of the MAF file being parsed.
+      attr_reader :header
+      # @return [String] path of MAF file being parsed.
+      attr_reader :file_spec
+      # @return [File] file handle for MAF file.
+      attr_reader :f
+      # @return [StringScanner] scanner for parsing.
+      attr_reader :s
+      # @return [ChunkReader] ChunkReader.
+      attr_reader :cr
+      # @return [Boolean] whether EOF has been reached.
+      attr_reader :at_end
+      # @return [Hash] parser options.
+      attr_reader :opts
+      # @return [Integer] starting offset of the current chunk.
+      attr_reader :chunk_start
+      # @return [Integer] offset of the last block start in this chunk.
+      attr_reader :last_block_pos
+      # Sequence filter to apply.
+      # TODO
       attr_accessor :sequence_filter
-      attr_accessor :parse_extended, :parse_empty
+      attr_accessor :parse_extended
+      attr_accessor :parse_empty
 
       SEQ_CHUNK_SIZE = 131072
       RANDOM_CHUNK_SIZE = 4096
       MERGE_MAX = SEQ_CHUNK_SIZE
 
+      # Create a new parser instance.
+      #
+      # @param [String] file_spec path of file to parse.
+      # @param [Hash] opts parser options.
       def initialize(file_spec, opts={})
         @opts = opts
         chunk_size = opts[:chunk_size] || SEQ_CHUNK_SIZE
@@ -458,12 +624,20 @@ module Bio
         _parse_header()
       end
 
+      # Create a {ParseContext} for random access, using the given
+      # chunk size.
+      #
+      # @return [ParseContext]
       def context(chunk_size)
         # IO#dup calls dup(2) internally, but seems broken on JRuby...
         fd = File.open(file_spec)
         ParseContext.new(fd, chunk_size, self, @opts)
       end
 
+      # Execute the given block with a {ParseContext} using the given
+      # `chunk_size` as an argument.
+      #
+      # @see #context
       def with_context(chunk_size)
         ctx = context(chunk_size)
         begin
@@ -473,9 +647,13 @@ module Bio
         end
       end
 
+      # Fetch and parse blocks given by `fetch_list`.
+      #
+      # `fetch_list` should be an array of `[offset, length]` tuples.
+      #
+      # @param [Array] fetch_list the fetch list
+      # @return [Array<Block>] the requested alignment blocks
       def fetch_blocks(fetch_list)
-        ## fetch_list: array of [offset, length, block_count] tuples
-        ## returns array of Blocks
         merged = merge_fetch_list(fetch_list)
         if RUBY_PLATFORM == 'java' && @opts.fetch(:threads, 1) > 1
           fetch_blocks_merged_parallel(merged)
@@ -484,6 +662,10 @@ module Bio
         end
       end
 
+      # Fetch and parse the blocks given by the merged fetch list.
+      #
+      # @param [Array] fetch_list merged fetch list from {#merge_fetch_list}.
+      # @return [Array<Block>] the requested alignment blocks
       def fetch_blocks_merged(fetch_list)
         Enumerator.new do |y|
           start = Time.now
@@ -503,6 +685,12 @@ module Bio
         end
       end
 
+      # Fetch and parse the blocks given by the merged fetch list, in
+      # parallel. Uses the number of threads specified by the
+      # `:threads` parser option.
+      #
+      # @param [Array] fetch_list merged fetch list from {#merge_fetch_list}.
+      # @return [Array<Block>] the requested alignment blocks
       def fetch_blocks_merged_parallel(fetch_list)
         Enumerator.new do |y|
           total_size = fetch_list.collect { |e| e[1] }.reduce(:+)
@@ -539,6 +727,9 @@ module Bio
         end
       end
 
+      # Create a worker thread for parallel parsing.
+      #
+      # @see #fetch_blocks_merged_parallel
       def make_worker(jobs, completed)
         Thread.new do
           with_context(@random_access_chunk_size) do |ctx|
@@ -563,6 +754,10 @@ module Bio
         end
       end
 
+      # Merge contiguous blocks in the given fetch list, up to
+      # `:merge_max` bytes.
+      #
+      # Returns `[offset, size, [offset1, offset2, ...]]` tuples.
       def merge_fetch_list(orig_fl)
         fl = orig_fl.dup
         r = []
@@ -583,6 +778,7 @@ module Bio
         return r
       end
 
+      # Parse the header of the MAF file.
       def _parse_header
         parse_error("not a MAF file") unless s.scan(/##maf\s*/)
         vars = parse_maf_vars()
@@ -598,25 +794,12 @@ module Bio
         s.skip_until BLOCK_START || parse_error("Cannot find block start!")
       end
 
-      ## On finding the start of a block:
-      ## See whether we are at the last block in the chunk.
-      ##   If at the last block:
-      ##     If at EOF: last block.
-      ##     If not:
-      ##       Read the next chunk
-      ##       Find the start of the next block in that chunk
-      ##       Concatenate the two block fragments
-      ##       Parse the resulting block
-      ##       Promote the next scanner, positioned
-
-      def trailing_nl(string)
-        if string.empty?
-          false
-        else
-          s.string[s.string.size - 1] == "\n"
-        end
-      end
-
+      # Parse alignment blocks.
+      #
+      # Delegates to {#parse_blocks_parallel} if `:threads` is set
+      # under JRuby.
+      #
+      # @return [Enumerator<Block>] enumerator of alignment blocks.
       def parse_blocks
         if RUBY_PLATFORM == 'java' && @opts.has_key?(:threads)
           parse_blocks_parallel
@@ -629,6 +812,9 @@ module Bio
         end
       end
 
+      # Parse alignment blocks with a worker thread.
+      #
+      # @return [Enumerator<Block>] enumerator of alignment blocks.
       def parse_blocks_parallel
         queue = java.util.concurrent.LinkedBlockingQueue.new(128)
         worker = Thread.new do
