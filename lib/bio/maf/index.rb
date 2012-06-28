@@ -265,10 +265,12 @@ module Bio
         # for each bin, build a list of the intervals to look for there
         bin_intervals = Hash.new { |h, k| h[k] = [] }
         intervals.each do |i|
-          i.bin_all.each { |bin| bin_intervals[bin] << i }
+          i.bin_all.each do |bin|
+            bin_intervals[bin] << (i.zero_start...i.zero_end)
+          end
         end
         bin_intervals.values.each do |intervals|
-          intervals.sort_by! {|i| i.zero_start}
+          intervals.sort_by! {|i| i.begin}
         end
         ready = Time.now
         $stderr.puts "bin intervals computed after #{ready - start} seconds."
@@ -359,8 +361,8 @@ module Bio
       def scan_bin(cur, chrom_id, bin, bin_intervals, filters)
         # bin_intervals is sorted by zero_start
         # compute the start and end of all intervals of interest
-        spanning_start = bin_intervals.first.zero_start
-        spanning_end = bin_intervals.map {|i| i.zero_end}.max
+        spanning_start = bin_intervals.first.begin
+        spanning_end = bin_intervals.map {|i| i.end}.max
         # scan from the start of the bin
         cur.jump(bin_start_prefix(chrom_id, bin))
         matches = []
@@ -374,10 +376,21 @@ module Bio
             break
           end
           if c_end >= spanning_start # possible overlap
-            match = bin_intervals.take_while {|i| i.zero_start <= c_end } \
-              .find{ |i| overlaps?(i, c_start, c_end) }
-            if match && filters.match(pair)
-              matches << extract_index_offset(pair)
+            # any intervals that end before the start of the current
+            # block are no longer relevant
+            while bin_intervals.first.end < c_start
+              bin_intervals.shift
+            end
+            bin_intervals.each do |i|
+              i_start = i.begin
+              break if i_start > c_end
+              if ((c_start <= i_start && i_start < c_end) \
+                  || i.include?(c_start)) \
+                  && filters.match(pair)
+                # match
+                matches << extract_index_offset(pair)
+                break
+              end
             end
           end
         end
@@ -385,11 +398,10 @@ module Bio
       end
 
       def overlaps?(gi, i_start, i_end)
-        g_start = gi.zero_start
-        g_end = gi.zero_end
+        g_start = gi.begin
 
         (i_start <= g_start && g_start < i_end) \
-         || (g_start <= i_start && i_start < g_end)
+         || gi.include?(i_start)
       end
 
       def build_default(parser)

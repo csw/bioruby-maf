@@ -179,7 +179,7 @@ module Bio
           @idx = KyotoIndex.new('%')
         end
         def check_overlap(x, y)
-          i = GenomicInterval.zero_based('x', x[0], x[1])
+          i = x[0]...x[1]
           @idx.overlaps?(i, y[0], y[1])
         end
         it "handles equal intervals" do
