@@ -722,7 +722,7 @@ module Bio
             n_completed += 1
           end
           if n_completed < fetch_list.size
-            raise "No threads alive, completed #{n_completed}/#{jobs.size} jobs!"
+            raise "No threads alive, completed #{n_completed}/#{fetch_list.size} jobs!"
           end
           elapsed = Time.now - start
           $stderr.printf("Fetched blocks from %d threads in %.1fs.\n",
