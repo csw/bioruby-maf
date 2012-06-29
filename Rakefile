@@ -10,23 +10,10 @@ rescue Bundler::BundlerError => e
   exit e.status_code
 end
 require 'rake'
+require 'rubygems/package_task'
 
-require 'jeweler'
-$gemspec = nil
-Jeweler::Tasks.new do |gem|
-  # gem is a Gem::Specification... see http://docs.rubygems.org/read/chapter/20 for more options
-  gem.name = "bio-maf"
-  gem.homepage = "http://github.com/csw/bioruby-maf"
-  gem.license = "MIT"
-  gem.summary = %Q{MAF parser for BioRuby}
-  gem.description = %Q{Multiple Alignment Format parser for BioRuby.}
-  gem.email = "cswh@umich.edu"
-  gem.authors = ["Clayton Wheeler"]
-  # dependencies defined in Gemfile
-  # kludgy, but it works
-  $gemspec = gem
-end
-Jeweler::RubygemsDotOrgTasks.new
+$gemspec = Gem::Specification.load("bio-maf.gemspec")
+Gem::PackageTask.new($gemspec) { |pkg| }
 
 require 'rspec/core'
 require 'rspec/core/rake_task'
