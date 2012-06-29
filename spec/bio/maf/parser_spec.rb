@@ -25,6 +25,31 @@ module Bio
       it "provides arbitrary parameters"
     end
 
+    describe Block do
+      describe "#find_gaps" do
+        it "finds a single 14-base gap" do
+          p = Parser.new(TestData + 'mm8_chr7_tiny.maf')
+          p.sequence_filter = { :only_species => %w(mm8 rn4 hg18 canFam2 loxAfr1) }
+          block = p.parse_block
+          gaps = block.find_gaps
+          gaps.size.should == 1
+          gaps[0][0].should == 34
+          gaps[0][1].should == 14
+        end
+      end
+      describe "#remove_gaps!" do
+        it "removes a single 14-base gap" do
+          p = Parser.new(TestData + 'mm8_chr7_tiny.maf')
+          p.sequence_filter = { :only_species => %w(mm8 rn4 hg18 canFam2 loxAfr1) }
+          block = p.parse_block
+          block.sequences.size.should == 5
+          block.text_size.should == 54
+          block.remove_gaps!
+          block.text_size.should == 40
+        end
+      end
+    end
+
     describe ParseContext do
       it "tracks the last block position"
     end

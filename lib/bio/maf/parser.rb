@@ -83,6 +83,43 @@ module Bio
         @filtered
       end
 
+      GAP = /-+/
+
+      # Remove gaps present in all sequences. These would generally
+      # occur when some sequences have been filtered out.
+      # @see #remove_gaps!
+      # @see Parser#sequence_filter
+      def find_gaps
+        ref_s = StringScanner.new(sequences.first.text)
+        others = sequences.slice(1, sequences.size - 1).reject { |s| s.empty? }.collect { |s| StringScanner.new(s.text) }
+        gaps = []
+        while ref_s.scan_until(GAP)
+          offset = ref_s.pos - ref_s.matched_size
+          others.each { |s| s.pos = offset }
+          unless others.find { |s| ! s.scan(GAP) }
+            # all matched
+            gap_size = [ref_s.matched_size,
+                        others.map {|s| s.matched_size}.min].min
+            gaps << [offset, gap_size]
+          end
+        end
+        gaps
+      end
+
+      # Remove gaps present in all sequences. These would generally
+      # occur when some sequences have been filtered out.
+      # @see #find_gaps
+      # @see Parser#sequence_filter
+      def remove_gaps!
+        gaps = find_gaps()
+        gaps.reverse_each do |offset, len|
+          sequences.each do |seq|
+            seq.delete_text(offset, len)
+          end
+        end
+        gaps.size
+      end
+
     end
 
     # A sequence within an alignment block.
@@ -120,6 +157,15 @@ module Bio
       # instances from 'e' lines.
       def empty?
         false
+      end
+
+      def delete_text(offset, len)
+        unless empty?
+          text.slice!(offset, len)
+          if quality
+            quality.slice!(offset, len)
+          end
+        end
       end
 
       def write_fasta(writer)
