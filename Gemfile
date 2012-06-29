@@ -16,7 +16,7 @@ group :development do
   gem "yard", "~> 0.8.1"
   gem "kramdown", "~> 0.13.6"
   gem "redcarpet", "~> 2.1.1", :platforms => :mri
-  gem "ronn", "~> 0.7.3"
+  gem "ronn", "~> 0.7.3", :platforms => :mri
   gem "sinatra", "~> 1.3.2" # for ronn --server
 end
 
