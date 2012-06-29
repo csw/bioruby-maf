@@ -356,16 +356,18 @@ module Bio
         end
         n_completed = 0
         to_fetch = []
-        while (n_completed < bin_intervals.size) \
-          && threads.find { |t| t.alive? }
-          c = completed.take
+        while (n_completed < bin_intervals.size)
+          c = completed.poll(5, java.util.concurrent.TimeUnit.SECONDS)
+          if c.nil?
+            if threads.find { |t| t.alive? }
+              next
+            else
+              raise "No threads alive, completed #{n_completed}/#{bin_intervals.size} jobs!"
+            end
+          end
           raise "worker failed: #{c}" if c.is_a? Exception
           to_fetch.concat(c)
           n_completed += 1
-        end
-        if n_completed < bin_intervals.size
-          raise "No threads alive, completed #{n_completed}/#{bin_intervals.size} jobs!"
-
         end
         $stderr.printf("Matched %d index records with %d threads in %.3f seconds.\n",
                        to_fetch.size, n_threads, Time.now - start)

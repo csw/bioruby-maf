@@ -728,9 +728,15 @@ module Bio
           n_threads.times { threads << make_worker(jobs, completed) }
 
           n_completed = 0
-          while (n_completed < fetch_list.size) \
-            && threads.find { |t| t.alive? }
-            c = completed.take
+          while (n_completed < fetch_list.size)
+            c = completed.poll(5, java.util.concurrent.TimeUnit.SECONDS)
+            if c.nil?
+              if threads.find { |t| t.alive? }
+                next
+              else
+                raise "No threads alive, completed #{n_completed}/#{fetch_list.size} jobs!"
+              end
+            end
             raise "worker failed: #{c}" if c.is_a? Exception
             c.each do |block|
               y << block
