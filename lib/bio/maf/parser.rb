@@ -1,13 +1,17 @@
 require 'strscan'
 require 'java' if RUBY_PLATFORM == 'java'
 
+# @api public
 module Bio
+  # @api public
   module MAF
 
+    # @api public
     class ParseError < Exception; end
 
     # A MAF header, containing the variable-value pairs from the first
     # line of the file as well as the alignment parameters.
+    # @api public
     class Header
       # Variable-value pairs from the ##maf line
       # @return [Hash]
@@ -36,6 +40,7 @@ module Bio
     end
 
     # A MAF alignment block.
+    # @api public
     class Block
       # Parameters from the 'a' line starting the alignment block.
       attr_reader :vars
@@ -71,6 +76,7 @@ module Bio
     end
 
     # A sequence within an alignment block.
+    # @api public
     class Sequence
       # @return [String] Source sequence name.
       attr_reader :source
@@ -117,6 +123,7 @@ module Bio
     # This indicates that "there isn't aligning DNA for a species but
     # that the current block is bridged by a chain that connects
     # blocks before and after this block" (MAF spec).
+    # @api public
     class EmptySequence < Sequence
       attr_reader :status
 
@@ -139,6 +146,7 @@ module Bio
     end
 
     # Reads MAF files in chunks.
+    # @api private
     class ChunkReader
       # Size, in bytes, of the chunks to read. Must be a power of 2.
       # @return [Integer]
@@ -237,7 +245,7 @@ module Bio
         end
       end
 
-      # @see ChunkReader#read_chunk
+      # (see ChunkReader#read_chunk)
       def read_chunk
         raise "readahead failed: #{@read_ahead_ex}" if @read_ahead_ex
         if @eof_reached && @buffer.empty?
@@ -277,6 +285,7 @@ module Bio
       # across chunk boundaries if necessary.
       #
       # @return [Block] alignment block
+      # @api public
       def parse_block
         return nil if at_end
         if s.pos != last_block_pos
@@ -525,6 +534,7 @@ module Bio
       # @param [Integer] offset Offset to start parsing at.
       # @param [Integer] len Number of bytes to read.
       # @param [Array] block_offsets Offsets of blocks to parse.
+      # @return [Array<Block>]
       def fetch_blocks(offset, len, block_offsets)
         start_chunk_read_if_needed(offset, len)
         # read chunks until we have the entire merged set of
@@ -578,6 +588,7 @@ module Bio
     #    chunks. (Only useful with {ThreadedChunkReader}).
     #  * `:threads`: number of threads to use for parallel
     #    parsing. Only useful under JRuby.
+    # @api public
     
     class Parser
       include MAFParsing
@@ -601,8 +612,10 @@ module Bio
       # @return [Integer] offset of the last block start in this chunk.
       attr_reader :last_block_pos
       # Sequence filter to apply.
-      # TODO
+      # @api public
       attr_accessor :sequence_filter
+
+      # @api private
       attr_accessor :parse_extended
       attr_accessor :parse_empty
 
@@ -614,6 +627,7 @@ module Bio
       #
       # @param [String] file_spec path of file to parse.
       # @param [Hash] opts parser options.
+      # @api public
       def initialize(file_spec, opts={})
         @opts = opts
         chunk_size = opts[:chunk_size] || SEQ_CHUNK_SIZE
@@ -636,6 +650,7 @@ module Bio
       # chunk size.
       #
       # @return [ParseContext]
+      # @api private
       def context(chunk_size)
         # IO#dup calls dup(2) internally, but seems broken on JRuby...
         fd = File.open(file_spec)
@@ -646,6 +661,7 @@ module Bio
       # `chunk_size` as an argument.
       #
       # @see #context
+      # @api private
       def with_context(chunk_size)
         ctx = context(chunk_size)
         begin
@@ -802,12 +818,13 @@ module Bio
         s.skip_until BLOCK_START || parse_error("Cannot find block start!")
       end
 
-      # Parse alignment blocks.
+      # Parse all alignment blocks until EOF.
       #
       # Delegates to {#parse_blocks_parallel} if `:threads` is set
       # under JRuby.
       #
       # @return [Enumerator<Block>] enumerator of alignment blocks.
+      # @api public
       def parse_blocks
         if RUBY_PLATFORM == 'java' && @opts.has_key?(:threads)
           parse_blocks_parallel
@@ -823,6 +840,7 @@ module Bio
       # Parse alignment blocks with a worker thread.
       #
       # @return [Enumerator<Block>] enumerator of alignment blocks.
+      # @api private
       def parse_blocks_parallel
         queue = java.util.concurrent.LinkedBlockingQueue.new(128)
         worker = Thread.new do

@@ -47,34 +47,137 @@ problems building or using this gem, which is still fairly new.
 
 ## Installation
 
-```sh
-    gem install bio-maf
-```
+    $ gem install bio-maf
 
 ## Usage
 
-```ruby
-    require 'bio-maf'
+### Create an index on a MAF file
 
-    p = Bio::MAF::Parser.new(path)
-    header = p.header
-    p.each_block do |block|
+Much of the functionality of this library relies on an index. You can
+create one with [maf_index(1)][], like so:
+
+[maf_index(1)]: http://csw.github.com/bioruby-maf/man/maf_index.1.html
+
+
+    $ maf_index test/data/mm8_chr7_tiny.maf /tmp/mm8_chr7_tiny.kct
+    
+Or programmatically:
+
+    require 'bio-maf'
+    parser = Bio::MAF::Parser.new("test/data/mm8_chr7_tiny.maf")
+    idx = Bio::MAF::KyotoIndex.build(parser, "/tmp/mm8_chr7_tiny.kct")
+
+### Extract blocks from an indexed MAF file, by genomic interval
+
+Refer to [`mm8_chr7_tiny.maf`](https://github.com/csw/bioruby-maf/blob/master/test/data/mm8_chr7_tiny.maf).
+
+
+    require 'bio-maf'
+    parser = Bio::MAF::Parser.new('test/data/mm8_chr7_tiny.maf')
+    idx = Bio::MAF::KyotoIndex.open('test/data/mm8_chr7_tiny.kct')
+
+    q = [Bio::GenomicInterval.zero_based('mm8.chr7', 80082592, 80082766)]
+    idx.find(q, parser).each do |block|
+      ref_seq = block.sequences[0]
+      puts "Matched block at #{ref_seq.start}, #{ref_seq.size} bases"
+    end
+
+    # => Matched block at 80082592, 121 bases
+    # => Matched block at 80082713, 54 bases
+
+### Filter species returned in alignment blocks
+
+    require 'bio-maf'
+    parser = Bio::MAF::Parser.new('test/data/mm8_chr7_tiny.maf')
+    idx = Bio::MAF::KyotoIndex.open('test/data/mm8_chr7_tiny.kct')
+
+    parser.sequence_filter = { :only_species => %w(hg18 mm8 rheMac2) }
+    q = [Bio::GenomicInterval.zero_based('mm8.chr7', 80082592, 80082766)]
+    blocks = idx.find(q, parser)
+    block = blocks.first
+    puts "Block has #{block.sequences.size} sequences."
+
+    # => Block has 3 sequences.
+
+### Extract blocks matching certain conditions
+
+See also the [Cucumber feature][] and [step definitions][] for this.
+
+[Cucumber feature]: https://github.com/csw/bioruby-maf/blob/master/features/maf-querying.feature
+[step definitions]: https://github.com/csw/bioruby-maf/blob/master/features/step_definitions/query_steps.rb
+
+#### Match only blocks with all specified species
+
+    q = [Bio::GenomicInterval.zero_based('mm8.chr7', 80082471, 80082730)]
+    filter = { :with_all_species => %w(panTro2 loxAfr1) }
+    n_blocks = idx.find(q, parser, filter).count
+    # => 1
+
+#### Match only blocks with a certain number of sequences
+
+    q = [Bio::GenomicInterval.zero_based('mm8.chr7', 80082767, 80083008)]
+    filter = { :at_least_n_sequences => 6 }
+    n_blocks = idx.find(q, parser, filter).count
+    # => 1
+
+#### Match only blocks within a text size range
+
+    q = [Bio::GenomicInterval.zero_based('mm8.chr7', 0, 80100000)]
+    filter = { :min_size => 72, :max_size => 160 }
+    n_blocks = idx.find(q, parser, filter).count
+    # => 3
+
+### Process each block in a MAF file
+
+    require 'bio-maf'
+    p = Bio::MAF::Parser.new('test/data/mm8_chr7_tiny.maf')
+    puts "MAF version: #{p.header.version}"
+    # => MAF version: 1
+
+    p.parse_blocks.each do |block|
       block.sequences.each do |seq|
         do_something(seq)
       end
     end
-```
+
+### Parse empty ('e') lines
+
+Refer to [`chr22_ieq.maf`](https://github.com/csw/bioruby-maf/blob/master/test/data/chr22_ieq.maf).
+
+    require 'bio-maf'
+    p = Bio::MAF::Parser.new('test/data/chr22_ieq.maf',
+                             :parse_empty => false)
+    block = p.parse_block
+    block.sequences.size
+    # => 3
+
+    p = Bio::MAF::Parser.new('test/data/chr22_ieq.maf',
+                             :parse_empty => true)
+    block = p.parse_block
+    block.sequences.size
+    # => 4
+    block.sequences.find { |s| s.empty? }
+    # => #<Bio::MAF::EmptySequence:0x007fe1f39882d0 
+    #      @source="turTru1.scaffold_109008", @start=25049,
+    #      @size=1601, @strand=:+, @src_size=50103, @text=nil,
+    #      @status="I"> 
+
+
+### Command line tools
 
 Man pages for command line tools:
 
-* [maf_index](http://csw.github.com/bioruby-maf/man/maf_index.1.html)
-* [maf_to_fasta](http://csw.github.com/bioruby-maf/man/maf_to_fasta.1.html)
+* [`maf_index(1)`](http://csw.github.com/bioruby-maf/man/maf_index.1.html)
+* [`maf_to_fasta(1)`](http://csw.github.com/bioruby-maf/man/maf_to_fasta.1.html)
 
-The API doc is online. For more code examples see the
-[RSpec](https://github.com/csw/bioruby-maf/tree/master/spec/bio/maf)
-and
-[Cucumber](https://github.com/csw/bioruby-maf/tree/master/features)
-test files in the source tree.
+### Other documentation
+
+Also see the [API documentation][]. For more code examples see the
+[RSpec][] and [Cucumber][] test files in the source tree.
+
+[API documentation]: http://rubydoc.info/github/csw/bioruby-maf/
+[RSpec]: https://github.com/csw/bioruby-maf/tree/master/spec/bio/maf
+[Cucumber]: https://github.com/csw/bioruby-maf/tree/master/features 
 
 Also, the scripts in the
 [bin](https://github.com/csw/bioruby-maf/tree/master/bin) directory
@@ -82,8 +185,8 @@ provide good worked examples of how to use the existing parsing API.
         
 ## Project home page
 
-Information on the source tree, documentation, examples, issues and
-how to contribute, see
+For information on the source tree, documentation, examples, issues
+and how to contribute, see
 
   <http://github.com/csw/bioruby-maf>
 

@@ -8,6 +8,8 @@ module Bio
 
   module MAF
 
+    # Binary record packing and unpacking.
+    # @api private
     module KVHelpers
 
       KEY = Struct.new([[:marker,    :uint8],
@@ -141,12 +143,17 @@ module Bio
       #### Public API
 
       # Open an existing index for reading.
+      # @param [String] path path to existing Kyoto Cabinet index
+      # @return [KyotoIndex]
       def self.open(path)
         return KyotoIndex.new(path)
       end
 
-      # Build a new index from the MAF file being parsed by PARSER,
-      # and store it in PATH.
+      # Build a new index from the MAF file being parsed by `parser`,
+      # and store it in `path`.
+      # @param [Parser] parser MAF parser for file to index
+      # @param [String] path path to index file to create
+      # @return [KyotoIndex]
       def self.build(parser, path)
         idx = self.new(path)
         idx.build_default(parser)
@@ -154,8 +161,35 @@ module Bio
       end
 
       # Find all alignment blocks in the genomic regions in the list
-      # of Bio::GenomicInterval objects INTERVALS, and parse them with
-      # PARSER.
+      # of Bio::GenomicInterval objects, and parse them with the given
+      # parser.
+      #
+      # An optional Hash of filters may be passed in. The following
+      # keys are used:
+      #
+      #  * `:with_all_species => ["sp1", "sp2", ...]`
+      #
+      #      Only match alignment blocks containing all given species.
+      #
+      #  * `:at_least_n_sequences => n`
+      #
+      #      Only match alignment blocks with at least N sequences.
+      #
+      #  * `:min_size => n`
+      #
+      #      Only match alignment blocks with text size at least N.
+      #
+      #  * `:max_size => n`
+      #
+      #      Only match alignment blocks with text size at most N.
+      #
+      # @param [Enumerable<Bio::GenomicInterval>] intervals genomic
+      #  intervals to parse.
+      # @param [Parser] parser MAF parser for file to fetch blocks
+      #  from.
+      # @param [Hash] filter Block filter expression.
+      # @return [Array<Block>]
+      # @api public
       def find(intervals, parser, filter={})
         start = Time.now
         fl = fetch_list(intervals, filter)
@@ -171,6 +205,7 @@ module Bio
       end
 
       #### KyotoIndex Internals
+      # @api private
 
       def initialize(path, db_arg=nil)
         @species = {}
@@ -281,6 +316,7 @@ module Bio
         end
       end # #fetch_list
 
+      # Scan the index for blocks matching the given bins and intervals.
       def scan_bins(chrom_id, bin_intervals, filters)
         to_fetch = []
         db.cursor_process do |cur|
