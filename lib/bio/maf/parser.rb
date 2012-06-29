@@ -729,7 +729,7 @@ module Bio
 
           n_completed = 0
           while (n_completed < fetch_list.size)
-            c = completed.poll(5, java.util.concurrent.TimeUnit.SECONDS)
+            c = completed.poll(5, java.util.concurrent.TimeUnit::SECONDS)
             if c.nil?
               if threads.find { |t| t.alive? }
                 next
