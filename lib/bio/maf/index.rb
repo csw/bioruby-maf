@@ -369,6 +369,7 @@ module Bio
           to_fetch.concat(c)
           n_completed += 1
         end
+        threads.each { |t| t.join }
         $stderr.printf("Matched %d index records with %d threads in %.3f seconds.\n",
                        to_fetch.size, n_threads, Time.now - start)
         to_fetch

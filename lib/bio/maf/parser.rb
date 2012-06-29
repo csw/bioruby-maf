@@ -743,9 +743,7 @@ module Bio
             end
             n_completed += 1
           end
-          if n_completed < fetch_list.size
-            raise "No threads alive, completed #{n_completed}/#{fetch_list.size} jobs!"
-          end
+          threads.each { |t| t.join }
           elapsed = Time.now - start
           $stderr.printf("Fetched blocks from %d threads in %.1fs.\n",
                          n_threads,
