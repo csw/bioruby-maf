@@ -1,0 +1,4 @@
+#!/bin/bash
+
+cat $HOME/builds/csw/bioruby-maf/hs*.log 2>/dev/null
+
