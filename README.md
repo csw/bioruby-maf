@@ -47,6 +47,8 @@ problems building or using this gem, which is still fairly new.
 
 ## Installation
 
+`bio-maf` is now published as a Ruby [gem](https://rubygems.org/gems/bio-maf).
+
     $ gem install bio-maf
 
 ## Usage
