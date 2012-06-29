@@ -206,6 +206,16 @@ module Bio
           @p.sequence_filter = { :only_species => %w(mm8 hg18) }
           @p.parse_block.sequences.size.should == 2
         end
+        it "sets filtered? when modified" do
+          @p.sequence_filter = { :only_species => %w(mm8 rn4) }
+          @p.parse_block.filtered?.should be_true
+        end
+        it "does not set filtered? when unmodified" do
+          @p.sequence_filter = {
+            :only_species => %w(mm8 rn4 oryCun1 hg18 hg181)
+          }
+          @p.parse_block.filtered?.should be_false
+        end
       end
 
       context "at end of file" do

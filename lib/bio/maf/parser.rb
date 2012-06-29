@@ -54,8 +54,12 @@ module Bio
       # @return [Integer]
       attr_reader :size
 
-      def initialize(*args)
-        @vars, @sequences, @offset, @size = args
+      def initialize(vars, sequences, offset, size, filtered)
+        @vars = vars
+        @sequences = sequences
+        @offset = offset
+        @size = size
+        @filtered = filtered
       end
 
       def raw_seq(i)
@@ -71,6 +75,12 @@ module Bio
       # other gaps in the sequence.
       def text_size
         sequences.first.text.size
+      end
+
+      # Whether this block has been modified by a parser filter.
+      # @return [Boolean]
+      def filtered?
+        @filtered
       end
 
     end
@@ -399,16 +409,25 @@ module Bio
           payload = s.rest
           s.pos = s.string.size # jump to EOS
         end
+        filtered = false
         lines = payload.split("\n")
         until lines.empty?
           line = lines.shift
           first = line.getbyte(0)
           if first == S
             seq = parse_seq_line(line, sequence_filter)
-            seqs << seq if seq
+            if seq
+              seqs << seq
+            else
+              filtered = true
+            end
           elsif first == E && parse_empty
             e_seq = parse_empty_line(line, sequence_filter)
-            seqs << e_seq if e_seq
+            if e_seq
+              seqs << e_seq
+            else
+              filtered = true
+            end
           elsif first == I && parse_extended
             parts = line.split
             parse_error("wrong i source #{parts[1]}!") unless seqs.last.source == parts[1]
@@ -426,7 +445,8 @@ module Bio
         return Block.new(block_vars,
                          seqs,
                          block_offset,
-                         s.pos - block_start_pos)
+                         s.pos - block_start_pos,
+                         filtered)
       end
 
       # Parse an 's' line.
