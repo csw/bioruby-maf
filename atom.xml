@@ -4,7 +4,7 @@
   <title><![CDATA[BioRuby MAF blog]]></title>
   <link href="http://csw.github.com/bioruby-maf/atom.xml" rel="self"/>
   <link href="http://csw.github.com/bioruby-maf/"/>
-  <updated>2012-06-27T22:05:18-04:00</updated>
+  <updated>2012-07-02T16:40:24-04:00</updated>
   <id>http://csw.github.com/bioruby-maf/</id>
   <author>
     <name><![CDATA[Clayton Wheeler]]></name>
@@ -12,6 +12,100 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Kyoto Cabinet support for JRuby]]></title>
+    <link href="http://csw.github.com/bioruby-maf/blog/2012/07/02/kyoto_cabinet_support_for_jruby/"/>
+    <updated>2012-07-02T16:01:00-04:00</updated>
+    <id>http://csw.github.com/bioruby-maf/blog/2012/07/02/kyoto_cabinet_support_for_jruby</id>
+    <content type="html"><![CDATA[<p><a href="http://fallabs.com/kyotocabinet/">Kyoto Cabinet</a> is a useful database, with a convenient
+<a href="http://fallabs.com/kyotocabinet/rubydoc/">Ruby binding</a>; unfortunately, this uses Ruby&#8217;s C extension API and
+so does not work with JRuby. Since JRuby has a considerable
+performance advantage over MRI for my <a href="https://github.com/csw/bioruby-maf">MAF parser</a>, I needed a way
+of using Kyoto Cabinet from JRuby. I have released the
+<a href="https://github.com/csw/kyotocabinet-java">kyotocabinet-java</a> gem to provide this. It is not complete, but it
+wraps enough of the API for my needs, and the rest should be simple to
+cover.</p>
+
+<p>This gem contains a patched copy of the Kyoto Cabinet
+<a href="http://fallabs.com/kyotocabinet/javapkg/">Java library</a>, along with a thin Ruby adaptation layer to provide
+the usual Ruby API. Since the underlying Java library relies on native
+code integrated with JNI, installing the gem compiles the native
+library and associated Java code, and thus requires a JDK and working
+C++ compiler as well as a Kyoto Cabinet installation.</p>
+
+<p>Mapping the Java API onto the Ruby API is generally quite simple.  The
+chief issue is ensuring that Ruby strings are converted to Java byte
+arrays rather then Java strings; the Java string versions of the API
+methods fail completely with binary data. Also, the Java API lacks the
+Ruby API&#8217;s optional parameters. For instance, here is <a href="https://github.com/csw/kyotocabinet-java/blob/c51e23a4fee077229b0ffdf4b66d323b33635704/lib/kyotocabinet.rb#L105">DB#get</a>:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">alias_method</span> <span class="ss">:_get</span><span class="p">,</span> <span class="ss">:get</span>
+</span><span class='line'><span class="k">def</span> <span class="nf">get</span><span class="p">(</span><span class="n">key</span><span class="p">)</span>
+</span><span class='line'>  <span class="n">ret_bytes</span><span class="p">(</span><span class="nb">self</span><span class="o">.</span><span class="n">_get</span><span class="p">(</span><span class="n">key</span><span class="o">.</span><span class="n">to_java_bytes</span><span class="p">))</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>A few methods needed a tiny bit more work, such as <code>DB#set_bulk</code> and
+<code>DB#cursor_process</code>, but as you can see from <a href="https://github.com/csw/kyotocabinet-java/blob/master/lib/kyotocabinet.rb">kyotocabinet.rb</a>, it
+wasn&#8217;t much.</p>
+
+<p>Using this and the <code>kyotocabinet-ruby</code> library interchangeably for MRI
+and JRuby support in a Bundler application is straightforward:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="n">gem</span> <span class="s2">&quot;kyotocabinet-ruby&quot;</span><span class="p">,</span> <span class="s2">&quot;~&gt; 1.27.1&quot;</span><span class="p">,</span> <span class="ss">:platforms</span> <span class="o">=&gt;</span> <span class="o">[</span><span class="ss">:mri</span><span class="p">,</span> <span class="ss">:rbx</span><span class="o">]</span>
+</span><span class='line'><span class="n">gem</span> <span class="s2">&quot;kyotocabinet-java&quot;</span><span class="p">,</span> <span class="s2">&quot;~&gt; 0.2.0&quot;</span><span class="p">,</span> <span class="ss">:platforms</span> <span class="o">=&gt;</span> <span class="ss">:jruby</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Unfortunately, if you are developing a gem as I am with
+<a href="https://github.com/csw/bioruby-maf">bioruby-maf</a>, things are not quite so simple. While Bundler makes
+it easy to require different gems depending on one&#8217;s current Ruby
+platform, <a href="http://docs.rubygems.org/read/chapter/20">Gem::Specification</a> provides no such feature. I ended up
+making a <a href="https://github.com/csw/bioruby-maf/blob/eda7485e61aba4978ba16a6abcdc95b8094a722d/bio-maf.gemspec#L102">gemspec</a> that builds two different versions of the gem: a
+<code>java</code> platform variant that depends on <code>kyotocabinet-java</code>, and a
+&#8216;normal&#8217; gem with no platform specified that depends on
+<code>kyotocabinet-ruby</code>. This is a bit cumbersome; it requires running
+<code>gem build</code> under both JRuby and MRI to build both versions of the
+gem, and meant that I had to abandon use of Jeweler. Nonetheless, it
+works; under JRuby, <code>gem install bio-maf</code> will pull in the Java
+variant and <code>kyotocabinet-java</code>, while under MRI it will pull in the
+&#8216;normal&#8217; gem and <code>kyotocabinet-ruby</code>. The relevant part of the gemspec
+is:</p>
+
+<figure class='code'><figcaption><span></span></figcaption><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+<span class='line-number'>7</span>
+<span class='line-number'>8</span>
+<span class='line-number'>9</span>
+</pre></td><td class='code'><pre><code class='ruby'><span class='line'><span class="k">if</span> <span class="no">RUBY_PLATFORM</span> <span class="o">==</span> <span class="s1">&#39;java&#39;</span>
+</span><span class='line'>  <span class="n">s</span><span class="o">.</span><span class="n">platform</span> <span class="o">=</span> <span class="s1">&#39;java&#39;</span>
+</span><span class='line'><span class="k">end</span>
+</span><span class='line'><span class="o">[.</span><span class="n">.</span><span class="o">.]</span>
+</span><span class='line'><span class="k">if</span> <span class="no">RUBY_PLATFORM</span> <span class="o">==</span> <span class="s1">&#39;java&#39;</span>
+</span><span class='line'>  <span class="n">s</span><span class="o">.</span><span class="n">add_runtime_dependency</span><span class="p">(</span><span class="s1">&#39;kyotocabinet-java&#39;</span><span class="p">,</span> <span class="o">[</span><span class="s2">&quot;~&gt; 0.2.0&quot;</span><span class="o">]</span><span class="p">)</span>
+</span><span class='line'><span class="k">else</span>
+</span><span class='line'>  <span class="n">s</span><span class="o">.</span><span class="n">add_runtime_dependency</span><span class="p">(</span><span class="s1">&#39;kyotocabinet-ruby&#39;</span><span class="p">,</span> <span class="o">[</span><span class="s2">&quot;~&gt; 1.27.1&quot;</span><span class="o">]</span><span class="p">)</span>
+</span><span class='line'><span class="k">end</span>
+</span></code></pre></td></tr></table></div></figure>
+
+
+<p>Ultimately, it might be worth contacting the maintainer of the
+<code>kyotocabinet-ruby</code> gem and seeing about packaging this as a platform
+variant, to sidestep all this. For the time being, though, this works.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Parallel I/O]]></title>
