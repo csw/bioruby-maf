@@ -619,9 +619,6 @@ module Bio
       attr_reader :chunk_start
       # @return [Integer] offset of the last block start in this chunk.
       attr_reader :last_block_pos
-      # Sequence filter to apply.
-      # @api public
-      attr_accessor :sequence_filter
 
       # @api private
       attr_accessor :parse_extended
@@ -677,6 +674,20 @@ module Bio
         ensure
           ctx.f.close
         end
+      end
+
+      # Sequence filter to apply.
+      # @api public
+      # @return [Hash]
+      def sequence_filter
+        @sequence_filter ||= {}
+      end
+
+      # Set the sequence filter.
+      # @api public
+      # @param [Hash] filter the new filter
+      def sequence_filter=(filter)
+        @sequence_filter = filter
       end
 
       # Fetch and parse blocks given by `fetch_list`.
