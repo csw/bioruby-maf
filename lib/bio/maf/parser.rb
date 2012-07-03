@@ -124,6 +124,11 @@ module Bio
         size != text.size
       end
 
+      def species
+        parts = source.split('.', 2)
+        parts.size == 2 ? parts[0] : nil
+      end
+
       def write_fasta(writer)
         writer.write("#{source}:#{start}-#{start + size}",
                      text)
