@@ -868,14 +868,19 @@ module Bio
         end
         Enumerator.new do |y|
           saw_eof = false
-          while worker.alive?
+          n_final_poll = 0
+          while true
             block = queue.poll(1, java.util.concurrent.TimeUnit::SECONDS)
             if block == :eof
               saw_eof = true
               break
             elsif block
               y << block
+            else
+              # timed out
+              n_final_poll += 1 unless worker.alive?
             end
+            break if n_final_poll > 1
           end
           unless saw_eof
             raise "worker exited unexpectedly!"
