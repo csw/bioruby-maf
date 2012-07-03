@@ -16,7 +16,6 @@ Feature: Join alignment blocks with reference data
     a score=21.0
     s sp1.chr1        30 10 +      50 AGGGCGGTCC
     s sp2.chr5     53030 10 +   65536 AGGGCGGTCC
-    s sp3.chr2     33030 10 +   65536 AGGGAAGCCC
     """
     And chromosome reference sequence:
     """
@@ -29,8 +28,8 @@ Feature: Join alignment blocks with reference data
     """
     When I open it with a MAF reader
     And build an index on the reference sequence
-    And search for blocks between positions 0 and 50 of sp1.chr1
-    And stitch the blocks together as FASTA with the chromosome reference
+    And tile sp1.chr1:0-50 with the chromosome reference
+    And write the tiled data as FASTA
     Then the FASTA data obtained should be:
     """
     > sp1
@@ -38,7 +37,7 @@ Feature: Join alignment blocks with reference data
     > sp2
     **********GGGCTGAGGGC--AG*******AGGGCGGTCC**********
     > sp3
-    **********AGGTTTAGGGCAGAG*******AGGGAAGCCC**********
+    **********AGGTTTAGGGCAGAG***************************
     """
 
 
