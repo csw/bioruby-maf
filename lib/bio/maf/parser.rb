@@ -58,6 +58,10 @@ module Bio
         @vars, @sequences, @offset, @size = args
       end
 
+      def ref_seq
+        sequences[0]
+      end
+
       def raw_seq(i)
         sequences.fetch(i)
       end
@@ -104,6 +108,10 @@ module Bio
 
       def initialize(*args)
         @source, @start, @size, @strand, @src_size, @text = args
+      end
+
+      def end
+        start + size
       end
 
       # Whether this sequence is empty. Only true for {EmptySequence}
