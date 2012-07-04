@@ -45,8 +45,6 @@ module Bio::MAF
           nonref_text.each { |t| t << stars }
         else
           # covered by an alignment block
-          # TODO: slice block, accounting for gaps
-          # for empty sequences: fill in
           t_range = block.ref_seq.text_range(g_range)
           species.each_with_index do |species, i|
             sp_text = text[i]
