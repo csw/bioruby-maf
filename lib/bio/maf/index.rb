@@ -309,11 +309,12 @@ module Bio
         end
         ready = Time.now
         $stderr.puts "bin intervals computed after #{ready - start} seconds."
-        if RUBY_PLATFORM == 'java'
-          scan_bins_parallel(chrom_id, bin_intervals, filters)
-        else
-          scan_bins(chrom_id, bin_intervals, filters)
-        end
+        matches = if RUBY_PLATFORM == 'java'
+                    scan_bins_parallel(chrom_id, bin_intervals, filters)
+                  else
+                    scan_bins(chrom_id, bin_intervals, filters)
+                  end
+        matches.sort_by! { |e| e[0] } # sort by offset in file
       end # #fetch_list
 
       # Scan the index for blocks matching the given bins and intervals.
