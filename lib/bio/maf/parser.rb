@@ -722,26 +722,25 @@ module Bio
           n_threads = @opts.fetch(:threads, 1)
           # TODO: break entries up into longer runs for more
           # sequential I/O
-          jobs = java.util.concurrent.ConcurrentLinkedQueue.new(fetch_list)
-          completed = java.util.concurrent.LinkedBlockingQueue.new(128)
+          jobs = java.util.concurrent.ConcurrentLinkedQueue.new()
+          sem = java.util.concurrent.Semaphore.new(128)
+          completed = []
+          fetch_list.each do |entries|
+            future = java.util.concurrent.FutureTask.new {}
+            jobs << [entries, future]
+            completed << future
+          end
           threads = []
-          n_threads.times { threads << make_worker(jobs, completed) }
+          n_threads.times { threads << make_worker(jobs, sem) }
 
-          n_completed = 0
-          while (n_completed < fetch_list.size)
-            c = completed.poll(5, java.util.concurrent.TimeUnit::SECONDS)
-            if c.nil?
-              if threads.find { |t| t.alive? }
-                next
-              else
-                raise "No threads alive, completed #{n_completed}/#{fetch_list.size} jobs!"
-              end
-            end
-            raise "worker failed: #{c}" if c.is_a? Exception
+          until completed.empty?
+            future = completed.shift
+            c = future.get
+            sem.release
+            raise c if c.respond_to? :backtrace
             c.each do |block|
               y << block
             end
-            n_completed += 1
           end
           threads.each { |t| t.join }
           elapsed = Time.now - start
@@ -758,26 +757,31 @@ module Bio
       # Create a worker thread for parallel parsing.
       #
       # @see #fetch_blocks_merged_parallel
-      def make_worker(jobs, completed)
+      def make_worker(jobs, sem)
         Thread.new do
-          with_context(@random_access_chunk_size) do |ctx|
-            while true
-              req = jobs.poll
-              break unless req
-              begin
-                n_blocks = req[2].size
-                blocks = ctx.fetch_blocks(*req).to_a
-                if blocks.size != n_blocks
-                  raise "expected #{n_blocks}, got #{blocks.size}: #{e.inspect}"
+          begin
+            with_context(@random_access_chunk_size) do |ctx|
+              while true
+                sem.acquire
+                req, future = jobs.poll
+                break unless req
+                begin
+                  n_blocks = req[2].size
+                  blocks = ctx.fetch_blocks(*req).to_a
+                  if blocks.size != n_blocks
+                    raise "expected #{n_blocks}, got #{blocks.size}: #{e.inspect}"
+                  end
+                  future.set(blocks)
+                rescue
+                  future.set($!)
+                  raise
                 end
-                completed.put(blocks)
-              rescue Exception => e
-                completed.put(e)
-                $stderr.puts "Worker failing: #{e.class}: #{e}"
-                $stderr.puts e.backtrace.join("\n")
-                raise e
               end
             end
+          rescue Exception => e
+            $stderr.puts "Worker failing: #{e.class}: #{e}"
+            $stderr.puts e.backtrace.join("\n")
+            raise e
           end
         end
       end
