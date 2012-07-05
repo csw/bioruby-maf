@@ -722,25 +722,23 @@ module Bio
           n_threads = @opts.fetch(:threads, 1)
           # TODO: break entries up into longer runs for more
           # sequential I/O
-          jobs = java.util.concurrent.ConcurrentLinkedQueue.new()
-          sem = java.util.concurrent.Semaphore.new(128)
-          completed = []
-          fetch_list.each do |entries|
-            future = java.util.concurrent.FutureTask.new {}
-            jobs << [entries, future]
-            completed << future
-          end
+          jobs = java.util.concurrent.ConcurrentLinkedQueue.new(fetch_list)
+          ct = CompletionTracker.new(fetch_list)
+          completed = ct.queue
           threads = []
-          n_threads.times { threads << make_worker(jobs, sem) }
+          n_threads.times { threads << make_worker(jobs, ct) }
 
-          until completed.empty?
-            future = completed.shift
-            c = future.get
-            sem.release
-            raise c if c.respond_to? :backtrace
+          n_res = 0
+          while n_res < fetch_list.size
+            c = completed.poll(1, java.util.concurrent.TimeUnit::SECONDS)
+            unless c
+              raise "Worker failed!" if threads.find { |t| t.status.nil? }
+              next
+            end
             c.each do |block|
               y << block
             end
+            n_res += 1
           end
           threads.each { |t| t.join }
           elapsed = Time.now - start
@@ -757,25 +755,19 @@ module Bio
       # Create a worker thread for parallel parsing.
       #
       # @see #fetch_blocks_merged_parallel
-      def make_worker(jobs, sem)
+      def make_worker(jobs, ct)
         Thread.new do
           begin
             with_context(@random_access_chunk_size) do |ctx|
               while true
-                sem.acquire
-                req, future = jobs.poll
+                req = jobs.poll
                 break unless req
-                begin
-                  n_blocks = req[2].size
-                  blocks = ctx.fetch_blocks(*req).to_a
-                  if blocks.size != n_blocks
-                    raise "expected #{n_blocks}, got #{blocks.size}: #{e.inspect}"
-                  end
-                  future.set(blocks)
-                rescue
-                  future.set($!)
-                  raise
+                n_blocks = req[2].size
+                blocks = ctx.fetch_blocks(*req).to_a
+                if blocks.size != n_blocks
+                  raise "expected #{n_blocks}, got #{blocks.size}: #{e.inspect}"
                 end
+                ct << blocks
               end
             end
           rescue Exception => e
@@ -885,6 +877,42 @@ module Bio
         end
       end
 
+    end
+
+    class CompletionTracker
+      attr_reader :queue, :offsets, :delayed
+
+      def initialize(fetch_list)
+        @offsets = fetch_list.collect { |e| e[0] }
+        @queue = java.util.concurrent.LinkedBlockingQueue.new(128)
+        @delayed = {}
+        @sem = Mutex.new
+      end
+
+      def next_expected
+        offsets.first
+      end
+
+      def <<(blocks)
+        @sem.synchronize do
+          f_offset = blocks.first.offset
+          if f_offset == next_expected
+            offsets.shift
+            queue.put(blocks)
+            drain_delayed
+          else
+            # out of order
+            delayed[f_offset] = blocks
+          end
+        end
+      end
+
+      def drain_delayed
+        while e = delayed.delete(next_expected)
+          offsets.shift
+          queue.put(e)
+        end
+      end
     end
 
   end
