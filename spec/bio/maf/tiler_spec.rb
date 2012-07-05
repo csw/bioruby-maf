@@ -43,4 +43,27 @@ module Bio::MAF
 
   end
 
+  describe FASTARangeReader do
+    describe "#read" do
+      before(:each) do
+        @r = FASTARangeReader.new('test/data/gap-sp1.fa')
+        @s = 'CCAGGATGCTGGGCTGAGGGCAGTTGTGTCAGGGCGGTCCGGTGCAGGCA'
+      end
+
+      def check_range(z_start, z_end)
+        @r.read_interval(z_start, z_end).should == @s.slice(z_start...z_end)
+      end
+
+      it "returns the entire sequence" do
+        check_range(0, 50)
+      end
+      it "returns an entire line" do
+        check_range(10, 20)
+      end
+      it "returns arbitrary components" do
+        check_range(17, 41)
+      end
+    end
+  end
+
 end

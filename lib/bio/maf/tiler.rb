@@ -88,4 +88,43 @@ module Bio::MAF
     end
 
   end
+
+  class FASTARangeReader
+    attr_reader :f
+
+    def initialize(path)
+      @path = path
+      @f = File.open(path)
+    end
+
+    def read_interval(z_start, z_end)
+      data = ''
+      f.seek(0)
+      first = f.readline
+      raise "expected FASTA comment" unless first =~ /^>/
+      region_size = z_end - z_start
+      in_region = false
+      pos = 0
+      f.each_line do |line_raw|
+        raise "unexpected line start" unless line_raw =~ /^\w/
+        line = line_raw.strip
+        end_pos = pos + line.size
+        if (! in_region) && pos <= z_start && z_start < end_pos
+          data << line.slice((z_start - pos)...(line.size))
+          in_region = true
+        elsif in_region
+          need = region_size - data.size
+          if need > line.size
+            data << line
+          else
+            # last line
+            data << line.slice(0, need)
+            break
+          end
+        end
+        pos = end_pos
+      end
+      return data
+    end
+  end
 end
