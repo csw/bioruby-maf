@@ -19,7 +19,7 @@ Feature: Join alignment blocks with reference data
     """
     And chromosome reference sequence:
     """
-    > sp1.chr1
+    >sp1.chr1
     CCAGGATGCT
     GGGCTGAGGG
     CAGTTGTGTC
@@ -33,11 +33,11 @@ Feature: Join alignment blocks with reference data
     And write the tiled data as FASTA
     Then the FASTA data obtained should be:
     """
-    > sp1
+    >sp1
     CCAGGATGCTGGGCTGAGGGC--AGTTGTGTCAGGGCGGTCCGGTGCAGGCA
-    > sp2
+    >sp2
     **********GGGCTGACGGC--AG*******AGGGCGGTGC**********
-    > sp3
+    >sp3
     **********AGGTTTAGGGCAGAG***************************
     """
 
@@ -56,7 +56,7 @@ Feature: Join alignment blocks with reference data
     """
     And chromosome reference sequence:
     """
-    > sp1.chr1
+    >sp1.chr1
     CCAGGATGCT
     GGGCTGAGGG
     CAGTTGTGTC
@@ -73,11 +73,11 @@ Feature: Join alignment blocks with reference data
     And write the tiled data as FASTA
     Then the FASTA data obtained should be:
     """
-    > mouse
+    >mouse
     CCAGGATGCTGGGCTGAGGGC--AGTTGTGTCAGGGCGGTCCGGTGCAGGCA
-    > hippo
+    >hippo
     **********GGGCTGACGGC--AG*******AGGGCGGTGC**********
-    > squid
+    >squid
     **********AGGTTTAGGGCAGAG***************************
     """
 
@@ -96,7 +96,7 @@ Feature: Join alignment blocks with reference data
     """
     And chromosome reference sequence:
     """
-    > sp1.chr1
+    >sp1.chr1
     CCAGGATGCT
     GGGCTGAGGG
     CAGTTGTGTC
@@ -110,11 +110,11 @@ Feature: Join alignment blocks with reference data
     And write the tiled data as FASTA
     Then the FASTA data obtained should be:
     """
-    > sp1
+    >sp1
     GCTGAGGGC--AGTTGTGTCAGGGCG
-    > sp2
+    >sp2
     GCTGACGGC--AG*******AGGGCG
-    > sp3
+    >sp3
     GTTTAGGGCAGAG*************
     """
   Scenario: Overlapping MAF blocks in region of interest
@@ -132,7 +132,7 @@ Feature: Join alignment blocks with reference data
     """
     And chromosome reference sequence:
     """
-    > sp1.chr1
+    >sp1.chr1
     CCAGGATGCT
     GGGCTGAGGG
     CAGTTGTGTC
@@ -146,11 +146,11 @@ Feature: Join alignment blocks with reference data
     And write the tiled data as FASTA
     Then the FASTA data obtained should be:
     """
-    > sp1
+    >sp1
     CCAGGATGCTGGGCTGAGGGAGGGCGGTCCAGGGCGGTCCGGTGCAGGCA
-    > sp2
+    >sp2
     **********GGGCTGACGGAGGGCGGTGC********************
-    > sp3
+    >sp3
     **********AGGTTTAGGG******************************
     """
 

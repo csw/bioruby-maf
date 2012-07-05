@@ -86,7 +86,7 @@ module Bio::MAF
     def write_fasta(f)
       species.zip(tile()) do |species, text|
         sp_out = species_map[species] || species
-        f.puts "> #{sp_out}"
+        f.puts ">#{sp_out}"
         f.puts text
       end
     end
