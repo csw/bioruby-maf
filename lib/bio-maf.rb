@@ -8,5 +8,9 @@
 #
 # In this file only require other files. Avoid other source code.
 
+require 'bio-logger'
+log = Bio::Log::LoggerPlus.new('bio-maf')
+log.outputters = Bio::Log::Outputter.stderr
+
 require 'bio/ucsc'
 require 'bio/maf'

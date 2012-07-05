@@ -5,7 +5,8 @@ require 'java' if RUBY_PLATFORM == 'java'
 module Bio
   # @api public
   module MAF
-
+    LOG = Bio::Log::LoggerPlus['bio-maf']
+    
     # @api public
     class ParseError < Exception; end
 
@@ -601,6 +602,9 @@ module Bio
           end
         end
         elapsed = Time.now - start
+        rate = (total_size / 1048576.0) / elapsed
+        LOG.debug { sprintf("Fetched blocks in %.3fs, %.1f MB/s.",
+                            elapsed, rate) }
         # TODO: debug log
         # rate = (total_size / 1048576.0) / elapsed
         # $stderr.printf("Fetched blocks in %.3fs, %.1f MB/s.\n",
@@ -639,13 +643,13 @@ module Bio
         end
         threads.each { |t| t.join }
         elapsed = Time.now - start
-        $stderr.printf("Fetched blocks from %d threads in %.1fs.\n",
-                       n_threads,
-                       elapsed)
+        LOG.debug { sprintf("Fetched blocks from %d threads in %.1fs.",
+                            n_threads,
+                            elapsed) }
         mb = total_size / 1048576.0
-        $stderr.printf("%.3f MB processed (%.1f MB/s).\n",
-                       mb,
-                       mb / elapsed)
+        LOG.debug { sprintf("%.3f MB processed (%.1f MB/s).",
+                            mb,
+                            mb / elapsed) }
       end
 
       # Create a worker thread for parallel parsing.
