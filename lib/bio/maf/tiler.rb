@@ -124,16 +124,19 @@ module Bio::MAF
       end
     end
 
+    GT = '>'.getbyte(0)
+
     def read_interval(z_start, z_end)
       data = ''
-      f.seek(0)
       first = f.readline
       raise "expected FASTA comment" unless first =~ /^>/
       region_size = z_end - z_start
       in_region = false
       pos = 0
       f.each_line do |line_raw|
-        raise "unexpected line start" unless line_raw =~ /^\w/
+        if line_raw.getbyte(0) == GT
+          raise "unexpected description line: #{line_raw.inspect}"
+        end
         line = line_raw.strip
         end_pos = pos + line.size
         if (! in_region) && pos <= z_start && z_start < end_pos
@@ -151,6 +154,7 @@ module Bio::MAF
         end
         pos = end_pos
       end
+      f.rewind
       return data
     end
   end
