@@ -696,6 +696,9 @@ module Bio
       # @api public
       def initialize(file_spec, opts={})
         @opts = opts
+        if RUBY_PLATFORM == 'java'
+          opts[:threads] ||= java.lang.Runtime.runtime.availableProcessors
+        end
         chunk_size = opts[:chunk_size] || SEQ_CHUNK_SIZE
         @random_access_chunk_size = opts[:random_chunk_size] || RANDOM_CHUNK_SIZE
         @merge_max = opts[:merge_max] || MERGE_MAX
