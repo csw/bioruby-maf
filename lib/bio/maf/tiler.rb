@@ -17,6 +17,20 @@ module Bio::MAF
       @species_map = {}
     end
 
+    def ref_data(range)
+      if reference
+        if reference.respond_to? :read_interval
+          reference.read_interval(range.begin, range.end)
+        elsif reference.is_a? String
+          reference.slice(range)
+        else
+          raise "Unhandled reference data source: #{reference}"
+        end
+      else
+        nil
+      end
+    end
+
     def tile
       parser.sequence_filter[:only_species] = @species
       # TODO: remove gaps
@@ -24,6 +38,9 @@ module Bio::MAF
       mask = Array.new(interval.length, :ref)
       i_start = interval.zero_start
       i_end = interval.zero_end
+      if reference
+        ref_region = ref_data(i_start...i_end)
+      end
       blocks.each do |block|
         ref = block.ref_seq
         slice_start = [i_start, ref.start].max
@@ -40,8 +57,8 @@ module Bio::MAF
           # not covered by an alignment block
           # use the reference sequence if given, otherwise 'N'
           range_size = range.end - range.begin
-          text[0] << if reference
-                       reference.slice(g_range)
+          text[0] << if ref_region
+                       ref_region.slice(range)
                      else
                        'N' * range_size
                      end
@@ -92,9 +109,12 @@ module Bio::MAF
   class FASTARangeReader
     attr_reader :f
 
-    def initialize(path)
-      @path = path
-      @f = File.open(path)
+    def initialize(fspec)
+      if fspec.respond_to? :seek
+        @f = fspec
+      else
+        @f = File.open(fspec)
+      end
     end
 
     def read_interval(z_start, z_end)
