@@ -13,6 +13,10 @@ module Bio::MAF
     attr_accessor :species
     attr_accessor :species_map
 
+    def initialize
+      @species_map = {}
+    end
+
     def tile
       parser.sequence_filter[:only_species] = @species
       # TODO: remove gaps
@@ -63,8 +67,9 @@ module Bio::MAF
     end
 
     def write_fasta(f)
-      species.zip(tile()) do |seq, text|
-        f.puts "> #{seq}"
+      species.zip(tile()) do |species, text|
+        sp_out = species_map[species] || species
+        f.puts "> #{sp_out}"
         f.puts text
       end
     end

@@ -41,6 +41,46 @@ Feature: Join alignment blocks with reference data
     **********AGGTTTAGGGCAGAG***************************
     """
 
+  Scenario: Non-overlapping MAF blocks with species map
+    Given MAF data:
+    """
+    ##maf version=1
+    a score=20.0
+    s sp1.chr1        10 13 +      50 GGGCTGAGGGC--AG
+    s sp2.chr5     53010 13 +   65536 GGGCTGACGGC--AG
+    s sp3.chr2     33010 15 +   65536 AGGTTTAGGGCAGAG
+
+    a score=21.0
+    s sp1.chr1        30 10 +      50 AGGGCGGTCC
+    s sp2.chr5     53030 10 +   65536 AGGGCGGTGC
+    """
+    And chromosome reference sequence:
+    """
+    > sp1.chr1
+    CCAGGATGCT
+    GGGCTGAGGG
+    CAGTTGTGTC
+    AGGGCGGTCC
+    GGTGCAGGCA
+    """
+    When I open it with a MAF reader
+    And build an index on the reference sequence
+    And tile sp1.chr1:0-50 with the chromosome reference
+    And tile with species [sp1, sp2, sp3]
+    And map species sp1 as mouse
+    And map species sp2 as hippo
+    And map species sp3 as squid
+    And write the tiled data as FASTA
+    Then the FASTA data obtained should be:
+    """
+    > mouse
+    CCAGGATGCTGGGCTGAGGGC--AGTTGTGTCAGGGCGGTCCGGTGCAGGCA
+    > hippo
+    **********GGGCTGACGGC--AG*******AGGGCGGTGC**********
+    > squid
+    **********AGGTTTAGGGCAGAG***************************
+    """
+
   Scenario: Subset of non-overlapping MAF blocks in region
     Given MAF data:
     """

@@ -2,6 +2,10 @@ Given /^chromosome reference sequence:$/ do |string|
   @refseq = Bio::FastaFormat.new(string)
 end
 
+When /^map species (\S+) as (\S+)$/ do |sp1, sp2|
+  @tiler.species_map[sp1] = sp2
+end
+
 When /^tile ([^:\s]+):(\d+)-(\d+)( with the chromosome reference)?$/ do |seq, i_start, i_end, ref_p|
   @tiler = Bio::MAF::Tiler.new
   @tiler.index = @idx
