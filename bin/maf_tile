@@ -51,7 +51,7 @@ maf_p = ARGV.shift
 index_p = ARGV.shift
 
 unless (! options.usage) \
-  && options.ref && maf_p && index_p && (! options.species.empty?) \
+  && maf_p && index_p && (! options.species.empty?) \
   && (options.output_base ? options.bed : options.interval)
   $stderr.puts o_parser
   exit 2
@@ -81,9 +81,10 @@ if options.bed
   File.open(options.bed) do |bed_f|
     bed_f.each_line { |line| intervals << parse_interval(line) }
   end
+  intervals.sort_by! { |int| int.zero_start }
   intervals.each do |int|
     tiler.interval = int
-    target = target_for(options.output_base, interval)
+    target = target_for(options.output_base, int)
     tiler.write_fasta(target)
     target.close
   end
