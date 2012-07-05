@@ -1,0 +1,21 @@
+#!/usr/bin/env ruby
+
+require 'bio-maf'
+
+parser = Bio::MAF::Parser.new(ARGV.shift, :threads => 4)
+
+def desc(seq)
+  "#{seq.source}:#{seq.start}-#{seq.end}"
+end
+
+open = []
+parser.parse_blocks.each do |block|
+  start_pos = block.ref_seq.start
+  open.delete_if { |open_b| open_b.ref_seq.end <= start_pos }
+  open.each do |ovl|
+    ref_a = ovl.ref_seq
+    ref_b = block.ref_seq
+    puts "#{desc(ref_a)} overlaps #{desc(ref_b)}"
+  end
+  open << block
+end
