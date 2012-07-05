@@ -1,0 +1,102 @@
+#!/usr/bin/env ruby
+
+require 'optparse'
+require 'ostruct'
+
+require 'bio-maf'
+require 'bio-genomic-interval'
+
+options = OpenStruct.new
+options.p = { :threads => 1 }
+options.species = []
+options.species_map = {}
+options.usage = false
+
+o_parser = OptionParser.new do |opts|
+  opts.banner = "Usage: maf_tile [options] <maf> <index>"
+  opts.separator ""
+  opts.separator "Options:"
+  opts.on("-r", "--reference SEQ", "FASTA reference sequence") do |ref|
+    options.ref = ref
+  end
+  opts.on("-i", "--interval BEGIN:END", "Genomic interval, zero-based") do |int|
+    if int =~ /(\d+):(\d+)/
+      options.interval = ($1.to_i)...($2.to_i)
+    else
+      options.usage = true
+    end
+  end
+  opts.on("-s", "--species SPECIES[:NAME]", "Species to use (with mapped name)") do |sp|
+    if sp =~ /:/
+      species, mapped = sp.split(/:/)
+      options.species << species
+      options.species_map[species] = mapped
+    else
+      options.species << sp
+    end
+  end
+  opts.on("-o", "--output-base BASE", "Base name for output files",
+          "Use stdout for a single interval if not given") do |base|
+    options.output_base = base
+  end
+  opts.on("--bed BED", "BED file specifying intervals",
+          "(requires --output-base)") do |bed|
+    options.bed = bed
+  end
+end
+
+o_parser.parse!(ARGV)
+
+maf_p = ARGV.shift
+index_p = ARGV.shift
+
+unless (! options.usage) \
+  && options.ref && maf_p && index_p && (! options.species.empty?) \
+  && (options.output_base ? options.bed : options.interval)
+  $stderr.puts o_parser
+  exit 2
+end
+
+tiler = Bio::MAF::Tiler.new
+tiler.index = Bio::MAF::KyotoIndex.open(index_p)
+tiler.parser = Bio::MAF::Parser.new(maf_p, options.p)
+tiler.reference = Bio::MAF::FASTARangeReader.new(options.ref) if options.ref
+tiler.species = options.species
+tiler.species_map = options.species_map
+
+def parse_interval(line)
+  src, r_start_s, r_end_s, _ = line.split(nil, 4)
+  r_start = r_start_s.to_i
+  r_end = r_end_s.to_i
+  return Bio::GenomicInterval.zero_based(src, r_start, r_end)
+end
+
+def target_for(base, interval)
+  path = "#{base}_#{interval.zero_start}-#{interval.zero_end}.fa"
+  File.open(path, 'w')
+end
+
+if options.bed
+  intervals = []
+  File.open(options.bed) do |bed_f|
+    bed_f.each_line { |line| intervals << parse_interval(line) }
+  end
+  intervals.each do |int|
+    tiler.interval = int
+    target = target_for(options.output_base, interval)
+    tiler.write_fasta(target)
+    target.close
+  end
+else
+  # single interval
+  tiler.interval = Bio::GenomicInterval.zero_based(tiler.index.ref_seq,
+                                                   options.interval.begin,
+                                                   options.interval.end)
+  if options.output_base
+    target = target_for(options.output_base, tiler.interval)
+  else
+    target = $stdout
+  end
+  tiler.write_fasta(target)
+  target.close
+end
