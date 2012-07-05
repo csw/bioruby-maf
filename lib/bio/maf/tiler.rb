@@ -109,7 +109,7 @@ module Bio::MAF
   end
 
   class FASTARangeReader
-    attr_reader :f
+    attr_reader :f, :pos
 
     def initialize(fspec)
       if fspec.respond_to? :seek
@@ -122,17 +122,24 @@ module Bio::MAF
                        end
         @f = reader_class.open(fspec)
       end
+      position_at_start
     end
 
     GT = '>'.getbyte(0)
 
-    def read_interval(z_start, z_end)
-      data = ''
+    def position_at_start
       first = f.readline
       raise "expected FASTA comment" unless first =~ /^>/
+      @pos = 0
+    end
+
+    def read_interval(z_start, z_end)
+      if z_start < pos
+        position_at_start
+      end
+      data = ''
       region_size = z_end - z_start
       in_region = false
-      pos = 0
       f.each_line do |line_raw|
         if line_raw.getbyte(0) == GT
           raise "unexpected description line: #{line_raw.inspect}"
@@ -152,9 +159,8 @@ module Bio::MAF
             break
           end
         end
-        pos = end_pos
+        @pos = end_pos
       end
-      f.rewind
       return data
     end
   end
