@@ -1,3 +1,5 @@
+require 'zlib'
+
 module Bio::MAF
 
   # Tiles a given genomic interval.
@@ -113,7 +115,12 @@ module Bio::MAF
       if fspec.respond_to? :seek
         @f = fspec
       else
-        @f = File.open(fspec)
+        reader_class = if fspec =~ /.gz$/
+                         Zlib::GzipReader
+                       else
+                         File
+                       end
+        @f = reader_class.open(fspec)
       end
     end
 
