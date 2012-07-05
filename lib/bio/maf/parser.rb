@@ -9,142 +9,6 @@ module Bio
     # @api public
     class ParseError < Exception; end
 
-    # A MAF header, containing the variable-value pairs from the first
-    # line of the file as well as the alignment parameters.
-    # @api public
-    class Header
-      # Variable-value pairs from the ##maf line
-      # @return [Hash]
-      attr_accessor :vars
-      # Alignment parameters from the MAF header.
-      # @return [Hash]
-      attr_accessor :alignment_params
-
-      def initialize(vars, params)
-        @vars = vars
-        @alignment_params = params
-      end
-
-      # The required version parameter.
-      # @return [String]
-      def version
-        vars[:version]
-      end
-
-      # The optional scoring parameter, if present.
-      # @return [String]
-      def scoring
-        vars[:scoring]
-      end
-
-    end
-
-    # A MAF alignment block.
-    # @api public
-    class Block
-      # Parameters from the 'a' line starting the alignment block.
-      attr_reader :vars
-      # Sequences, one per 's' or 'e' line.
-      # @return [Array<Sequence>]
-      attr_reader :sequences
-      # Offset of the alignment block within the MAF file, in bytes.
-      # @return [Integer]
-      attr_reader :offset
-      # Size of the alignment block within the MAF file, in bytes.
-      # @return [Integer]
-      attr_reader :size
-
-      def initialize(*args)
-        @vars, @sequences, @offset, @size = args
-      end
-
-      def raw_seq(i)
-        sequences.fetch(i)
-      end
-
-      def each_raw_seq
-        sequences.each { |s| yield s }
-      end
-
-      # Text size of the alignment block. This is the number of text
-      # characters in each line of sequence data, including dashes and
-      # other gaps in the sequence.
-      def text_size
-        sequences.first.text.size
-      end
-
-    end
-
-    # A sequence within an alignment block.
-    # @api public
-    class Sequence
-      # @return [String] Source sequence name.
-      attr_reader :source
-      # @return [Integer] Zero-based start position.
-      attr_reader :start
-      # @return [Integer] Size of aligning region in source sequence.
-      attr_reader :size
-      # :+ or :-, indicating which strand the alignment is to.
-      # @return [Symbol]
-      attr_reader :strand
-      # Size of the entire source sequence, not just the aligning
-      # region.
-      # @return [Integer]
-      attr_reader :src_size
-      # Sequence data for the alignment, including insertions.
-      # @return [String]
-      attr_reader :text
-      # Array of raw synteny information from 'i' line.
-      # @return [Array<String>]
-      attr_accessor :i_data
-      # Quality string from 'q' line.
-      # @return [String]
-      attr_accessor :quality
-      alias_method :source_size, :src_size
-
-      def initialize(*args)
-        @source, @start, @size, @strand, @src_size, @text = args
-      end
-
-      # Whether this sequence is empty. Only true for {EmptySequence}
-      # instances from 'e' lines.
-      def empty?
-        false
-      end
-
-      def write_fasta(writer)
-        writer.write("#{source}:#{start}-#{start + size}",
-                     text)
-      end
-    end
-
-    # An empty sequence record from an 'e' line.
-    #
-    # This indicates that "there isn't aligning DNA for a species but
-    # that the current block is bridged by a chain that connects
-    # blocks before and after this block" (MAF spec).
-    # @api public
-    class EmptySequence < Sequence
-      attr_reader :status
-
-      def initialize(*args)
-        super(*args[0..4])
-        @status = args[5]
-      end
-
-      def text
-        ''
-      end
-
-      def empty?
-        true
-      end
-
-      def write_fasta(writer)
-        raise "empty sequence output not implemented!"
-      end
-    end
-
     # Reads MAF files in chunks.
     # @api private
     class ChunkReader
@@ -399,16 +263,25 @@ module Bio
           payload = s.rest
           s.pos = s.string.size # jump to EOS
         end
+        filtered = false
         lines = payload.split("\n")
         until lines.empty?
           line = lines.shift
           first = line.getbyte(0)
           if first == S
             seq = parse_seq_line(line, sequence_filter)
-            seqs << seq if seq
+            if seq
+              seqs << seq
+            else
+              filtered = true
+            end
           elsif first == E && parse_empty
             e_seq = parse_empty_line(line, sequence_filter)
-            seqs << e_seq if e_seq
+            if e_seq
+              seqs << e_seq
+            else
+              filtered = true
+            end
           elsif first == I && parse_extended
             parts = line.split
             parse_error("wrong i source #{parts[1]}!") unless seqs.last.source == parts[1]
@@ -423,10 +296,19 @@ module Bio
             parse_error "unexpected line: '#{line}'"
           end
         end
-        return Block.new(block_vars,
-                         seqs,
-                         block_offset,
-                         s.pos - block_start_pos)
+        block = Block.new(block_vars,
+                          seqs,
+                          block_offset,
+                          s.pos - block_start_pos,
+                          filtered)
+        postprocess_block(block)
+      end
+
+      def postprocess_block(block)
+        if block.filtered? && opts[:remove_gaps]
+          block.remove_gaps!
+        end
+        block
       end
 
       # Parse an 's' line.
@@ -503,12 +385,13 @@ module Bio
     # A MAF parsing context, used for random-access parsing.
     class ParseContext
       include MAFParsing
-      attr_accessor :f, :s, :cr, :parser
+      attr_accessor :f, :s, :cr, :parser, :opts
       attr_accessor :chunk_start, :last_block_pos, :at_end
 
-      def initialize(fd, chunk_size, parser, opts)
+      def initialize(fd, chunk_size, parser)
         @f = fd
         @parser = parser
+        @opts = parser.opts
         reader = opts[:chunk_reader] || ChunkReader
         @cr = reader.new(@f, chunk_size)
         @last_block_pos = -1
@@ -580,6 +463,7 @@ module Bio
     #
     #  * `:parse_extended`: whether to parse 'i' and 'q' lines
     #  * `:parse_empty`: whether to parse 'e' lines
+    #  * `:remove_gaps`: remove gaps left after filtering sequences
     #  * `:chunk_size`: read MAF file in chunks of this many bytes
     #  * `:random_chunk_size`: as above, but for random access ({#fetch_blocks})
     #  * `:merge_max`: merge up to this many bytes of blocks for
@@ -654,7 +538,7 @@ module Bio
       def context(chunk_size)
         # IO#dup calls dup(2) internally, but seems broken on JRuby...
         fd = File.open(file_spec)
-        ParseContext.new(fd, chunk_size, self, @opts)
+        ParseContext.new(fd, chunk_size, self)
       end
 
       # Execute the given block with a {ParseContext} using the given

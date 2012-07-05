@@ -1,5 +1,6 @@
 When /^I open it with a MAF reader$/ do
-  @parser = Bio::MAF::Parser.new(@src_f, @opts || {})
+  @opts ||= {}
+  @parser = Bio::MAF::Parser.new(@src_f, @opts)
 end
 
 When /^I enable the :(\S+) parser option$/ do |opt_s|
