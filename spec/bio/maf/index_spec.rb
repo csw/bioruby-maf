@@ -228,6 +228,7 @@ module Bio
           @p = Parser.new(TestData + 'mm8_chr7_tiny.maf')
           @block = @p.parse_block
           @idx = KyotoIndex.new('%')
+          @idx.ref_seq = 'mm8.chr7'
         end
         context "single ref seq" do
           before(:each) do
