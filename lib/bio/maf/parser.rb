@@ -296,11 +296,19 @@ module Bio
             parse_error "unexpected line: '#{line}'"
           end
         end
-        return Block.new(block_vars,
-                         seqs,
-                         block_offset,
-                         s.pos - block_start_pos,
-                         filtered)
+        block = Block.new(block_vars,
+                          seqs,
+                          block_offset,
+                          s.pos - block_start_pos,
+                          filtered)
+        postprocess_block(block)
+      end
+
+      def postprocess_block(block)
+        if block.filtered? && opts[:remove_gaps]
+          block.remove_gaps!
+        end
+        block
       end
 
       # Parse an 's' line.
@@ -377,12 +385,13 @@ module Bio
     # A MAF parsing context, used for random-access parsing.
     class ParseContext
       include MAFParsing
-      attr_accessor :f, :s, :cr, :parser
+      attr_accessor :f, :s, :cr, :parser, :opts
       attr_accessor :chunk_start, :last_block_pos, :at_end
 
-      def initialize(fd, chunk_size, parser, opts)
+      def initialize(fd, chunk_size, parser)
         @f = fd
         @parser = parser
+        @opts = parser.opts
         reader = opts[:chunk_reader] || ChunkReader
         @cr = reader.new(@f, chunk_size)
         @last_block_pos = -1
@@ -454,6 +463,7 @@ module Bio
     #
     #  * `:parse_extended`: whether to parse 'i' and 'q' lines
     #  * `:parse_empty`: whether to parse 'e' lines
+    #  * `:remove_gaps`: remove gaps left after filtering sequences
     #  * `:chunk_size`: read MAF file in chunks of this many bytes
     #  * `:random_chunk_size`: as above, but for random access ({#fetch_blocks})
     #  * `:merge_max`: merge up to this many bytes of blocks for
@@ -528,7 +538,7 @@ module Bio
       def context(chunk_size)
         # IO#dup calls dup(2) internally, but seems broken on JRuby...
         fd = File.open(file_spec)
-        ParseContext.new(fd, chunk_size, self, @opts)
+        ParseContext.new(fd, chunk_size, self)
       end
 
       # Execute the given block with a {ParseContext} using the given

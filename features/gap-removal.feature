@@ -29,15 +29,22 @@ Feature: Remove gaps from MAF files
     | hg18    |
     | canFam2 |
     | loxAfr1 |
-    And an alignment block can be obtained
 
   Scenario: Detect filtered blocks
+    When an alignment block can be obtained
     Then the alignment block is marked as filtered
     And the alignment block has 5 sequences
 
   Scenario: Detect gaps
+    When an alignment block can be obtained
     Then 1 gap is found with length [14]
 
   Scenario: Remove gaps
-    When gaps are removed
+    When an alignment block can be obtained
+    And gaps are removed
+    Then the text size of the block is 40
+
+  Scenario: Remove gaps in the parser
+    When I enable the :remove_gaps parser option
+    And an alignment block can be obtained
     Then the text size of the block is 40
