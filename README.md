@@ -164,6 +164,47 @@ Refer to [`chr22_ieq.maf`](https://github.com/csw/bioruby-maf/blob/master/test/d
     #      @size=1601, @strand=:+, @src_size=50103, @text=nil,
     #      @status="I"> 
 
+### Remove gaps from parsed blocks
+
+After filtering out species with
+[`Parser#sequence_filter`](#filter-species-returned-in-alignment-blocks),
+gaps may be left where there was an insertion present only in
+sequences that were filtered out. Such gaps can be removed by setting
+the `:remove_gaps` parser option:
+
+    require 'bio-maf'
+    p = Bio::MAF::Parser.new('test/data/chr22_ieq.maf',
+                             :remove_gaps => true)
+
+### Tile blocks together over an interval
+
+Extracts alignment blocks overlapping the given genomic interval and
+constructs a single alignment block covering the entire interval for
+the specified species. Optionally, any gaps in coverage of the MAF
+file's reference sequence can be filled in from a FASTA sequence
+file. See the Cucumber [feature][] for examples of output, and also
+the
+[`maf_tile(1)`](http://csw.github.com/bioruby-maf/man/maf_tile.1.html)
+man page.
+
+[feature]: https://github.com/csw/bioruby-maf/blob/master/features/gap-filling.feature
+
+    require 'bio-maf'
+    tiler = Bio::MAF::Tiler.new
+    tiler.index = Bio::MAF::KyotoIndex.open('test/data/mm8_chr7_tiny.kct')
+    tiler.parser = Bio::MAF::Parser.new('test/data/mm8_chr7_tiny.maf')
+    # optional
+    tiler.reference = Bio::MAF::FASTARangeReader.new('reference.fa.gz')
+    tiler.species = %w(mm8 rn4 hg18)
+    tiler.species_map = {
+      'mm8' => 'mouse',
+      'rn4' => 'rat',
+      'hg18' => 'human'
+    }
+    tiler.interval = Bio::GenomicInterval.zero_based('mm8.chr7',
+                                                     80082334,
+                                                     80082468)
+    tiler.write_fasta($stdout)
 
 ### Command line tools
 
@@ -204,7 +245,7 @@ If you use this software, please cite one of
 
 ## Biogems.info
 
-This Biogem will be published at [#bio-maf](http://biogems.info/index.html)
+This Biogem is published at [biogems.info](http://biogems.info/index.html#bio-maf).
 
 ## Copyright
 
