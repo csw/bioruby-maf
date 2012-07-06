@@ -50,6 +50,74 @@ module Bio
       end
     end
 
+    describe Sequence do
+      before(:each) do
+        @parser = DummyParser.new
+      end
+
+      describe "#gapped?" do
+        it "is false for sequences with no gaps" do
+          line = "s human_unc 9077 8 + 10998 ACAGTATT"
+          s = @parser.parse_seq_line(line, nil)
+          s.gapped?.should be_false
+        end
+        it "is true for sequences with gaps" do
+          line = "s human_unc 9077 8 + 10998 AC-AGTATT"
+          s = @parser.parse_seq_line(line, nil)
+          s.gapped?.should be_true
+        end
+      end
+
+      describe "#text_range" do
+        it "returns 0...text.size for a spanning interval" do
+          line = "s human_unc 9077 8 + 10998 ACAGTATT"
+          s = @parser.parse_seq_line(line, nil)
+          range = s.text_range(9077...(9077 + 8))
+          range.should == (0...(s.text.size))
+        end
+        it "returns 0...text.size for a gapped spanning interval" do
+          line = "s human_unc 9077 8 + 10998 AC--AGTATT"
+          s = @parser.parse_seq_line(line, nil)
+          range = s.text_range(9077...(9077 + 8))
+          range.should == (0...(s.text.size))
+        end
+        it "handles a leading subset" do
+          line = "s human_unc 9077 8 + 10998 ACAGTATT"
+          s = @parser.parse_seq_line(line, nil)
+          range = s.text_range(9077...(9077 + 2))
+          range.should == (0...2)
+        end
+        it "handles a trailing subset" do
+          line = "s human_unc 9077 8 + 10998 ACAGTATT"
+          s = @parser.parse_seq_line(line, nil)
+          range = s.text_range(9079...9085)
+          range.should == (2...8)
+        end
+        it "handles a gap in the middle" do
+          line = "s human_unc 9077 8 + 10998 AC--AGTATT"
+          s = @parser.parse_seq_line(line, nil)
+          range = s.text_range(9078...(9077 + 8))
+          range.should == (1...(s.text.size))
+        end
+        it "errors on a range starting before" do
+          expect {
+            line = "s human_unc 9077 8 + 10998 ACAGTATT"
+            s = @parser.parse_seq_line(line, nil)
+            range = s.text_range(9076...(9077 + 8))
+          }.to raise_error
+        end
+        it "errors on a range ending after" do
+          expect {
+            line = "s human_unc 9077 8 + 10998 ACAGTATT"
+            s = @parser.parse_seq_line(line, nil)
+            range = s.text_range(9076...(9077 + 9))
+          }.to raise_error
+        end
+
+      end
+
+    end
+
     describe ParseContext do
       it "tracks the last block position"
     end

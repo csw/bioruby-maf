@@ -65,10 +65,11 @@ module Bio
       include KVHelpers
 
       attr_reader :db, :species, :species_max_id
-      attr_accessor :index_sequences
+      attr_accessor :index_sequences, :ref_seq
 
       FORMAT_VERSION_KEY = 'bio-maf:index-format-version'
       FORMAT_VERSION = 2
+      REF_SEQ_KEY = 'bio-maf:reference-sequence'
       MAX_SPECIES = 64
 
       ## Key-value store index format
@@ -221,6 +222,7 @@ module Bio
           raise "Could not open DB file!"
         end
         if mode == KyotoCabinet::DB::OREADER
+          self.ref_seq = db[REF_SEQ_KEY]
           load_index_sequences
           load_species
         end
@@ -345,7 +347,7 @@ module Bio
 
       def scan_bins_parallel(chrom_id, bin_intervals, filters)
         start = Time.now
-        n_threads = ENV['profile'] ? 1 : 4
+        n_threads = ENV['profile'] ? 1 : java.lang.Runtime.runtime.availableProcessors
         jobs = java.util.concurrent.ConcurrentLinkedQueue.new(bin_intervals.to_a)
         completed = java.util.concurrent.LinkedBlockingQueue.new(128)
         threads = []
@@ -446,7 +448,8 @@ module Bio
 
       def build_default(parser)
         first_block = parser.parse_block
-        ref_seq = first_block.sequences.first.source
+        self.ref_seq = first_block.sequences.first.source
+        db[REF_SEQ_KEY] = ref_seq
         db[FORMAT_VERSION_KEY] = FORMAT_VERSION
         @index_sequences = { ref_seq => 0 }
         store_index_sequences!
@@ -522,6 +525,9 @@ module Bio
       end
 
       def entries_for(block)
+        unless block.ref_seq.source == @ref_seq
+          raise "Inconsistent reference sequence: expected #{@ref_seq}, got #{block.ref_seq.source}"
+        end
         h = {}
         val = build_block_value(block)
         block.sequences.each do |seq|

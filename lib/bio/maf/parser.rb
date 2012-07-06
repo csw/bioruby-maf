@@ -495,9 +495,6 @@ module Bio
       attr_reader :chunk_start
       # @return [Integer] offset of the last block start in this chunk.
       attr_reader :last_block_pos
-      # Sequence filter to apply.
-      # @api public
-      attr_accessor :sequence_filter
 
       # @api private
       attr_accessor :parse_extended
@@ -514,6 +511,9 @@ module Bio
       # @api public
       def initialize(file_spec, opts={})
         @opts = opts
+        if RUBY_PLATFORM == 'java'
+          opts[:threads] ||= java.lang.Runtime.runtime.availableProcessors
+        end
         chunk_size = opts[:chunk_size] || SEQ_CHUNK_SIZE
         @random_access_chunk_size = opts[:random_chunk_size] || RANDOM_CHUNK_SIZE
         @merge_max = opts[:merge_max] || MERGE_MAX
@@ -553,6 +553,20 @@ module Bio
         ensure
           ctx.f.close
         end
+      end
+
+      # Sequence filter to apply.
+      # @api public
+      # @return [Hash]
+      def sequence_filter
+        @sequence_filter ||= {}
+      end
+
+      # Set the sequence filter.
+      # @api public
+      # @param [Hash] filter the new filter
+      def sequence_filter=(filter)
+        @sequence_filter = filter
       end
 
       # Fetch and parse blocks given by `fetch_list`.
@@ -740,14 +754,19 @@ module Bio
         end
         Enumerator.new do |y|
           saw_eof = false
-          while worker.alive?
+          n_final_poll = 0
+          while true
             block = queue.poll(1, java.util.concurrent.TimeUnit::SECONDS)
             if block == :eof
               saw_eof = true
               break
             elsif block
               y << block
+            else
+              # timed out
+              n_final_poll += 1 unless worker.alive?
             end
+            break if n_final_poll > 1
           end
           unless saw_eof
             raise "worker exited unexpectedly!"
@@ -797,6 +816,11 @@ module Bio
           queue.put(e)
         end
       end
+    end
+
+    # Exposes parser internals for unit tests.
+    class DummyParser
+      include MAFParsing
     end
 
   end
