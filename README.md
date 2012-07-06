@@ -51,6 +51,25 @@ problems building or using this gem, which is still fairly new.
 
     $ gem install bio-maf
 
+## Performance
+
+This parser performs best under [JRuby][], particularly with Java
+7. See the [Performance][] wiki page for more information. For best
+results, use JRuby in 1.9 mode with the ObjectProxyCache disabled:
+
+[JRuby]: http://jruby.org/
+[Performance]: https://github.com/csw/bioruby-maf/wiki/Performance
+
+    $ export JRUBY_OPTS='--1.9 -Xji.objectProxyCache=false'
+
+Many parsing modes are multithreaded. Under JRuby, it will default to
+using one parser thread per available core, but if desired this can be
+configured with the `:threads` parser option.
+
+Ruby 1.9.3 is fully supported, but does not perform as well,
+especially since its concurrency features are not useful for this
+workload.
+
 ## Usage
 
 ### Create an index on a MAF file
