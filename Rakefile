@@ -10,10 +10,9 @@ rescue Bundler::BundlerError => e
   exit e.status_code
 end
 require 'rake'
-require 'rubygems/package_task'
 
-$gemspec = Gem::Specification.load("bio-maf.gemspec")
-Gem::PackageTask.new($gemspec) { |pkg| }
+require 'rubygems/tasks'
+Gem::Tasks.new
 
 require 'rspec/core'
 require 'rspec/core/rake_task'
