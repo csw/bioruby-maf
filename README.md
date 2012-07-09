@@ -233,6 +233,11 @@ Man pages for command line tools:
 * [`maf_to_fasta(1)`](http://csw.github.com/bioruby-maf/man/maf_to_fasta.1.html)
 * [`maf_tile(1)`](http://csw.github.com/bioruby-maf/man/maf_tile.1.html)
 
+With [gem-man](https://github.com/defunkt/gem-man) installed, these
+can be read with:
+
+    $ gem man bio-maf
+
 ### Other documentation
 
 Also see the [API documentation][]. For more code examples see the

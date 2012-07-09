@@ -3,6 +3,35 @@
 Here are notes on less obvious aspects of the development process for
 this library.
 
+## Gem build / tagging / release
+
+This now uses [rubygems-tasks][] for building and releasing gems.
+
+[rubygems-tasks]: https://github.com/postmodern/rubygems-tasks
+
+We build two gem platform variants: a 'default' one for MRI with no
+platform set, and a JRuby one with `platform = 'java'`. These get
+built as `bio-maf-X.Y.Z.gem` and `bio-maf-X.Y.Z-java.gem`. At least
+for now, this is done by running `gem release` separately under JRuby
+and MRI. SCM tagging and pushing is done under MRI only, but the gems
+will be built and pushed to rubygems.org separately under each
+platform.
+
+The version is simply set by hand in `bio-maf.gemspec`. Don't forget
+to increment it!
+
+Testing the build:
+
+    $ rake build
+    $ rake install
+
+Release:
+
+    $ rvm use 1.9.3@bioruby-maf
+    $ rake release
+    $ rvm use jruby-1.6.7.2@bioruby-maf
+    $ rake release
+
 ## kyotocabinet-java
 
 Running `bio-maf` on JRuby requires the [kyotocabinet-java][] gem, a
