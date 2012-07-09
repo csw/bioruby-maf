@@ -13,7 +13,6 @@ group :development do
   gem "redcarpet", "~> 2.1.1", :platforms => :mri
   gem "ronn", "~> 0.7.3", :platforms => :mri
   gem "sinatra", "~> 1.3.2" # for ronn --server
-  gem "rubygems-tasks", "~> 0.2.3"
 end
 
 group :test do
@@ -21,4 +20,5 @@ group :test do
   gem "rake", ">= 0.9"
   gem "cucumber", ">= 0"
   gem "rspec", "~> 2.10.0"
+  gem "rubygems-tasks", "~> 0.2.3"
 end
