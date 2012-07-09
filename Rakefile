@@ -12,7 +12,9 @@ end
 require 'rake'
 
 require 'rubygems/tasks'
-Gem::Tasks.new
+# we only want to do the SCM tag/push stuff once, on MRI
+use_scm = (RUBY_PLATFORM != 'java')
+Gem::Tasks.new(:scm => {:tag => use_scm, :push => use_scm})
 
 require 'rspec/core'
 require 'rspec/core/rake_task'
