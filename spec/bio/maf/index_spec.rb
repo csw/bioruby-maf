@@ -87,6 +87,18 @@ module Bio
             l[0].offset.should == 16
           end
 
+          it "takes a block arg" do
+            called = false
+            @idx.find([GenomicInterval.zero_based('mm8.chr7',
+                                                  80082334,
+                                                  80082338)],
+                      @p) do |block|
+              block.offset.should == 16
+              called = true
+            end
+            called.should be_true
+          end
+
           after(:each) do
             @idx.db.close
             @p.f.close

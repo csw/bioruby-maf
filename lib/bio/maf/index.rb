@@ -191,13 +191,13 @@ module Bio
       # @param [Hash] filter Block filter expression.
       # @return [Array<Block>]
       # @api public
-      def find(intervals, parser, filter={})
-        start = Time.now
+      def find(intervals, parser, filter={}, &blk)
+        # start = Time.now
         fl = fetch_list(intervals, filter)
-        $stderr.printf("Built fetch list of %d items in %.3fs.\n",
-                       fl.size,
-                       Time.now - start)
-        parser.fetch_blocks(fl)
+        # $stderr.printf("Built fetch list of %d items in %.3fs.\n",
+        #                fl.size,
+        #                Time.now - start)
+        parser.fetch_blocks(fl, &blk)
       end
 
       # Close the underlying Kyoto Cabinet database handle.
