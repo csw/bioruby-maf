@@ -16,5 +16,5 @@ When /^search for blocks between positions (\d+) and (\d+) of (\S+)$/ do |i_star
 end
 
 Then /^(\d+) blocks? (?:is|are) obtained$/ do |num|
-  @blocks.size.should == num.to_i
+  @blocks.count.should == num.to_i
 end
