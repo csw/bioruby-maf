@@ -530,6 +530,10 @@ module Bio
         _parse_header()
       end
 
+      def close
+        f.close
+      end
+
       # Create a {ParseContext} for random access, using the given
       # chunk size.
       #
