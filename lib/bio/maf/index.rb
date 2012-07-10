@@ -309,9 +309,7 @@ module Bio
         bin_intervals.values.each do |intervals|
           intervals.sort_by! {|i| i.begin}
         end
-        ready = Time.now
-        $stderr.puts "bin intervals computed after #{ready - start} seconds."
-        matches = if RUBY_PLATFORM == 'java'
+        matches = if RUBY_PLATFORM == 'java' && bin_intervals.size > 4
                     scan_bins_parallel(chrom_id, bin_intervals, filters)
                   else
                     scan_bins(chrom_id, bin_intervals, filters)
