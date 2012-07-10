@@ -61,6 +61,69 @@ module Bio
       end
     end
 
+    class Access
+
+      attr_accessor :parse_options
+
+      def self.maf_dir(dir, options={})
+        self.new(dir, options)
+      end
+
+      def initialize(dir, options={})
+        @dir = dir
+        @parse_options = options
+        @maf_files = Dir.glob("#{dir}/*.maf")
+        @indices = {}
+        @maf_by_chrom = {}
+        scan_indices!
+      end
+
+      def scan_indices!
+        @maf_files.each do |maf|
+          base = File.basename(maf, '.maf')
+          index_f = "#{@dir}/#{base}.kct"
+          if File.exists? index_f
+            index = KyotoIndex.open(index_f)
+            @indices[index.ref_seq] = index
+            @maf_by_chrom[index.ref_seq] = maf
+          end
+        end
+      end
+
+      ## refactor the #each_block interface a bit for this
+      ## dispatch on GenomicInterval#source or whatever
+      ## encapsulate, create Parsers as needed
+
+      def find(intervals, &blk)
+        if block_given?
+          by_chrom = intervals.group_by { |i| i.chrom }
+          by_chrom.keys.each do |chrom|
+            unless @indices.has_key? chrom
+              raise "No index available for chromosome #{chrom}!"
+            end
+          end
+          by_chrom.each do |chrom, c_intervals|
+            index = @indices[chrom]
+            with_parser(chrom) do |parser|
+              index.find(c_intervals, parser, &blk)
+            end
+          end
+        else
+          enum_for(:find, intervals)
+        end
+      end
+
+      def with_parser(chrom)
+        parser = Parser.new(@maf_by_chrom[chrom], @parse_options)
+        begin
+          yield parser
+        ensure
+          parser.close
+        end
+      end
+
+    end
+
     class KyotoIndex
       include KVHelpers
 
@@ -288,7 +351,6 @@ module Bio
       # Build a fetch list of alignment blocks to read, given an array
       # of Bio::GenomicInterval objects
       def fetch_list(intervals, filter_spec={})
-        start = Time.now
         filter_spec ||= {}
         filters = Filters.build(filter_spec, self)
         chrom = intervals.first.chrom
