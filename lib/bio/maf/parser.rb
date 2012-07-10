@@ -575,12 +575,16 @@ module Bio
       #
       # @param [Array] fetch_list the fetch list
       # @return [Array<Block>] the requested alignment blocks
-      def fetch_blocks(fetch_list)
-        merged = merge_fetch_list(fetch_list)
-        if RUBY_PLATFORM == 'java' && @opts.fetch(:threads, 1) > 1
-          fetch_blocks_merged_parallel(merged)
+      def fetch_blocks(fetch_list, &blk)
+        if blk
+          merged = merge_fetch_list(fetch_list)
+          if RUBY_PLATFORM == 'java' && @opts.fetch(:threads, 1) > 1
+            fetch_blocks_merged_parallel(merged, &blk)
+          else
+            fetch_blocks_merged(merged, &blk)
+          end
         else
-          fetch_blocks_merged(merged)
+          enum_for(:fetch_blocks, fetch_list)
         end
       end
 
@@ -588,23 +592,21 @@ module Bio
       #
       # @param [Array] fetch_list merged fetch list from {#merge_fetch_list}.
       # @return [Array<Block>] the requested alignment blocks
-      def fetch_blocks_merged(fetch_list)
-        Enumerator.new do |y|
-          start = Time.now
-          total_size = fetch_list.collect { |e| e[1] }.reduce(:+)
-          with_context(@random_access_chunk_size) do |ctx|
-            fetch_list.each do |e|
-              ctx.fetch_blocks(*e).each do |block|
-                y << block
-                #total_size += block.size
-              end
+      def fetch_blocks_merged(fetch_list, &blk)
+        start = Time.now
+        total_size = fetch_list.collect { |e| e[1] }.reduce(:+)
+        with_context(@random_access_chunk_size) do |ctx|
+          fetch_list.each do |e|
+            ctx.fetch_blocks(*e).each do |block|
+              yield block
+              #total_size += block.size
             end
           end
-          elapsed = Time.now - start
-          rate = (total_size / 1048576.0) / elapsed
-          $stderr.printf("Fetched blocks in %.3fs, %.1f MB/s.\n",
-                         elapsed, rate)
         end
+        elapsed = Time.now - start
+        rate = (total_size / 1048576.0) / elapsed
+        $stderr.printf("Fetched blocks in %.3fs, %.1f MB/s.\n",
+                       elapsed, rate)
       end
 
       # Fetch and parse the blocks given by the merged fetch list, in
@@ -614,40 +616,38 @@ module Bio
       # @param [Array] fetch_list merged fetch list from {#merge_fetch_list}.
       # @return [Array<Block>] the requested alignment blocks
       def fetch_blocks_merged_parallel(fetch_list)
-        Enumerator.new do |y|
-          total_size = fetch_list.collect { |e| e[1] }.reduce(:+)
-          start = Time.now
-          n_threads = @opts.fetch(:threads, 1)
-          # TODO: break entries up into longer runs for more
-          # sequential I/O
-          jobs = java.util.concurrent.ConcurrentLinkedQueue.new(fetch_list)
-          ct = CompletionTracker.new(fetch_list)
-          completed = ct.queue
-          threads = []
-          n_threads.times { threads << make_worker(jobs, ct) }
+        total_size = fetch_list.collect { |e| e[1] }.reduce(:+)
+        start = Time.now
+        n_threads = @opts.fetch(:threads, 1)
+        # TODO: break entries up into longer runs for more
+        # sequential I/O
+        jobs = java.util.concurrent.ConcurrentLinkedQueue.new(fetch_list)
+        ct = CompletionTracker.new(fetch_list)
+        completed = ct.queue
+        threads = []
+        n_threads.times { threads << make_worker(jobs, ct) }
 
-          n_res = 0
-          while n_res < fetch_list.size
-            c = completed.poll(1, java.util.concurrent.TimeUnit::SECONDS)
-            unless c
-              raise "Worker failed!" if threads.find { |t| t.status.nil? }
-              next
-            end
-            c.each do |block|
-              y << block
-            end
-            n_res += 1
+        n_res = 0
+        while n_res < fetch_list.size
+          c = completed.poll(1, java.util.concurrent.TimeUnit::SECONDS)
+          unless c
+            raise "Worker failed!" if threads.find { |t| t.status.nil? }
+            next
           end
-          threads.each { |t| t.join }
-          elapsed = Time.now - start
-          $stderr.printf("Fetched blocks from %d threads in %.1fs.\n",
-                         n_threads,
-                         elapsed)
-          mb = total_size / 1048576.0
-          $stderr.printf("%.3f MB processed (%.1f MB/s).\n",
-                         mb,
-                         mb / elapsed)
+          c.each do |block|
+            yield block
+          end
+          n_res += 1
         end
+        threads.each { |t| t.join }
+        elapsed = Time.now - start
+        $stderr.printf("Fetched blocks from %d threads in %.1fs.\n",
+                       n_threads,
+                       elapsed)
+        mb = total_size / 1048576.0
+        $stderr.printf("%.3f MB processed (%.1f MB/s).\n",
+                       mb,
+                       mb / elapsed)
       end
 
       # Create a worker thread for parallel parsing.
@@ -775,8 +775,12 @@ module Bio
       end
 
       def each_block
-        until at_end
-          yield parse_block()
+        if block_given?
+          until at_end
+            yield parse_block()
+          end
+        else
+          enum_for(:each_block)
         end
       end
 
