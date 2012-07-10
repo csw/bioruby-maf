@@ -5,11 +5,13 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>Hello World - BioRuby MAF blog</title>
+  <title>Bio-MAF 0.2.0 - BioRuby MAF blog</title>
   <meta name="author" content="Clayton Wheeler">
 
   
-  <meta name="description" content="Hello World! This blog will be tracking the development of bio-maf, a Multiple Alignment Format (MAF) parser for the Ruby bioinformatics library &hellip;">
+  <meta name="description" content="I have released bio-maf version 0.2.0 as a Ruby gem. The main new
+feature in this release is MAF &#8216;tiling&#8217;; combining the alignment
+blocks &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -18,7 +20,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://csw.github.com/bioruby-maf/blog/2012/05/09/hello-world">
+  <link rel="canonical" href="http://csw.github.com/bioruby-maf/blog/2012/07/09/bio-maf_0.2.0">
   <link href="/bioruby-maf/favicon.png" rel="icon">
   <link href="/bioruby-maf/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <script src="/bioruby-maf/javascripts/modernizr-2.0.js"></script>
@@ -67,7 +69,7 @@
   
   <header>
     
-      <h1 class="entry-title">Hello World</h1>
+      <h1 class="entry-title">Bio-MAF 0.2.0</h1>
     
     
       <p class="meta">
@@ -83,7 +85,7 @@
   
 
 
-<time datetime="2012-05-09T19:33:00-04:00" pubdate data-updated="true">May 9<span>th</span>, 2012</time>
+<time datetime="2012-07-09T22:59:00-04:00" pubdate data-updated="true">Jul 9<span>th</span>, 2012</time>
         
          | <a href="#disqus_thread">Comments</a>
         
@@ -92,9 +94,27 @@
   </header>
 
 
-<div class="entry-content"><p>Hello World! This blog will be tracking the development of <a href="https://github.com/csw/bioruby-maf">bio-maf</a>, a <a href="https://cgwb.nci.nih.gov/FAQ/FAQformat.html#format5">Multiple Alignment Format</a> (MAF) parser for the Ruby bioinformatics library <a href="http://bioruby.open-bio.org/">BioRuby</a>, as part of the Google Summer of Code 2012. I&#8217;m Clayton Wheeler, a programmer and a biology student at the University of Michigan. This is exciting for me as my first substantial open source project, and as a way to write hopefully-useful bioinformatics software. And thanks, Google, for making this possible.</p>
+<div class="entry-content"><p>I have released <a href="https://github.com/csw/bioruby-maf">bio-maf</a> version 0.2.0 as a Ruby gem. The main new
+feature in this release is MAF &#8216;tiling&#8217;; combining the alignment
+blocks covering a given genomic interval, optionally filling in gaps
+with reference sequence data, to output a single alignment block. See
+the <a href="https://github.com/csw/bioruby-maf#tile-blocks-together-over-an-interval">README</a> for more details. This includes a <a href="http://csw.github.com/bioruby-maf/man/maf_tile.1.html">maf_tile(1)</a>
+tool. The name of this feature, and inspiration for the
+implementation, comes from the <a href="https://bitbucket.org/james_taylor/bx-python/wiki/Home">bx-python</a> implementation.</p>
 
-<p>In my next post I&#8217;ll discuss what MAF is, what it&#8217;s useful for, and how I&#8217;m planning to approach the project. I&#8217;ll be making weekly status posts, plus others as inspiration strikes.</p>
+<p>This release also enables <a href="https://github.com/csw/bioruby-maf#remove-gaps-from-parsed-blocks">gap removal</a> in cases where removal of
+some species from an alignment block leaves a gap in all remaining sequences.</p>
+
+<p>Other fixes and improvements include:</p>
+
+<ul>
+<li><a href="https://github.com/csw/bioruby-maf/issues/59">#59</a>: returning
+blocks in sorted order</li>
+<li><a href="https://github.com/csw/bioruby-maf/issues/56">#56</a>: avoiding a
+race condition in parallel parsing</li>
+<li>Using all available cores by default under JRuby</li>
+</ul>
+
 </div>
 
 
@@ -117,7 +137,7 @@
   
 
 
-<time datetime="2012-05-09T19:33:00-04:00" pubdate data-updated="true">May 9<span>th</span>, 2012</time>
+<time datetime="2012-07-09T22:59:00-04:00" pubdate data-updated="true">Jul 9<span>th</span>, 2012</time>
       
 
 
@@ -125,7 +145,7 @@
     
       <div class="sharing">
   
-  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://csw.github.com/bioruby-maf/blog/2012/05/09/hello-world/" data-via="" data-counturl="http://csw.github.com/bioruby-maf/blog/2012/05/09/hello-world/" >Tweet</a>
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://csw.github.com/bioruby-maf/blog/2012/07/09/bio-maf_0.2.0/" data-via="" data-counturl="http://csw.github.com/bioruby-maf/blog/2012/07/09/bio-maf_0.2.0/" >Tweet</a>
   
   
   
@@ -134,8 +154,8 @@
     
     <p class="meta">
       
+        <a class="basic-alignment left" href="/bioruby-maf/blog/2012/07/02/kyoto_cabinet_support_for_jruby/" title="Previous Post: Kyoto Cabinet support for JRuby">&laquo; Kyoto Cabinet support for JRuby</a>
       
-        <a class="basic-alignment right" href="/bioruby-maf/blog/2012/05/13/progress/" title="Next Post: GSoC Week 1">GSoC Week 1 &raquo;</a>
       
     </p>
   </footer>
@@ -231,8 +251,8 @@
       
         
         // var disqus_developer = 1;
-        var disqus_identifier = 'http://csw.github.com/bioruby-maf/blog/2012/05/09/hello-world/';
-        var disqus_url = 'http://csw.github.com/bioruby-maf/blog/2012/05/09/hello-world/';
+        var disqus_identifier = 'http://csw.github.com/bioruby-maf/blog/2012/07/09/bio-maf_0.2.0/';
+        var disqus_url = 'http://csw.github.com/bioruby-maf/blog/2012/07/09/bio-maf_0.2.0/';
         var disqus_script = 'embed.js';
       
     (function () {
