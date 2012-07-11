@@ -3,7 +3,6 @@ Given /^indexed MAF files in "(.*?)"$/ do |dir|
   @access = Bio::MAF::Access.maf_dir(dir, @opts)
 end
 
-@pending
 When /^I query for the genomic intervals$/ do |table|
   # table is a Cucumber::Ast::Table
   intervals = table.hashes.collect do |row|

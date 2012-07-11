@@ -7,6 +7,10 @@ When /^write the header from the original MAF file$/ do
   @writer.write_header(@parser.header)
 end
 
+When /^write a default header$/ do
+  @writer.write_header(Bio::MAF::Header.default)
+end
+
 When /^write all the parsed blocks$/ do
   @writer.write_blocks(@parser.parse_blocks)
 end

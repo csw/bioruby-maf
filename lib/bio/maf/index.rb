@@ -113,8 +113,19 @@ module Bio
         end
       end
 
+      def slice(interval, &blk)
+        unless @indices.has_key? interval.chrom
+          raise "No index available for chromosome #{chrom}!"
+        end
+        index = @indices[interval.chrom]
+        with_parser(interval.chrom) do |parser|
+          index.slice(interval, parser, &blk)
+        end
+      end
+
       def with_parser(chrom)
         parser = Parser.new(@maf_by_chrom[chrom], @parse_options)
+        parser.sequence_filter = self.sequence_filter
         begin
           yield parser
         ensure
@@ -125,7 +136,6 @@ module Bio
     end
 
     class KyotoIndex
-        parser.sequence_filter = self.sequence_filter
       include KVHelpers
 
       attr_reader :db, :species, :species_max_id
@@ -268,6 +278,16 @@ module Bio
       # Close the underlying Kyoto Cabinet database handle.
       def close
         db.close
+      end
+
+      def slice(interval, parser, filter={})
+        if block_given?
+          find([interval], parser, filter) do |block|
+            yield block.slice(interval)
+          end
+        else
+          enum_for(:slice, interval, parser, filter)
+        end
       end
 
       #### KyotoIndex Internals
