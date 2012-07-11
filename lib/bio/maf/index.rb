@@ -63,7 +63,7 @@ module Bio
 
     class Access
 
-      attr_accessor :parse_options
+      attr_accessor :parse_options, :sequence_filter
 
       def self.maf_dir(dir, options={})
         self.new(dir, options)
@@ -125,6 +125,7 @@ module Bio
     end
 
     class KyotoIndex
+        parser.sequence_filter = self.sequence_filter
       include KVHelpers
 
       attr_reader :db, :species, :species_max_id
