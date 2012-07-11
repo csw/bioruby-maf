@@ -78,6 +78,10 @@ module Bio
         scan_indices!
       end
 
+      def close
+        @indices.values.each { |ki| ki.close }
+      end
+
       def scan_indices!
         @maf_files.each do |maf|
           base = File.basename(maf, '.maf')
@@ -89,10 +93,6 @@ module Bio
           end
         end
       end
-
-      ## refactor the #each_block interface a bit for this
-      ## dispatch on GenomicInterval#source or whatever
-      ## encapsulate, create Parsers as needed
 
       def find(intervals, &blk)
         if block_given?
