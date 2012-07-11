@@ -21,6 +21,12 @@ module Bio
       # @return [Hash]
       attr_accessor :alignment_params
 
+      # Create a default header with version=1.
+      # @return [Header]
+      def Header.default
+        Header.new({:version => 1}, nil)
+      end
+
       def initialize(vars, params)
         @vars = vars
         @alignment_params = params
