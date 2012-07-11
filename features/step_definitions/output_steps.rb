@@ -11,6 +11,10 @@ When /^write all the parsed blocks$/ do
   @writer.write_blocks(@parser.parse_blocks)
 end
 
+When /^write all the matched blocks$/ do
+  @writer.write_blocks(@blocks)
+end
+
 RSpec::Matchers.define :match_except_ws do |expected|
   match do |actual|
     system("diff --ignore-space-change --brief #{expected} #{actual} >/dev/null 2>&1")

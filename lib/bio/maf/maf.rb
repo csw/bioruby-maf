@@ -1,4 +1,13 @@
 module Bio
+  class GenomicInterval
+    def intersection(other)
+      raise ArgumentError unless self.chrom == other.chrom
+      GenomicInterval.new(self.chrom,
+                          [self.chr_start, other.chr_start].max,
+                          [self.chr_end, other.chr_end].min)
+    end
+  end
+
   module MAF
 
     # A MAF header, containing the variable-value pairs from the first
@@ -116,6 +125,31 @@ module Bio
         gaps.size
       end
 
+      def slice(interval)
+        case interval.compare(ref_seq.interval)
+        when :contains, :equal
+          return self
+        when :contained_by, :left_overlapped, :right_overlapped
+          _slice(interval.intersection(ref_seq.interval))
+        when :left_adjacent, :right_adjacent, :left_off, :right_off
+          raise "Cannot slice a block with a non-overlapping interval! Block #{ref_seq.interval}, interval #{interval}"
+        when :different_chrom
+          raise "Cannot slice a block with reference sequence #{ref_seq.source} using an interval on #{interval.chrom}!"
+        else
+          raise "Unhandled comparison result: #{interval.compare(ref_seq.interval)}"
+        end
+      end
+
+      def _slice(interval)
+        offset = interval.zero_start - ref_seq.start
+        i_len  = interval.length
+        s2 = sequences.collect { |s| s.slice(offset, i_len) }
+        v2 = vars.dup
+        v2[:score] = '0.0'
+        # TODO: should the filtered param be #modified? instead?
+        Block.new(v2, s2, offset, size, @filtered)
+      end
+
     end
 
     # A sequence within an alignment block.
@@ -151,6 +185,22 @@ module Bio
 
       def end
         start + size
+      end
+
+      def interval
+        GenomicInterval.zero_based(self.source, self.start, self.end)
+      end
+
+      def slice(offset, len)
+        s2 = Sequence.new(source,
+                          start + offset,
+                          len,
+                          strand,
+                          src_size,
+                          text.slice(offset, len))
+        s2.quality = quality.slice(offset, len) if quality
+        # TODO: what to do with synteny data?
+        s2
       end
 
       # Whether this sequence is empty. Only true for {EmptySequence}
@@ -251,6 +301,10 @@ module Bio
 
       def text
         ''
+      end
+
+      def slice(offset, len)
+        self
       end
 
       def empty?
