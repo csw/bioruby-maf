@@ -252,7 +252,8 @@ module Bio
       # @param [Parser] parser MAF parser for file to fetch blocks
       #  from.
       # @param [Hash] filter Block filter expression.
-      # @return [Array<Block>]
+      # @yield [block] each {Block} matched, in turn
+      # @return [Enumerable<Block>] each matching {Block}, if no block given
       # @api public
       def find(intervals, parser, filter={}, &blk)
         # start = Time.now

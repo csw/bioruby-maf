@@ -419,19 +419,21 @@ module Bio
       # @param [Array] block_offsets Offsets of blocks to parse.
       # @return [Array<Block>]
       def fetch_blocks(offset, len, block_offsets)
-        start_chunk_read_if_needed(offset, len)
-        # read chunks until we have the entire merged set of
-        # blocks ready to parse
-        # to avoid fragment joining
-        append_chunks_to(len)
-        # parse the blocks
-        Enumerator.new do |y|
+        if block_given?
+          start_chunk_read_if_needed(offset, len)
+          # read chunks until we have the entire merged set of
+          # blocks ready to parse
+          # to avoid fragment joining
+          append_chunks_to(len)
+          # parse the blocks
           block_offsets.each do |expected_offset|
             block = parse_block
             ctx.parse_error("expected a block at offset #{expected_offset} but could not parse one!") unless block
             ctx.parse_error("got block with offset #{block.offset}, expected #{expected_offset}!") unless block.offset == expected_offset
-            y << block
+            yield block
           end
+        else
+          enum_for(:fetch_blocks, offset, len, block_offsets)
         end
       end
 
@@ -578,7 +580,8 @@ module Bio
       # `fetch_list` should be an array of `[offset, length]` tuples.
       #
       # @param [Array] fetch_list the fetch list
-      # @return [Array<Block>] the requested alignment blocks
+      # @yield [block] each block matched, in turn
+      # @return [Enumerable<Block>] each matching {Block}, if no block given
       def fetch_blocks(fetch_list, &blk)
         if blk
           merged = merge_fetch_list(fetch_list)
@@ -601,10 +604,7 @@ module Bio
         total_size = fetch_list.collect { |e| e[1] }.reduce(:+)
         with_context(@random_access_chunk_size) do |ctx|
           fetch_list.each do |e|
-            ctx.fetch_blocks(*e).each do |block|
-              yield block
-              #total_size += block.size
-            end
+            ctx.fetch_blocks(*e, &blk)
           end
         end
         elapsed = Time.now - start
@@ -725,23 +725,27 @@ module Bio
       # Delegates to {#parse_blocks_parallel} if `:threads` is set
       # under JRuby.
       #
-      # @return [Enumerator<Block>] enumerator of alignment blocks.
+      # @return [Enumerator<Block>] enumerator of {Block}s if no block given.
+      # @yield [block] Passes each {Block} in turn to a block
       # @api public
-      def parse_blocks
-        if RUBY_PLATFORM == 'java' && @opts.has_key?(:threads)
-          parse_blocks_parallel
-        else
-          Enumerator.new do |y|
+      def each_block(&blk)
+        if block_given?
+          if RUBY_PLATFORM == 'java' && @opts.has_key?(:threads)
+            parse_blocks_parallel(&blk)
+          else
             until at_end
-              y << parse_block()
+              yield parse_block()
             end
           end
+        else
+          enum_for(:parse_blocks)
         end
       end
+      alias_method :parse_blocks, :each_block
 
       # Parse alignment blocks with a worker thread.
       #
-      # @return [Enumerator<Block>] enumerator of alignment blocks.
+      # @block block handler
       # @api private
       def parse_blocks_parallel
         queue = java.util.concurrent.LinkedBlockingQueue.new(128)
@@ -756,35 +760,23 @@ module Bio
             $stderr.puts $!.backtrace.join("\n")
           end
         end
-        Enumerator.new do |y|
-          saw_eof = false
-          n_final_poll = 0
-          while true
-            block = queue.poll(1, java.util.concurrent.TimeUnit::SECONDS)
-            if block == :eof
-              saw_eof = true
-              break
-            elsif block
-              y << block
-            else
-              # timed out
-              n_final_poll += 1 unless worker.alive?
-            end
-            break if n_final_poll > 1
+        saw_eof = false
+        n_final_poll = 0
+        while true
+          block = queue.poll(1, java.util.concurrent.TimeUnit::SECONDS)
+          if block == :eof
+            saw_eof = true
+            break
+          elsif block
+            yield block
+          else
+            # timed out
+            n_final_poll += 1 unless worker.alive?
           end
-          unless saw_eof
-            raise "worker exited unexpectedly!"
-          end
+          break if n_final_poll > 1
         end
-      end
-
-      def each_block
-        if block_given?
-          until at_end
-            yield parse_block()
-          end
-        else
-          enum_for(:each_block)
+        unless saw_eof
+          raise "worker exited unexpectedly!"
         end
       end
 
