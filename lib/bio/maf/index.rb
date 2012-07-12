@@ -272,7 +272,7 @@ module Bio
         # $stderr.printf("Built fetch list of %d items in %.3fs.\n",
         #                fl.size,
         #                Time.now - start)
-        parser.fetch_blocks(fl, &blk)
+        parser.fetch_blocks(fl, &blk) unless fl.empty?
       end
 
       # Close the underlying Kyoto Cabinet database handle.
