@@ -17,3 +17,7 @@ end
 Then /^the text size of the block is (\d+)$/ do |e_text_size|
   @block.text_size.should == e_text_size.to_i
 end
+
+Then /^the text size of block (\d+) is (\d+)$/ do |n, e_text_size|
+  @blocks[n.to_i].text_size.should == e_text_size.to_i
+end
