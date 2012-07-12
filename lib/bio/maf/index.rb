@@ -63,7 +63,7 @@ module Bio
 
     class Access
 
-      attr_accessor :parse_options, :sequence_filter
+      attr_accessor :parse_options, :sequence_filter, :block_filter
 
       def self.maf_dir(dir, options={})
         self.new(dir, options)
@@ -105,7 +105,7 @@ module Bio
           by_chrom.each do |chrom, c_intervals|
             index = @indices[chrom]
             with_parser(chrom) do |parser|
-              index.find(c_intervals, parser, &blk)
+              index.find(c_intervals, parser, block_filter, &blk)
             end
           end
         else

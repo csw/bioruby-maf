@@ -29,6 +29,10 @@ Then /^the alignment block has (\d+) sequences$/ do |n_seq|
   @block.sequences.size.should == n_seq.to_i
 end
 
+Then /^block (\d+) has (\d+) sequences$/ do |block_n, n_seq|
+  @blocks[block_n.to_i].sequences.size.should == n_seq.to_i
+end
+
 Then /^sequence (\d+) has (\w.*?) "(.*?)"$/ do |i, method, str|
   method_sym = method.gsub(/ /, '_').to_sym
   @block.raw_seq(i.to_i).send(method_sym).should == str

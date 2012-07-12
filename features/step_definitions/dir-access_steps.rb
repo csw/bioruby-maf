@@ -10,5 +10,6 @@ When /^I query for the genomic intervals$/ do |table|
                                     row['start'].to_i,
                                     row['end'].to_i)
   end
-  @blocks = @access.find(intervals)
+  @access.block_filter = @block_filter
+  @blocks = @access.find(intervals).to_a
 end
