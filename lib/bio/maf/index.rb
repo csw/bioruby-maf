@@ -78,31 +78,8 @@ module Bio
         scan_indices!
       end
 
-      def tile(interval)
-        index = chrom_index(interval.chrom)
-        with_parser(interval.chrom) do |parser|
-          tiler = Tiler.new
-          tiler.index = index
-          tiler.parser = parser
-          tiler.interval = interval
-          yield tiler
-        end
-      end
-
       def close
         @indices.values.each { |ki| ki.close }
-      end
-
-      def scan_indices!
-        @maf_files.each do |maf|
-          base = File.basename(maf, '.maf')
-          index_f = "#{@dir}/#{base}.kct"
-          if File.exists? index_f
-            index = KyotoIndex.open(index_f)
-            @indices[index.ref_seq] = index
-            @maf_by_chrom[index.ref_seq] = maf
-          end
-        end
       end
 
       def find(intervals, &blk)
@@ -124,11 +101,15 @@ module Bio
         end
       end
 
-      def chrom_index(chrom)
-        unless @indices.has_key? chrom
-          raise "No index available for chromosome #{chrom}!"
+      def tile(interval)
+        index = chrom_index(interval.chrom)
+        with_parser(interval.chrom) do |parser|
+          tiler = Tiler.new
+          tiler.index = index
+          tiler.parser = parser
+          tiler.interval = interval
+          yield tiler
         end
-        @indices[chrom]
       end
 
       def slice(interval, &blk)
@@ -136,6 +117,27 @@ module Bio
         with_parser(interval.chrom) do |parser|
           index.slice(interval, parser, &blk)
         end
+      end
+
+      #### Internals
+
+      def scan_indices!
+        @maf_files.each do |maf|
+          base = File.basename(maf, '.maf')
+          index_f = "#{@dir}/#{base}.kct"
+          if File.exists? index_f
+            index = KyotoIndex.open(index_f)
+            @indices[index.ref_seq] = index
+            @maf_by_chrom[index.ref_seq] = maf
+          end
+        end
+      end
+
+      def chrom_index(chrom)
+        unless @indices.has_key? chrom
+          raise "No index available for chromosome #{chrom}!"
+        end
+        @indices[chrom]
       end
 
       def with_parser(chrom)
