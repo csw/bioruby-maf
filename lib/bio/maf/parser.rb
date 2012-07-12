@@ -754,10 +754,11 @@ module Bio
         if @opts[:stitch]
           prev = nil
           fun.call do |cur|
-            if (prev.filtered? || cur.filtered?) && prev.stitchable_with?(cur)
+            if prev && (prev.filtered? || cur.filtered?) \
+              && prev.stitchable_with?(cur)
               prev = prev.stitch(cur)
             else
-              yield prev
+              yield prev if prev
               prev = cur
             end
           end
