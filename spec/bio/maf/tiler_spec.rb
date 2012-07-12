@@ -4,6 +4,47 @@ module Bio::MAF
 
   describe Tiler do
 
+    describe "#reference=" do
+      it "takes a FASTARangeReader" do
+        t = Tiler.new
+        t.reference = FASTARangeReader.new((TestData + 'gap-sp1.fa').to_s)
+        t.reference.read_interval(0, 3).should == 'CCA'
+      end
+      it "takes an open file" do
+        (TestData + 'gap-sp1.fa').open do |fh|
+          t = Tiler.new
+          t.reference = fh
+          t.reference.read_interval(0, 3).should == 'CCA'
+        end
+      end
+      it "takes a FASTA literal" do
+        ref = File.read(TestData + 'gap-sp1.fa')
+        t = Tiler.new
+        t.reference = ref
+        t.reference.read_interval(0, 3).should == 'CCA'
+      end
+      it "takes a Pathname" do
+        t = Tiler.new
+        t.reference = TestData + 'gap-sp1.fa'
+        t.reference.read_interval(0, 3).should == 'CCA'
+      end
+      it "takes a path string" do
+        t = Tiler.new
+        t.reference = (TestData + 'gap-sp1.fa').to_s
+        t.reference.read_interval(0, 3).should == 'CCA'
+      end
+      it "takes a gzipped Pathname" do
+        t = Tiler.new
+        t.reference = TestData + 'gap-sp1.fa.gz'
+        t.reference.read_interval(0, 3).should == 'CCA'
+      end
+      it "takes a gzipped path string" do
+        t = Tiler.new
+        t.reference = (TestData + 'gap-sp1.fa.gz').to_s
+        t.reference.read_interval(0, 3).should == 'CCA'
+      end
+    end
+
     describe "#runs" do
       it "returns a uniform run properly" do
         a = Array.new(10, 'a')

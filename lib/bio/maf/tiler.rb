@@ -1,3 +1,4 @@
+require 'pathname'
 require 'zlib'
 
 module Bio::MAF
@@ -9,7 +10,7 @@ module Bio::MAF
 
     attr_accessor :index
     attr_accessor :parser
-    attr_accessor :reference
+    attr_reader :reference
     # GenomicInterval
     attr_accessor :interval
     attr_accessor :species
@@ -20,6 +21,25 @@ module Bio::MAF
     end
 
     def ref_data(range)
+    # Set the reference sequence.
+    #
+    # @param source [FASTARangeReader, String, Pathname]
+    def reference=(source)
+      ref = case
+            when source.is_a?(FASTARangeReader)
+              source
+            when source.respond_to?(:seek)
+              # open file
+              FASTARangeReader.new(source)
+            when source.respond_to?(:start_with?) && source.start_with?('>')
+              # FASTA string
+              FASTARangeReader.new(StringIO.new(source))
+            else
+              FASTARangeReader.new(source.to_s)
+            end
+      @reference = ref
+    end
+
       if reference
         if reference.respond_to? :read_interval
           reference.read_interval(range.begin, range.end)
