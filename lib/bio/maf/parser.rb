@@ -586,10 +586,11 @@ module Bio
         if blk
           merged = merge_fetch_list(fetch_list)
           if RUBY_PLATFORM == 'java' && @opts.fetch(:threads, 1) > 1
-            fetch_blocks_merged_parallel(merged, &blk)
+            fun = lambda { |&b2| fetch_blocks_merged_parallel(merged, &b2) }
           else
-            fetch_blocks_merged(merged, &blk)
+            fun = lambda { |&b2| fetch_blocks_merged(merged, &b2) }
           end
+          wrap_block_seq(fun, &blk)
         else
           enum_for(:fetch_blocks, fetch_list)
         end
@@ -732,17 +733,39 @@ module Bio
       def each_block(&blk)
         if block_given?
           if RUBY_PLATFORM == 'java' && @opts.has_key?(:threads)
-            parse_blocks_parallel(&blk)
+            fun = method(:parse_blocks_parallel)
           else
-            until at_end
-              yield parse_block()
-            end
+            fun = method(:each_block_seq)
           end
+          wrap_block_seq(fun, &blk)
         else
-          enum_for(:parse_blocks)
+          enum_for(:each_block)
         end
       end
       alias_method :parse_blocks, :each_block
+
+      def each_block_seq
+        until at_end
+          yield parse_block()
+        end
+      end
+
+      def wrap_block_seq(fun, &blk)
+        if @opts[:stitch]
+          prev = nil
+          fun.call do |cur|
+            if (prev.filtered? || cur.filtered?) && prev.stitchable_with?(cur)
+              prev = prev.stitch(cur)
+            else
+              yield prev
+              prev = cur
+            end
+          end
+          yield prev
+        else
+          fun.call(&blk)
+        end
+      end
 
       # Parse alignment blocks with a worker thread.
       #
