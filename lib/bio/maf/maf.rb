@@ -1,3 +1,5 @@
+require 'bio-alignment'
+
 module Bio
   class GenomicInterval
     def intersection(other)
@@ -92,6 +94,11 @@ module Bio
       # @return [Boolean]
       def filtered?
         @filtered
+      end
+
+      def to_bio_alignment
+        ba_seq = sequences.collect { |s| s.to_bio_alignment }
+        Bio::BioAlignment::Alignment.new(ba_seq)
       end
 
       GAP = /-+/
@@ -268,6 +275,10 @@ module Bio
             quality.slice!(offset, len)
           end
         end
+      end
+
+      def to_bio_alignment
+        Bio::BioAlignment::Sequence.new(source, text)
       end
 
       def write_fasta(writer)

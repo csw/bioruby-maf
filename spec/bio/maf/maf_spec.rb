@@ -66,6 +66,16 @@ module Bio
           b1.stitchable_with?(b2).should be_true
         end
       end
+      describe "#to_bio_alignment" do
+        it "returns a usable Bio::BioAlignment::Alignment" do
+          p = Parser.new(TestData + 'mm8_chr7_tiny.maf')
+          b = p.parse_block
+          ba = b.to_bio_alignment
+          ba.size.should == 10
+          ba.sequences[0].id.should == "mm8.chr7"
+          ba.sequences[0].seq.should =~ /^GGGCTGAGGGC--/
+        end
+      end
     end
 
     describe Sequence do
@@ -132,6 +142,17 @@ module Bio
           }.to raise_error
         end
 
+      end
+
+      describe "#to_bioalignment" do
+        it "returns a usable Bio::BioAlignment::Sequence" do
+          @parser = DummyParser.new
+          line = "s human_unc 9077 8 + 10998 ACAGTATT"
+          s = @parser.parse_seq_line(line, nil)
+          as = s.to_bio_alignment
+          as.id.should == "human_unc"
+          as.seq.should == "ACAGTATT"
+        end
       end
 
     end
