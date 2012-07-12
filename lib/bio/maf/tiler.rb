@@ -20,7 +20,6 @@ module Bio::MAF
       @species_map = {}
     end
 
-    def ref_data(range)
     # Set the reference sequence.
     #
     # @param source [FASTARangeReader, String, Pathname]
@@ -40,6 +39,7 @@ module Bio::MAF
       @reference = ref
     end
 
+    def ref_data(range)
       if reference
         if reference.respond_to? :read_interval
           reference.read_interval(range.begin, range.end)
@@ -53,8 +53,12 @@ module Bio::MAF
       end
     end
 
+    def species_to_use
+      species || species_map.keys
+    end
+
     def tile
-      parser.sequence_filter[:only_species] = @species
+      parser.sequence_filter[:only_species] = species_to_use
       # TODO: remove gaps
       blocks = index.find([interval], parser).sort_by { |b| b.vars[:score] }
       mask = Array.new(interval.length, :ref)
@@ -71,7 +75,7 @@ module Bio::MAF
                   (slice_start - i_start)...(slice_end - i_start))
       end
       text = []
-      species.each { |s| text << '' }
+      species_to_use.each { |s| text << '' }
       nonref_text = text[1...text.size]
       runs(mask) do |range, block|
         g_range = (range.begin + i_start)...(range.end + i_start)
@@ -89,7 +93,7 @@ module Bio::MAF
         else
           # covered by an alignment block
           t_range = block.ref_seq.text_range(g_range)
-          species.each_with_index do |species, i|
+          species_to_use.each_with_index do |species, i|
             sp_text = text[i]
             seq = block.sequences.find { |s| s.source == species || s.species == species }
             if seq
@@ -106,7 +110,7 @@ module Bio::MAF
     end
 
     def write_fasta(f)
-      species.zip(tile()) do |species, text|
+      species_to_use.zip(tile()) do |species, text|
         sp_out = species_map[species] || species
         f.puts ">#{sp_out}"
         f.puts text
@@ -173,6 +177,7 @@ module Bio::MAF
           in_region = true
         elsif in_region
           need = region_size - data.size
+          raise "should not happen: region #{region_size}, data #{data.size}, need #{need}" if need < 0
           if need > line.size
             data << line
           else
@@ -187,4 +192,3 @@ module Bio::MAF
     end
   end
 end
-          raise "should not happen: region #{region_size}, data #{data.size}, need #{need}" if need < 0
