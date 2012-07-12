@@ -35,7 +35,7 @@ Gem::Specification.new do |s|
   s.add_runtime_dependency('bio-bigbio', [">= 0"])
   s.add_runtime_dependency('bio-genomic-interval', ["~> 0.1.2"])
   if RUBY_PLATFORM == 'java'
-    s.add_runtime_dependency('kyotocabinet-java', ["~> 0.2.0"])
+    s.add_runtime_dependency('kyotocabinet-java', ["~> 0.3.0"])
   else    
     s.add_runtime_dependency('kyotocabinet-ruby', ["~> 1.27.1"])
   end
