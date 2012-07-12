@@ -92,6 +92,19 @@ Or programmatically:
 
 Refer to [`mm8_chr7_tiny.maf`](https://github.com/csw/bioruby-maf/blob/master/test/data/mm8_chr7_tiny.maf).
 
+    require 'bio-maf'
+    access = Bio::MAF::Access.maf_dir('test/data')
+
+    q = [Bio::GenomicInterval.zero_based('mm8.chr7', 80082592, 80082766)]
+    access.find(q) do |block|
+      ref_seq = block.sequences[0]
+      puts "Matched block at #{ref_seq.start}, #{ref_seq.size} bases"
+    end
+
+    # => Matched block at 80082592, 121 bases
+    # => Matched block at 80082713, 54 bases
+
+Or, equivalently, one can work with a specific MAF file and index directly:
 
     require 'bio-maf'
     parser = Bio::MAF::Parser.new('test/data/mm8_chr7_tiny.maf')
@@ -109,12 +122,11 @@ Refer to [`mm8_chr7_tiny.maf`](https://github.com/csw/bioruby-maf/blob/master/te
 ### Filter species returned in alignment blocks
 
     require 'bio-maf'
-    parser = Bio::MAF::Parser.new('test/data/mm8_chr7_tiny.maf')
-    idx = Bio::MAF::KyotoIndex.open('test/data/mm8_chr7_tiny.kct')
+    access = Bio::MAF::Access.maf_dir('test/data')
 
-    parser.sequence_filter = { :only_species => %w(hg18 mm8 rheMac2) }
+    access.sequence_filter = { :only_species => %w(hg18 mm8 rheMac2) }
     q = [Bio::GenomicInterval.zero_based('mm8.chr7', 80082592, 80082766)]
-    blocks = idx.find(q, parser)
+    blocks = access.find(q)
     block = blocks.first
     puts "Block has #{block.sequences.size} sequences."
 
@@ -129,23 +141,26 @@ See also the [Cucumber feature][] and [step definitions][] for this.
 
 #### Match only blocks with all specified species
 
+    access = Bio::MAF::Access.maf_dir('test/data')
     q = [Bio::GenomicInterval.zero_based('mm8.chr7', 80082471, 80082730)]
-    filter = { :with_all_species => %w(panTro2 loxAfr1) }
-    n_blocks = idx.find(q, parser, filter).count
+    access.block_filter = { :with_all_species => %w(panTro2 loxAfr1) }
+    n_blocks = access.find(q).count
     # => 1
 
 #### Match only blocks with a certain number of sequences
 
+    access = Bio::MAF::Access.maf_dir('test/data')
     q = [Bio::GenomicInterval.zero_based('mm8.chr7', 80082767, 80083008)]
-    filter = { :at_least_n_sequences => 6 }
-    n_blocks = idx.find(q, parser, filter).count
+    access.block_filter = { :at_least_n_sequences => 6 }
+    n_blocks = access.find(q).count
     # => 1
 
 #### Match only blocks within a text size range
 
+    access = Bio::MAF::Access.maf_dir('test/data')
     q = [Bio::GenomicInterval.zero_based('mm8.chr7', 0, 80100000)]
-    filter = { :min_size => 72, :max_size => 160 }
-    n_blocks = idx.find(q, parser, filter).count
+    access.block_filter = { :min_size => 72, :max_size => 160 }
+    n_blocks = access.find(q).count
     # => 3
 
 ### Process each block in a MAF file
@@ -155,7 +170,7 @@ See also the [Cucumber feature][] and [step definitions][] for this.
     puts "MAF version: #{p.header.version}"
     # => MAF version: 1
 
-    p.parse_blocks.each do |block|
+    p.each_block do |block|
       block.sequences.each do |seq|
         do_something(seq)
       end
@@ -182,6 +197,12 @@ Refer to [`chr22_ieq.maf`](https://github.com/csw/bioruby-maf/blob/master/test/d
     #      @source="turTru1.scaffold_109008", @start=25049,
     #      @size=1601, @strand=:+, @src_size=50103, @text=nil,
     #      @status="I"> 
+
+Such options can also be set on a Bio::MAF::Access object:
+
+    require 'bio-maf'
+    access = Bio::MAF::Access.maf_dir('test/data')
+    access.parse_options[:parse_empty] = true
 
 ### Remove gaps from parsed blocks
 
