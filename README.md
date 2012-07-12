@@ -213,8 +213,18 @@ sequences that were filtered out. Such gaps can be removed by setting
 the `:remove_gaps` parser option:
 
     require 'bio-maf'
-    p = Bio::MAF::Parser.new('test/data/chr22_ieq.maf',
-                             :remove_gaps => true)
+    access = Bio::MAF::Access.maf_dir('test/data')
+    access.parse_options[:remove_gaps] = true
+
+### Stitch blocks together
+
+Similarly, filtering out species may remove a species which had caused
+two adjacent alignment blocks to be split. By enabling the `:stitch`
+parser option, such blocks can be joined together:
+
+    require 'bio-maf'
+    access = Bio::MAF::Access.maf_dir('test/data')
+    access.parse_options[:stitch] = true
 
 ### Tile blocks together over an interval
 
