@@ -98,6 +98,9 @@ module Bio::MAF
       it "returns the entire sequence" do
         check_range(0, 50)
       end
+      it "returns a sub-line fragment" do
+        check_range(0, 4)
+      end
       it "returns an entire line" do
         check_range(10, 20)
       end
@@ -108,6 +111,3 @@ module Bio::MAF
   end
 
 end
-      it "returns a sub-line fragment" do
-        check_range(0, 4)
-      end
