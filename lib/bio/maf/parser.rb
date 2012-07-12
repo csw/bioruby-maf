@@ -608,9 +608,10 @@ module Bio
           end
         end
         elapsed = Time.now - start
-        rate = (total_size / 1048576.0) / elapsed
-        $stderr.printf("Fetched blocks in %.3fs, %.1f MB/s.\n",
-                       elapsed, rate)
+        # TODO: debug log
+        # rate = (total_size / 1048576.0) / elapsed
+        # $stderr.printf("Fetched blocks in %.3fs, %.1f MB/s.\n",
+        #                elapsed, rate)
       end
 
       # Fetch and parse the blocks given by the merged fetch list, in
