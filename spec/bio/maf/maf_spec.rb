@@ -48,6 +48,24 @@ module Bio
           block.text_size.should == 40
         end
       end
+      describe "#stitchable_with?" do
+        it "is false for blocks with different sequences" do
+          p = Parser.new(TestData + 'mm8_chr7_tiny.maf')
+          sp = %w(mm8 rn4 oryCun1 hg18 panTro2 rheMac2 canFam2 dasNov1 loxAfr1 echTel1)
+          p.sequence_filter = { :only_species => sp }
+          b1 = p.parse_block
+          b2 = p.parse_block
+          b1.stitchable_with?(b2).should be_false
+        end
+        it "is true for blocks with same sequences" do
+          p = Parser.new(TestData + 'mm8_chr7_tiny.maf')
+          sp = %w(mm8 rn4 oryCun1 hg18 panTro2 rheMac2 canFam2 loxAfr1 echTel1)
+          p.sequence_filter = { :only_species => sp }
+          b1 = p.parse_block
+          b2 = p.parse_block
+          b1.stitchable_with?(b2).should be_true
+        end
+      end
     end
 
     describe Sequence do

@@ -156,6 +156,43 @@ module Bio
         Block.new(v2, s2, offset, size, @filtered)
       end
 
+      def stitchable_with?(other)
+        if sequences.size == other.sequences.size
+          r1 = ref_seq
+          r2 = other.ref_seq
+          return false if r1.source != r2.source
+          return false if r1.end != r2.start
+          rest = sequences.each_with_index
+          rest.next
+          mismatch = rest.find do |s1, i|
+            s2 = other.seq_from(s1.source, i)
+            (! s2) || ! s1.stitchable_with?(s2)
+          end
+          return (! mismatch)
+        else
+          return false
+        end
+      end
+
+      def stitch(other)
+        nseq = sequences.each_with_index.collect do |s1, i|
+          s2 = other.seq_from(s1.source, i)
+          s1.stitch(s2)
+        end
+        v2 = vars.dup
+        v2[:score] = '0.0'
+        Block.new(v2, nseq, offset, nil, @filtered)
+      end
+
+      def seq_from(src, pos_guess)
+        sg = sequences[pos_guess]
+        if sg.source == src
+          sg
+        else
+          sequences.find { |s| s.source == src }
+        end
+      end
+
     end
 
     # A sequence within an alignment block.
@@ -238,6 +275,25 @@ module Bio
                      text)
       end
 
+      def stitchable_with?(o)
+        (self.end == o.start) \
+        && (self.strand == o.strand) \
+        && (self.empty? == o.empty?)
+      end
+
+      def stitch(o)
+        s2 = Sequence.new(source,
+                          start,
+                          size + o.size,
+                          strand,
+                          src_size,
+                          text + o.text)
+        if quality && o.quality
+          s2.quality = quality + o.quality
+        end
+        s2
+      end
+
       # Maps the given zero-based genomic range onto a range of string
       # offsets, suitable for extracting the text for the given range
       # from #text.
@@ -311,6 +367,15 @@ module Bio
 
       def slice(offset, len)
         self
+      end
+
+      def stitch(o)
+        EmptySequence.new(source,
+                          start,
+                          size + o.size,
+                          strand,
+                          src_size,
+                          @status)
       end
 
       def empty?
