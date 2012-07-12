@@ -1,0 +1,9 @@
+##maf version=1
+a score=20.0
+s sp1.chr1        10 13 +      50 GGGCTGAGGGC--AG
+s sp2.chr5     53010 13 +   65536 GGGCTGACGGC--AG
+s sp3.chr2     33010 15 +   65536 AGGTTTAGGGCAGAG
+
+a score=21.0
+s sp1.chr1        30 10 +      50 AGGGCGGTCC
+s sp2.chr5     53030 10 +   65536 AGGGCGGTGC
