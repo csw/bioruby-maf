@@ -147,7 +147,9 @@ module Bio::MAF
         line = line_raw.strip
         end_pos = pos + line.size
         if (! in_region) && pos <= z_start && z_start < end_pos
-          data << line.slice((z_start - pos)...(line.size))
+          offset = z_start - pos
+          end_offset = [(offset + region_size), line.size].min
+          data << line.slice(offset...end_offset)
           in_region = true
         elsif in_region
           need = region_size - data.size
@@ -165,3 +167,4 @@ module Bio::MAF
     end
   end
 end
+          raise "should not happen: region #{region_size}, data #{data.size}, need #{need}" if need < 0

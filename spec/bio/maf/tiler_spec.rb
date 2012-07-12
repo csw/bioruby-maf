@@ -67,3 +67,6 @@ module Bio::MAF
   end
 
 end
+      it "returns a sub-line fragment" do
+        check_range(0, 4)
+      end
