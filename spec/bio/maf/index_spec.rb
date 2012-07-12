@@ -3,6 +3,39 @@ require 'spec_helper'
 module Bio
   module MAF
 
+    describe Access do
+      describe "#tile" do
+        it "gives correct output with a Pathname" do
+          access = Access.maf_dir(TestData)
+          interval = GenomicInterval.zero_based('sp1.chr1', 0, 50)
+          buf = StringIO.new
+          access.tile(interval) do |tiler|
+            tiler.reference = TestData + 'gap-sp1.fa'
+            tiler.species = %w(sp1 sp2 sp3)
+            tiler.write_fasta(buf)
+          end
+          buf.string.should == File.read(TestData + 'gap-filled1.fa')
+        end
+      end
+      describe "#tile" do
+        it "gives correct output with only a species map" do
+          access = Access.maf_dir(TestData)
+          interval = GenomicInterval.zero_based('sp1.chr1', 0, 50)
+          buf = StringIO.new
+          access.tile(interval) do |tiler|
+            tiler.reference = TestData + 'gap-sp1.fa'
+            tiler.species_map = {
+              'sp1' => 'sp1',
+              'sp2' => 'sp2',
+              'sp3' => 'sp3'
+            }
+            tiler.write_fasta(buf)
+          end
+          buf.string.should == File.read(TestData + 'gap-filled1.fa')
+        end
+      end
+    end
+
     describe KyotoIndex do
       def has_at_least_n_with_prefix(n, start)
         @idx.db.cursor_process do |cur|

@@ -78,6 +78,17 @@ module Bio
         scan_indices!
       end
 
+      def tile(interval)
+        index = chrom_index(interval.chrom)
+        with_parser(interval.chrom) do |parser|
+          tiler = Tiler.new
+          tiler.index = index
+          tiler.parser = parser
+          tiler.interval = interval
+          yield tiler
+        end
+      end
+
       def close
         @indices.values.each { |ki| ki.close }
       end
@@ -113,11 +124,15 @@ module Bio
         end
       end
 
-      def slice(interval, &blk)
-        unless @indices.has_key? interval.chrom
+      def chrom_index(chrom)
+        unless @indices.has_key? chrom
           raise "No index available for chromosome #{chrom}!"
         end
-        index = @indices[interval.chrom]
+        @indices[chrom]
+      end
+
+      def slice(interval, &blk)
+        index = chrom_index(interval.chrom)
         with_parser(interval.chrom) do |parser|
           index.slice(interval, parser, &blk)
         end

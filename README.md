@@ -230,21 +230,22 @@ man page.
 [feature]: https://github.com/csw/bioruby-maf/blob/master/features/gap-filling.feature
 
     require 'bio-maf'
-    tiler = Bio::MAF::Tiler.new
-    tiler.index = Bio::MAF::KyotoIndex.open('test/data/mm8_chr7_tiny.kct')
-    tiler.parser = Bio::MAF::Parser.new('test/data/mm8_chr7_tiny.maf')
-    # optional
-    tiler.reference = Bio::MAF::FASTARangeReader.new('reference.fa.gz')
-    tiler.species = %w(mm8 rn4 hg18)
-    tiler.species_map = {
-      'mm8' => 'mouse',
-      'rn4' => 'rat',
-      'hg18' => 'human'
-    }
-    tiler.interval = Bio::GenomicInterval.zero_based('mm8.chr7',
-                                                     80082334,
-                                                     80082468)
-    tiler.write_fasta($stdout)
+    access = Bio::MAF::Access.maf_dir('test/data')
+    interval = Bio::GenomicInterval.zero_based('mm8.chr7',
+                                               80082334,
+                                               80082468)
+    access.tile(interval) do |tiler|
+      # reference is optional
+      tiler.reference = 'reference.fa.gz'
+      tiler.species = %w(mm8 rn4 hg18)
+      # species_map is optional
+      tiler.species_map = {
+        'mm8' => 'mouse',
+        'rn4' => 'rat',
+        'hg18' => 'human'
+      }
+      tiler.write_fasta($stdout)
+    end
 
 ### Command line tools
 
