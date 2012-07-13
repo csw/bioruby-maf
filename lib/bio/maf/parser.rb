@@ -750,22 +750,12 @@ module Bio
         end
       end
 
+      WRAP_OPTS = [:as_bio_alignment, :stitch]
+
       def wrap_block_seq(fun, &blk)
-        if @opts[:stitch]
-          prev = nil
-          fun.call do |cur|
-            if prev && (prev.filtered? || cur.filtered?) \
-              && prev.stitchable_with?(cur)
-              prev = prev.stitch(cur)
-            else
-              yield prev if prev
-              prev = cur
-            end
-          end
-          yield prev
-        else
-          fun.call(&blk)
-        end
+        _wrap(WRAP_OPTS.find_all { |o| @opts[o] },
+              fun,
+              &blk)
       end
 
       # options should be [:outer, ..., :inner]
@@ -779,10 +769,12 @@ module Bio
         when :stitch # alt
           stitcher(options, fun, &blk)
         when :as_bio_alignment
-          conv_map(options,
-                   fun,
-                   lambda { |block| block.to_bio_alignment },
-                   &blk)
+          conv_send(options,
+                    fun,
+                    :to_bio_alignment,
+                    &blk)
+        else
+          raise "unhandled wrapper mode: #{first}"
         end
       end
 
@@ -797,7 +789,7 @@ module Bio
             prev = cur
           end
         end
-        yield prev
+        yield prev if prev
       end
 
       def conv_map(options, search, fun)
@@ -807,9 +799,10 @@ module Bio
         end
       end
 
-      def conv_bio_alignment(options, fun)
-        _wrap(options, fun) do |block|
-          yield block.to_bio_alignment
+      def conv_send(options, search, sym)
+        _wrap(options, search) do |block|
+          v = block.send(sym)
+          yield v if v
         end
       end
 
