@@ -768,6 +768,51 @@ module Bio
         end
       end
 
+      # options should be [:outer, ..., :inner]
+      # from @opts.values_at(:outer, ..., :inner).compact
+      def _wrap(options, fun, &blk)
+        # or first = options.shift / case first ... when nil ...
+        first = options.shift
+        case first
+        when nil
+          fun.call(&blk)
+        when :stitch # alt
+          stitcher(options, fun, &blk)
+        when :as_bio_alignment
+          conv_map(options,
+                   fun,
+                   lambda { |block| block.to_bio_alignment },
+                   &blk)
+        end
+      end
+
+      def stitcher(options, fun)
+        prev = nil
+        _wrap(options, fun) do |cur|
+          if prev && (prev.filtered? || cur.filtered?) \
+            && prev.stitchable_with?(cur)
+            prev = prev.stitch(cur)
+          else
+            yield prev if prev
+            prev = cur
+          end
+        end
+        yield prev
+      end
+
+      def conv_map(options, search, fun)
+        _wrap(options, search) do |block|
+          v = fun.call(block)
+          yield v if v
+        end
+      end
+
+      def conv_bio_alignment(options, fun)
+        _wrap(options, fun) do |block|
+          yield block.to_bio_alignment
+        end
+      end
+
       # Parse alignment blocks with a worker thread.
       #
       # @block block handler

@@ -350,6 +350,39 @@ module Bio
         end
       end
 
+      describe ":stitch" do
+        it "returns stitched blocks" do
+          p = Parser.new(TestData + 'mm8_chr7_tiny.maf',
+                         :stitch => true)
+          p.sequence_filter = {
+            :only_species => %w(mm8 rn4 oryCun1 hg18 panTro2 rheMac2 canFam2 loxAfr1 echTel1)
+          }
+          idx = KyotoIndex.open(TestData + "mm8_chr7_tiny.kct")
+          l = idx.find([GenomicInterval.zero_based('mm8.chr7',
+                                                   80082334,
+                                                   80082471)],
+                       p).to_a
+          l.size.should == 1
+          l.first.text_size.should == 210
+        end
+      end
+
+      describe ":as_bio_alignment" do
+        it "returns bio-alignment objects" do
+          p = Parser.new(TestData + 'mm8_chr7_tiny.maf',
+                         :as_bio_alignment => true)
+          idx = KyotoIndex.open(TestData + "mm8_chr7_tiny.kct")
+          l = idx.find([GenomicInterval.zero_based('mm8.chr7',
+                                                   80082334,
+                                                   80082471)],
+                       p).to_a
+          l.size.should == 2
+          l.first[0][0].should == 'G'
+          l.first[0].id.should == 'mm8.chr7'
+        end
+      end
+
+
     end
 
   end
