@@ -66,16 +66,16 @@ module Bio
       attr_accessor :parse_options, :sequence_filter, :block_filter
 
       def self.maf_dir(dir, options={})
-        self.new(dir, options)
+        o = options.dup
+        o[:dir] = dir
+        self.new(o)
       end
 
-      def initialize(dir, options={})
-        @dir = dir
-        @parse_options = options
-        @maf_files = Dir.glob("#{dir}/*.maf")
-        @indices = {}
-        @maf_by_chrom = {}
-        scan_indices!
+      def self.file(maf, index=nil, options={})
+        o = options.dup
+        o[:maf] = maf
+        o[:index] = index if index
+        self.new(o)
       end
 
       def close
@@ -121,14 +121,53 @@ module Bio
 
       #### Internals
 
+      # @api private
+      def initialize(options)
+        @parse_options = options
+        @indices = {}
+        @maf_by_chrom = {}
+        if options[:dir]
+          @dir = options[:dir]
+          @maf_files = Dir.glob("#{@dir}/*.maf")
+        elsif options[:maf]
+          @maf_files = [options[:maf]]
+          if options[:index]
+            register_index(KyotoIndex.open(options[:index]),
+                           options[:maf])
+          end
+        else
+          raise "Must specify :dir or :maf!"
+        end
+        scan_indices!
+        if options[:maf] && @indices.empty?
+          # MAF file explicitly given but no index
+          # build a temporary one
+          # (could build a real one, too...)
+          maf = options[:maf]
+          parser = Parser.new(maf, @parse_options)
+          $stderr.puts "WARNING: building temporary index on #{maf}."
+          index = KyotoIndex.build(parser, '%')
+          register_index(index, maf)
+        end
+      end
+
+      def find_index_file(maf)
+        base = File.basename(maf, '.maf')
+        index_f = "#{@dir}/#{base}.kct"
+        File.exists?(index_f) ? index_f : nil
+      end
+
+      def register_index(index, maf)
+        @indices[index.ref_seq] = index
+        @maf_by_chrom[index.ref_seq] = maf
+      end
+
       def scan_indices!
         @maf_files.each do |maf|
-          base = File.basename(maf, '.maf')
-          index_f = "#{@dir}/#{base}.kct"
-          if File.exists? index_f
+          index_f = find_index_file(maf)
+          if index_f
             index = KyotoIndex.open(index_f)
-            @indices[index.ref_seq] = index
-            @maf_by_chrom[index.ref_seq] = maf
+            register_index(index, maf)
           end
         end
       end
@@ -141,6 +180,7 @@ module Bio
       end
 
       def with_parser(chrom)
+        $stderr.puts "opening parser with options: #{@parse_options.inspect}"
         parser = Parser.new(@maf_by_chrom[chrom], @parse_options)
         parser.sequence_filter = self.sequence_filter
         begin

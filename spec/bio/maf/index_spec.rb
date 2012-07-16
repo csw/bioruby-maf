@@ -34,6 +34,30 @@ module Bio
           buf.string.should == File.read(TestData + 'gap-filled1.fa')
         end
       end
+      describe ".file" do
+        it "accepts a MAF file and index" do
+          access = Access.file(TestData + 'gap-1.maf',
+                               TestData + 'gap-1.kct')
+          blocks = access.find([GenomicInterval.zero_based('sp1.chr1',
+                                                           10,
+                                                           23)]).to_a
+          blocks.size.should == 1
+        end
+        it "accepts a MAF file and finds the index" do
+          access = Access.file(TestData + 'gap-1.maf')
+          blocks = access.find([GenomicInterval.zero_based('sp1.chr1',
+                                                           10,
+                                                           23)]).to_a
+          blocks.size.should == 1
+        end
+        it "accepts a MAF file and builds a temp index" do
+          access = Access.file(TestData + 'chrY-1block.maf')
+          blocks = access.find([GenomicInterval.zero_based('hg19.chrY',
+                                                           10501,
+                                                           10544)]).to_a
+          blocks.size.should == 1
+        end
+      end
     end
 
     describe KyotoIndex do
