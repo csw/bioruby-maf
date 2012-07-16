@@ -4,8 +4,15 @@ When /^I open it with a MAF reader$/ do
 end
 
 When /^I enable the :(\S+) parser option$/ do |opt_s|
-  @opts ||= {}
-  @opts[opt_s.to_sym] = true
+  if @parser
+    opts = @parser.opts
+  elsif @access
+    opts = @access.parse_options
+  else
+    @opts ||= {}
+    opts = @opts
+  end
+  opts[opt_s.to_sym] = true
 end
 
 Then /^the MAF version should be "(.*?)"$/ do |v_spec|
