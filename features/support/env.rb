@@ -9,7 +9,9 @@ end
 require 'pathname'
 require 'tempfile'
 
-$LOAD_PATH << File.expand_path('../../../lib', __FILE__)
+lib_dir = File.expand_path('../../../lib', __FILE__)
+$LOAD_PATH << lib_dir
+ENV['RUBYLIB'] = lib_dir
 
 require 'bio-maf'
 

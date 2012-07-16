@@ -154,5 +154,18 @@ Feature: Join alignment blocks with reference data
     **********AGGTTTAGGG******************************
     """
 
-
-
+  Scenario: Tile with CLI tool and reference seq
+    Given test files:
+    | gap-sp1.fa.gz |
+    | gap-1.maf     |
+    | gap-1.kct     |
+    When I run `maf_tile --reference gap-sp1.fa.gz --interval 0:50 -s sp1:mouse -s sp2:nautilus -s sp3:jaguar gap-1.maf gap-1.kct`
+    Then it should pass with:
+    """
+    >mouse
+    CCAGGATGCTGGGCTGAGGGC--AGTTGTGTCAGGGCGGTCCGGTGCAGGCA
+    >nautilus
+    **********GGGCTGACGGC--AG*******AGGGCGGTGC**********
+    >jaguar
+    **********AGGTTTAGGGCAGAG***************************
+    """
