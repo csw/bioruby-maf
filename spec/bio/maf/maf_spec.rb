@@ -141,7 +141,30 @@ module Bio
             range = s.text_range(9076...(9077 + 9))
           }.to raise_error
         end
+      end
 
+      describe "synteny data" do
+        it "extracts basic data from i lines" do
+          p = Parser.new(TestData + 'chr22_ieq2.maf',
+                         :parse_extended => true)
+          b = p.parse_block
+          b.sequences[0].left_status_char.should be_nil
+          b.sequences[0].left_status.should be_nil
+          b.sequences[0].left_count.should be_nil
+          b.sequences[0].right_status_char.should be_nil
+          b.sequences[0].right_status.should be_nil
+          b.sequences[0].right_count.should be_nil
+          # works but let's not over-specify internal state
+          #b.sequences[1].i_data.should == %w(N 0 C 0)
+          b.sequences[1].left_status_char.should == 'N'
+          b.sequences[1].left_status.should == :first
+          b.sequences[1].right_status_char.should == 'C'
+          b.sequences[1].right_status.should == :contiguous
+          b.sequences[2].left_status.should == :contiguous
+          b.sequences[2].right_status_char.should == 'I'
+          b.sequences[2].right_status.should == :intervening
+          b.sequences[2].right_count.should == 146
+        end
       end
 
       describe "#to_bioalignment" do

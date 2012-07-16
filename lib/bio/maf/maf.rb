@@ -263,6 +263,43 @@ module Bio
         size != text.size
       end
 
+      I_STATUS = {
+        'C' => :contiguous,
+        'I' => :intervening,
+        'N' => :first,
+        'n' => :first_bridged,
+        'M' => :missing_data,
+        'T' => :tandem
+      }
+
+      def decode_status_char(c)
+        I_STATUS[c] || raise("Unsupported status character #{c}!")
+      end
+
+      def left_status_char
+        i_data && i_data[0]
+      end
+
+      def left_status
+        i_data && decode_status_char(left_status_char())
+      end
+
+      def left_count
+        i_data && i_data[1].to_i
+      end
+
+      def right_status_char
+        i_data && i_data[2]
+      end
+
+      def right_status
+        i_data && decode_status_char(right_status_char())
+      end
+
+      def right_count
+        i_data && i_data[3].to_i
+      end
+
       def species
         parts = source.split('.', 2)
         parts.size == 2 ? parts[0] : nil
