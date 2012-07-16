@@ -750,7 +750,7 @@ module Bio
         end
       end
 
-      WRAP_OPTS = [:as_bio_alignment, :stitch]
+      WRAP_OPTS = [:as_bio_alignment, :join_blocks]
 
       def wrap_block_seq(fun, &blk)
         _wrap(WRAP_OPTS.find_all { |o| @opts[o] },
@@ -766,8 +766,8 @@ module Bio
         case first
         when nil
           fun.call(&blk)
-        when :stitch # alt
-          stitcher(options, fun, &blk)
+        when :join_blocks
+          block_joiner(options, fun, &blk)
         when :as_bio_alignment
           conv_send(options,
                     fun,
@@ -778,12 +778,12 @@ module Bio
         end
       end
 
-      def stitcher(options, fun)
+      def block_joiner(options, fun)
         prev = nil
         _wrap(options, fun) do |cur|
           if prev && (prev.filtered? || cur.filtered?) \
-            && prev.stitchable_with?(cur)
-            prev = prev.stitch(cur)
+            && prev.joinable_with?(cur)
+            prev = prev.join(cur)
           else
             yield prev if prev
             prev = cur

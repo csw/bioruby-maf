@@ -1,4 +1,4 @@
-Feature: Stitch together adjacent alignment blocks
+Feature: Join adjacent alignment blocks
   After filtering out sequences
   The sequence that caused two blocks to be separate may be removed
   So it can be desirable to join such blocks together
@@ -12,9 +12,9 @@ Feature: Stitch together adjacent alignment blocks
     And the text size of block 0 is 54
     And the text size of block 1 is 156
 
-  Scenario: Two blocks stitched in indexed access
+  Scenario: Two blocks joined in indexed access
     Given indexed MAF files in "test/data"
-    When I enable the :stitch parser option
+    When I enable the :join_blocks parser option
     And I filter for only the species
     | mm8     |
     | rn4     |

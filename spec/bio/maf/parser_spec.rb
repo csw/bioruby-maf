@@ -350,10 +350,10 @@ module Bio
         end
       end
 
-      describe ":stitch" do
-        it "returns stitched blocks" do
+      describe ":join_blocks" do
+        it "returns joined blocks" do
           p = Parser.new(TestData + 'mm8_chr7_tiny.maf',
-                         :stitch => true)
+                         :join_blocks => true)
           p.sequence_filter = {
             :only_species => %w(mm8 rn4 oryCun1 hg18 panTro2 rheMac2 canFam2 loxAfr1 echTel1)
           }

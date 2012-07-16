@@ -163,7 +163,7 @@ module Bio
         Block.new(v2, s2, offset, size, @filtered)
       end
 
-      def stitchable_with?(other)
+      def joinable_with?(other)
         if sequences.size == other.sequences.size
           r1 = ref_seq
           r2 = other.ref_seq
@@ -173,7 +173,7 @@ module Bio
           rest.next
           mismatch = rest.find do |s1, i|
             s2 = other.seq_from(s1.source, i)
-            (! s2) || ! s1.stitchable_with?(s2)
+            (! s2) || ! s1.joinable_with?(s2)
           end
           return (! mismatch)
         else
@@ -181,10 +181,10 @@ module Bio
         end
       end
 
-      def stitch(other)
+      def join(other)
         nseq = sequences.each_with_index.collect do |s1, i|
           s2 = other.seq_from(s1.source, i)
-          s1.stitch(s2)
+          s1.join(s2)
         end
         v2 = vars.dup
         v2[:score] = '0.0'
@@ -323,13 +323,13 @@ module Bio
                      text)
       end
 
-      def stitchable_with?(o)
+      def joinable_with?(o)
         (self.end == o.start) \
         && (self.strand == o.strand) \
         && (self.empty? == o.empty?)
       end
 
-      def stitch(o)
+      def join(o)
         s2 = Sequence.new(source,
                           start,
                           size + o.size,
@@ -417,7 +417,7 @@ module Bio
         self
       end
 
-      def stitch(o)
+      def join(o)
         EmptySequence.new(source,
                           start,
                           size + o.size,
