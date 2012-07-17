@@ -18,6 +18,12 @@ def target_for(base, interval, &blk)
   File.open(path, 'w', &blk)
 end
 
+def apply_options(options, tiler)
+  tiler.reference = options.ref
+  tiler.species = options.species
+  tiler.species_map = options.species_map
+end
+
 options = OpenStruct.new
 options.p = { :threads => 1 }
 options.species = []
@@ -70,7 +76,6 @@ unless (! options.usage) \
 end
 
 access = Bio::MAF::Access.file(maf_p, index_p, options.p)
-ref = Bio::MAF::FASTARangeReader.new(options.ref) if options.ref
 
 if options.bed
   intervals = []
@@ -80,9 +85,7 @@ if options.bed
   intervals.sort_by! { |int| int.zero_start }
   intervals.each do |int|
     access.tile(int) do |tiler|
-      tiler.reference = ref
-      tiler.species = options.species
-      tiler.species_map = options.species_map
+      apply_options(options, tiler)
       target_for(options.output_base, int) do |target|
         tiler.write_fasta(target)
       end
@@ -95,9 +98,7 @@ else
                                              options.interval.begin,
                                              options.interval.end)
   access.tile(interval) do |tiler|
-    tiler.reference = ref
-    tiler.species = options.species
-    tiler.species_map = options.species_map
+    apply_options(options, tiler)
     if options.output_base
       target = target_for(options.output_base, tiler.interval)
     else
