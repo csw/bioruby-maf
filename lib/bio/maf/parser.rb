@@ -760,9 +760,7 @@ module Bio
       end
 
       # options should be [:outer, ..., :inner]
-      # from @opts.values_at(:outer, ..., :inner).compact
       def _wrap(options, fun, &blk)
-        # or first = options.shift / case first ... when nil ...
         first = options.shift
         case first
         when nil
