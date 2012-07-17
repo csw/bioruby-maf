@@ -71,7 +71,6 @@ end
 
 access = Bio::MAF::Access.file(maf_p, index_p, options.p)
 ref = Bio::MAF::FASTARangeReader.new(options.ref) if options.ref
-tiler = Bio::MAF::Tiler.new
 
 if options.bed
   intervals = []
