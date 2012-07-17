@@ -139,6 +139,10 @@ module Bio
         gaps.size
       end
 
+      # Returns a new Block covering only the region where it overlaps
+      # the given interval.
+      # @param [Bio::GenomicInterval] interval to slice the block with
+      # @return [Block] block covering intersection with interval
       def slice(interval)
         case interval.compare(ref_seq.interval)
         when :contains, :equal
