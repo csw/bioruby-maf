@@ -64,6 +64,7 @@ module Bio
     class Access
 
       attr_accessor :parse_options, :sequence_filter, :block_filter
+      attr_reader :indices
 
       def self.maf_dir(dir, options={})
         o = options.dup
@@ -145,7 +146,7 @@ module Bio
           # (could build a real one, too...)
           maf = options[:maf]
           parser = Parser.new(maf, @parse_options)
-          $stderr.puts "WARNING: building temporary index on #{maf}."
+          # $stderr.puts "WARNING: building temporary index on #{maf}."
           index = KyotoIndex.build(parser, '%')
           register_index(index, maf)
         end
@@ -180,7 +181,7 @@ module Bio
       end
 
       def with_parser(chrom)
-        $stderr.puts "opening parser with options: #{@parse_options.inspect}"
+        $stderr.puts "Creating parser with options #{@parse_options.inspect}"
         parser = Parser.new(@maf_by_chrom[chrom], @parse_options)
         parser.sequence_filter = self.sequence_filter
         begin

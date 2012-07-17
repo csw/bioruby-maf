@@ -6,6 +6,18 @@ require 'ostruct'
 require 'bio-maf'
 require 'bio-genomic-interval'
 
+def parse_interval(line)
+  src, r_start_s, r_end_s, _ = line.split(nil, 4)
+  r_start = r_start_s.to_i
+  r_end = r_end_s.to_i
+  return Bio::GenomicInterval.zero_based(src, r_start, r_end)
+end
+
+def target_for(base, interval, &blk)
+  path = "#{base}_#{interval.zero_start}-#{interval.zero_end}.fa"
+  File.open(path, 'w', &blk)
+end
+
 options = OpenStruct.new
 options.p = { :threads => 1 }
 options.species = []
@@ -57,24 +69,9 @@ unless (! options.usage) \
   exit 2
 end
 
+access = Bio::MAF::Access.file(maf_p, index_p, options.p)
+ref = Bio::MAF::FASTARangeReader.new(options.ref) if options.ref
 tiler = Bio::MAF::Tiler.new
-tiler.index = Bio::MAF::KyotoIndex.open(index_p)
-tiler.parser = Bio::MAF::Parser.new(maf_p, options.p)
-tiler.reference = Bio::MAF::FASTARangeReader.new(options.ref) if options.ref
-tiler.species = options.species
-tiler.species_map = options.species_map
-
-def parse_interval(line)
-  src, r_start_s, r_end_s, _ = line.split(nil, 4)
-  r_start = r_start_s.to_i
-  r_end = r_end_s.to_i
-  return Bio::GenomicInterval.zero_based(src, r_start, r_end)
-end
-
-def target_for(base, interval)
-  path = "#{base}_#{interval.zero_start}-#{interval.zero_end}.fa"
-  File.open(path, 'w')
-end
 
 if options.bed
   intervals = []
@@ -83,21 +80,31 @@ if options.bed
   end
   intervals.sort_by! { |int| int.zero_start }
   intervals.each do |int|
-    tiler.interval = int
-    target = target_for(options.output_base, int)
-    tiler.write_fasta(target)
-    target.close
+    access.tile(int) do |tiler|
+      tiler.reference = ref
+      tiler.species = options.species
+      tiler.species_map = options.species_map
+      target_for(options.output_base, int) do |target|
+        tiler.write_fasta(target)
+      end
+    end
   end
 else
   # single interval
-  tiler.interval = Bio::GenomicInterval.zero_based(tiler.index.ref_seq,
-                                                   options.interval.begin,
-                                                   options.interval.end)
-  if options.output_base
-    target = target_for(options.output_base, tiler.interval)
-  else
-    target = $stdout
+  ref_seq = access.indices.keys.first
+  interval = Bio::GenomicInterval.zero_based(ref_seq,
+                                             options.interval.begin,
+                                             options.interval.end)
+  access.tile(interval) do |tiler|
+    tiler.reference = ref
+    tiler.species = options.species
+    tiler.species_map = options.species_map
+    if options.output_base
+      target = target_for(options.output_base, tiler.interval)
+    else
+      target = $stdout
+    end
+    tiler.write_fasta(target)
+    target.close
   end
-  tiler.write_fasta(target)
-  target.close
 end
