@@ -181,7 +181,7 @@ module Bio
       end
 
       def with_parser(chrom)
-        $stderr.puts "Creating parser with options #{@parse_options.inspect}"
+        # $stderr.puts "Creating parser with options #{@parse_options.inspect}"
         parser = Parser.new(@maf_by_chrom[chrom], @parse_options)
         parser.sequence_filter = self.sequence_filter
         begin
