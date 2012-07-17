@@ -31,6 +31,18 @@ module Bio
           end
           buf.string.should == File.read(TestData + 'gap-filled1.fa')
         end
+        it "gives correct output with no species specified" do
+          pending("issue 88") do
+            access = Access.maf_dir(TestData)
+            interval = GenomicInterval.zero_based('sp1.chr1', 0, 50)
+            buf = StringIO.new
+            access.tile(interval) do |tiler|
+              tiler.reference = TestData + 'gap-sp1.fa'
+              tiler.write_fasta(buf)
+            end
+            buf.string.should == File.read(TestData + 'gap-filled1.fa')
+          end
+        end
       end
       describe ".file" do
         it "accepts a MAF file and index" do
