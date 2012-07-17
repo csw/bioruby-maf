@@ -166,6 +166,26 @@ module Bio
             called.should be_true
           end
 
+          it "with a block and no match, returns" do
+            called = false
+            @idx.find([GenomicInterval.zero_based('mm8.chr7',
+                                                  20082334,
+                                                  20082338)],
+                      @p) do |block|
+              called = true
+            end
+            called.should be_false
+          end
+
+          it "with no block and no match, returns an empty list" do
+            v = @idx.find([GenomicInterval.zero_based('mm8.chr7',
+                                                  20082334,
+                                                  20082338)],
+                          @p)
+            v.should_not be_nil
+            v.should respond_to(:count)
+          end
+
           after(:each) do
             @idx.db.close
             @p.f.close
