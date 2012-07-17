@@ -169,3 +169,40 @@ Feature: Join alignment blocks with reference data
     >jaguar
     **********AGGTTTAGGGCAGAG***************************
     """
+
+  Scenario: Tile with CLI tool and no reference seq
+    Given test files:
+    | gap-1.maf     |
+    | gap-1.kct     |
+    When I run `maf_tile --interval 0:50 -s sp1:mouse -s sp2:nautilus -s sp3:jaguar gap-1.maf gap-1.kct`
+    Then it should pass with:
+    """
+    >mouse
+    NNNNNNNNNNGGGCTGAGGGC--AGNNNNNNNAGGGCGGTCCNNNNNNNNNN
+    >nautilus
+    **********GGGCTGACGGC--AG*******AGGGCGGTGC**********
+    >jaguar
+    **********AGGTTTAGGGCAGAG***************************
+    """
+
+  Scenario: Tile with CLI tool and BED intervals
+    Given test files:
+    | gap-1.maf     |
+    | gap-1.kct     |
+    | gap-sp1.fa.gz |
+    And a file named "example.bed" with:
+    """
+    sp1.chr1 12 36
+    """
+    When I run `maf_tile -s sp1:mouse -s sp2:nautilus -s sp3:jaguar --output-base selected --bed example.bed --reference gap-sp1.fa.gz gap-1.maf gap-1.kct`
+    Then the file "selected_12-36.fa" should contain exactly:
+    """
+    >mouse
+    GCTGAGGGC--AGTTGTGTCAGGGCG
+    >nautilus
+    GCTGACGGC--AG*******AGGGCG
+    >jaguar
+    GTTTAGGGCAGAG*************
+    
+    """
+
