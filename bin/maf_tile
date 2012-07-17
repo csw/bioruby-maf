@@ -19,7 +19,7 @@ def target_for(base, interval, &blk)
 end
 
 def apply_options(options, tiler)
-  tiler.reference = options.ref
+  tiler.reference = options.ref if options.ref
   tiler.species = options.species
   tiler.species_map = options.species_map
 end
