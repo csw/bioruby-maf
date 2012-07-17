@@ -154,6 +154,7 @@ Feature: Join alignment blocks with reference data
     **********AGGTTTAGGG******************************
     """
 
+  @no_jruby
   Scenario: Tile with CLI tool and reference seq
     Given test files:
     | gap-sp1.fa.gz |
@@ -170,6 +171,7 @@ Feature: Join alignment blocks with reference data
     **********AGGTTTAGGGCAGAG***************************
     """
 
+  @no_jruby
   Scenario: Tile with CLI tool and no reference seq
     Given test files:
     | gap-1.maf     |
@@ -185,6 +187,7 @@ Feature: Join alignment blocks with reference data
     **********AGGTTTAGGGCAGAG***************************
     """
 
+  @no_jruby
   Scenario: Tile with CLI tool and BED intervals
     Given test files:
     | gap-1.maf     |

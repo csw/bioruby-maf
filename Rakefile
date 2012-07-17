@@ -23,7 +23,10 @@ RSpec::Core::RakeTask.new(:spec) do |spec|
 end
 
 require 'cucumber/rake/task'
-Cucumber::Rake::Task.new do |features|
+Cucumber::Rake::Task.new do |t|
+  opts = "features"
+  opts << ' --tags ~@no_jruby' if RUBY_PLATFORM == 'java'
+  t.cucumber_opts = opts
 end
 
 task :test => [ :spec, :cucumber ] 
