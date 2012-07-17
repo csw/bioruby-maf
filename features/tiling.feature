@@ -209,3 +209,34 @@ Feature: Join alignment blocks with reference data
     
     """
 
+  @no_jruby
+  Scenario: Tile with CLI tool and implicit index
+    Given test files:
+    | mm8_chr7_tiny.maf |
+    | mm8_chr7_tiny.kct |
+    When I run `maf_tile -s mm8 -s rn4 -s hg18 --interval 80082334:80082344 mm8_chr7_tiny.maf`
+    Then it should pass with:
+    """
+    >mm8
+    GGGCTGAGGG
+    >rn4
+    GGGCTGAGGG
+    >hg18
+    --------GG
+    """
+
+  Scenario: Tile with CLI tool and directory
+    Given test files:
+    | mm8_chr7_tiny.maf |
+    | mm8_chr7_tiny.kct |
+    When I run `maf_tile -s mm8 -s rn4 -s hg18 --interval mm8.chr7:80082334:80082344 .`
+    Then it should pass with:
+    """
+    >mm8
+    GGGCTGAGGG
+    >rn4
+    GGGCTGAGGG
+    >hg18
+    --------GG
+    """
+
