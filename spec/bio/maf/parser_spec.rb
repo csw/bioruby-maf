@@ -132,8 +132,14 @@ module Bio
             blocks = @p.fetch_blocks(fl).to_a
             blocks.size.should == 2
             blocks.collect {|b| b.offset}.should == [16, 3011]
+          end 
+          it "does not return empty blocks" do
+            fl = [[16, 1087]]
+            @p.sequence_filter = { :only_species => %w(jabberwocky unicorn) }
+            blocks = @p.fetch_blocks(fl).to_a
+            blocks.size.should == 0
           end
-          it "takes a block argument" do
+         it "takes a block argument" do
             fl = [[16, 1087], [1103, 1908], [3011, 2027]]
             n = 0
             @p.fetch_blocks(fl) do |block|
@@ -208,6 +214,10 @@ module Bio
             :only_species => %w(mm8 rn4 oryCun1 hg18 hg181)
           }
           @p.parse_block.filtered?.should be_false
+        end
+        it "does not return empty blocks" do
+          @p.sequence_filter = { :only_species => %w(jabberwocky unicorn) }
+          @p.parse_blocks.count.should == 0
         end
       end
 
@@ -364,6 +374,23 @@ module Bio
                        p).to_a
           l.size.should == 1
           l.first.text_size.should == 210
+        end
+      end
+
+      describe ":remove_gaps" do
+        it "removes gaps from #parse_blocks" do
+          p = Parser.new(TestData + 'mm8_chr7_tiny.maf',
+                         :remove_gaps => true)
+          p.sequence_filter = { :only_species => %w(mm8 rn4) }
+          b = p.parse_blocks.first
+          b.text_size.should == 34
+        end
+        it "removes gaps from #parse_block" do
+          p = Parser.new(TestData + 'mm8_chr7_tiny.maf',
+                         :remove_gaps => true)
+          p.sequence_filter = { :only_species => %w(mm8 rn4) }
+          b = p.parse_block
+          b.text_size.should == 34
         end
       end
 

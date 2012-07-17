@@ -64,6 +64,7 @@ module Bio
       attr_reader :size
 
       def initialize(vars, sequences, offset, size, filtered)
+        #raise ArgumentError, "no sequences given for block at offset #{offset}!" unless sequences && sequences.first
         @vars = vars
         @sequences = sequences
         @offset = offset

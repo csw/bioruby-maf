@@ -150,7 +150,7 @@ module Bio
       #
       # @return [Block] alignment block
       # @api public
-      def parse_block
+      def _parse_block
         return nil if at_end
         if s.pos != last_block_pos
           # in non-trailing block
@@ -296,19 +296,11 @@ module Bio
             parse_error "unexpected line: '#{line}'"
           end
         end
-        block = Block.new(block_vars,
-                          seqs,
-                          block_offset,
-                          s.pos - block_start_pos,
-                          filtered)
-        postprocess_block(block)
-      end
-
-      def postprocess_block(block)
-        if block.filtered? && opts[:remove_gaps]
-          block.remove_gaps!
-        end
-        block
+        Block.new(block_vars,
+                  seqs,
+                  block_offset,
+                  s.pos - block_start_pos,
+                  filtered)
       end
 
       # Parse an 's' line.
@@ -427,9 +419,9 @@ module Bio
           append_chunks_to(len)
           # parse the blocks
           block_offsets.each do |expected_offset|
-            block = parse_block
-            ctx.parse_error("expected a block at offset #{expected_offset} but could not parse one!") unless block
-            ctx.parse_error("got block with offset #{block.offset}, expected #{expected_offset}!") unless block.offset == expected_offset
+            block = _parse_block
+            parse_error("expected a block at offset #{expected_offset} but could not parse one!") unless block
+            parse_error("got block with offset #{block.offset}, expected #{expected_offset}!") unless block.offset == expected_offset
             yield block
           end
         else
@@ -746,16 +738,25 @@ module Bio
 
       def each_block_seq
         until at_end
-          yield parse_block()
+          block = _parse_block()
+          yield block if block
         end
       end
 
-      WRAP_OPTS = [:as_bio_alignment, :join_blocks]
+      def parse_block
+        b = nil
+        wrap_block_seq(lambda { |&blk| blk.call(_parse_block()) }) do |block|
+          b = block
+        end
+        b
+      end
+
+      WRAP_OPTS = [:as_bio_alignment, :join_blocks, :remove_gaps]
 
       def wrap_block_seq(fun, &blk)
-        _wrap(WRAP_OPTS.find_all { |o| @opts[o] },
-              fun,
-              &blk)
+        opts = WRAP_OPTS.find_all { |o| @opts[o] }
+        opts << :sequence_filter if sequence_filter && (! sequence_filter.empty?)
+        _wrap(opts, fun, &blk)
       end
 
       # options should be [:outer, ..., :inner]
@@ -766,6 +767,11 @@ module Bio
         case first
         when nil
           fun.call(&blk)
+        when :sequence_filter
+          conv_map(options,
+                   fun,
+                   lambda { |b| b if b.sequences.size > 1 },
+                   &blk)
         when :join_blocks
           block_joiner(options, fun, &blk)
         when :as_bio_alignment
@@ -773,8 +779,19 @@ module Bio
                     fun,
                     :to_bio_alignment,
                     &blk)
+        when :remove_gaps
+          conv_map(options,
+                   fun,
+                   lambda { |b| b.remove_gaps! if b.filtered?; b },
+                   &blk)
         else
           raise "unhandled wrapper mode: #{first}"
+        end
+      end
+
+      def filter_seq_count(fun)
+        fun.call() do |block|
+          yield block if block.filtered? && block.sequences.size > 1
         end
       end
 
@@ -815,7 +832,8 @@ module Bio
         worker = Thread.new do
           begin
             until at_end
-              queue.put(parse_block())
+              block = _parse_block()
+              queue.put(block) if block
             end
             queue.put(:eof)
           rescue

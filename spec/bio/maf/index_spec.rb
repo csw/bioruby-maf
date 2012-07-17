@@ -16,8 +16,6 @@ module Bio
           end
           buf.string.should == File.read(TestData + 'gap-filled1.fa')
         end
-      end
-      describe "#tile" do
         it "gives correct output with only a species map" do
           access = Access.maf_dir(TestData)
           interval = GenomicInterval.zero_based('sp1.chr1', 0, 50)
