@@ -225,6 +225,7 @@ Feature: Join alignment blocks with reference data
     --------GG
     """
 
+  @no_jruby
   Scenario: Tile with CLI tool and directory
     Given test files:
     | mm8_chr7_tiny.maf |
