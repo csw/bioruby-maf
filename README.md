@@ -274,7 +274,7 @@ the
 [`maf_tile(1)`](http://csw.github.com/bioruby-maf/man/maf_tile.1.html)
 man page.
 
-[feature]: https://github.com/csw/bioruby-maf/blob/master/features/gap-filling.feature
+[feature]: https://github.com/csw/bioruby-maf/blob/master/features/tiling.feature
 
     require 'bio-maf'
     access = Bio::MAF::Access.maf_dir('test/data')
