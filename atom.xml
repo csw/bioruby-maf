@@ -4,7 +4,7 @@
   <title><![CDATA[BioRuby MAF blog]]></title>
   <link href="http://csw.github.com/bioruby-maf/atom.xml" rel="self"/>
   <link href="http://csw.github.com/bioruby-maf/"/>
-  <updated>2012-07-17T23:56:52-04:00</updated>
+  <updated>2012-07-18T15:33:02-04:00</updated>
   <id>http://csw.github.com/bioruby-maf/</id>
   <author>
     <name><![CDATA[Clayton Wheeler]]></name>
@@ -12,6 +12,35 @@
   </author>
   <generator uri="http://octopress.org/">Octopress</generator>
 
+  
+  <entry>
+    <title type="html"><![CDATA[Bio-MAF 0.3.0]]></title>
+    <link href="http://csw.github.com/bioruby-maf/blog/2012/07/18/bio-maf_0.3.0/"/>
+    <updated>2012-07-18T12:48:00-04:00</updated>
+    <id>http://csw.github.com/bioruby-maf/blog/2012/07/18/bio-maf_0.3.0</id>
+    <content type="html"><![CDATA[<p><a href="https://github.com/csw/bioruby-maf">bio-maf</a> version 0.3.0 is released. This version adds features
+including <a href="https://github.com/csw/bioruby-maf#join-blocks-after-filtering-together">joining</a> adjacent MAF blocks when sequences that caused
+them to be split have been filtered out; <a href="https://github.com/csw/bioruby-maf#extract-bio-alignment-representations-of-blocks">returning</a>
+<a href="https://github.com/pjotrp/bioruby-alignment">bio-alignment</a> objects; and <a href="https://github.com/csw/bioruby-maf#extract-alignment-blocks-truncated-to-a-given-interval">truncating</a> (or &#8216;slicing&#8217;) alignment
+blocks to only cover a given genomic interval.</p>
+
+<p>For developers, this also adds a higher-level <a href="http://rdoc.info/github/csw/bioruby-maf/master/Bio/MAF/Access">Bio::MAF::Access</a> API
+for working with directories containing indexed MAF files (or,
+alternatively, single files), providing all relevant functionality for
+indexed access in a simpler way than using the KyotoIndex and Parser
+classes directly. The <a href="http://csw.github.com/bioruby-maf/man/maf_tile.1.html">maf_tile(1)</a> utility has been updated to use
+this functionality; a directory of indexed MAF files can now be
+specified, and the correct file will now be parsed as appropriate.</p>
+
+<p>Usage of Enumerators and blocks has also been substantially improved;
+all access methods for multiple blocks such as <code>Access#find</code>,
+<code>Access#slice</code>, <code>Parser#each_block</code> now accept a block parameter,
+which will be called for each block in turn. If no block parameter is
+given, they will all return an <a href="http://www.ruby-doc.org/core-1.9.3/Enumerator.html">Enumerator</a> for the resulting
+blocks. This is how most of the Ruby standard library,
+e.g. <code>Array#each</code>, works.</p>
+]]></content>
+  </entry>
   
   <entry>
     <title type="html"><![CDATA[Bio-MAF 0.2.0]]></title>

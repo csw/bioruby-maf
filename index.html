@@ -9,9 +9,9 @@
   <meta name="author" content="Clayton Wheeler">
 
   
-  <meta name="description" content="I have released bio-maf version 0.2.0 as a Ruby gem. The main new
-feature in this release is MAF &#8216;tiling&#8217;; combining the alignment
-blocks &hellip;">
+  <meta name="description" content="bio-maf version 0.3.0 is released. This version adds features
+including joining adjacent MAF blocks when sequences that caused
+them to be split have &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -66,6 +66,64 @@ blocks &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/bioruby-maf/blog/2012/07/18/bio-maf_0.3.0/">Bio-MAF 0.3.0</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-07-18T12:48:00-04:00" pubdate data-updated="true">Jul 18<span>th</span>, 2012</time>
+        
+         | <a href="/bioruby-maf/blog/2012/07/18/bio-maf_0.3.0/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p><a href="https://github.com/csw/bioruby-maf">bio-maf</a> version 0.3.0 is released. This version adds features
+including <a href="https://github.com/csw/bioruby-maf#join-blocks-after-filtering-together">joining</a> adjacent MAF blocks when sequences that caused
+them to be split have been filtered out; <a href="https://github.com/csw/bioruby-maf#extract-bio-alignment-representations-of-blocks">returning</a>
+<a href="https://github.com/pjotrp/bioruby-alignment">bio-alignment</a> objects; and <a href="https://github.com/csw/bioruby-maf#extract-alignment-blocks-truncated-to-a-given-interval">truncating</a> (or &#8216;slicing&#8217;) alignment
+blocks to only cover a given genomic interval.</p>
+
+<p>For developers, this also adds a higher-level <a href="http://rdoc.info/github/csw/bioruby-maf/master/Bio/MAF/Access">Bio::MAF::Access</a> API
+for working with directories containing indexed MAF files (or,
+alternatively, single files), providing all relevant functionality for
+indexed access in a simpler way than using the KyotoIndex and Parser
+classes directly. The <a href="http://csw.github.com/bioruby-maf/man/maf_tile.1.html">maf_tile(1)</a> utility has been updated to use
+this functionality; a directory of indexed MAF files can now be
+specified, and the correct file will now be parsed as appropriate.</p>
+
+<p>Usage of Enumerators and blocks has also been substantially improved;
+all access methods for multiple blocks such as <code>Access#find</code>,
+<code>Access#slice</code>, <code>Parser#each_block</code> now accept a block parameter,
+which will be called for each block in turn. If no block parameter is
+given, they will all return an <a href="http://www.ruby-doc.org/core-1.9.3/Enumerator.html">Enumerator</a> for the resulting
+blocks. This is how most of the Ruby standard library,
+e.g. <code>Array#each</code>, works.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1039,106 +1097,6 @@ batch tasks.</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/bioruby-maf/blog/2012/05/13/progress/">GSoC Week 1</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2012-05-13T18:14:00-04:00" pubdate data-updated="true">May 13<span>th</span>, 2012</time>
-        
-         | <a href="/bioruby-maf/blog/2012/05/13/progress/#disqus_thread">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>This has been my first half-week of work on my Google Summer of Code
-project, and it&#8217;s off to an exciting start. The first order of
-business has been to get my development environment together; since
-I&#8217;ve been a microbiology student instead of a programmer for the last
-year, it&#8217;s taken some work. In that process, I&#8217;ve ended up making a
-few <a href="https://github.com/michaelklishin/cucumber.el/pull/21">open</a>
-<a href="https://github.com/nibrahim/Hyde/pull/6">source</a>
-<a href="https://github.com/nibrahim/Hyde/pull/7">contributions</a> just to get
-my tools working the way I want. I&#8217;m running GNU Emacs 24 and trying
-to take more advantage of it than I have in the past. I&#8217;ll have much
-more to say about this in a future post.</p>
-
-<p>I&#8217;ve also started working on the BioRuby unit test
-<a href="http://travis-ci.org/#!/bioruby/bioruby/jobs/1296529">failures</a> under
-JRuby, as a way of familiarizing myself with the BioRuby code base as
-well as the community and its development processes. Right now, JRuby
-in 1.8 mode is showing 6 failures and 126 errors, which is hardly
-confidence-inspiring for people considering using JRuby with
-BioRuby. This is too bad, since JRuby has some definite advantages as
-a Ruby implementation. After looking into these failures, I&#8217;ve broken them
-down into a few categories:</p>
-
-<ul>
-<li>temporary file permissions problems, likely due to some sort of Travis-CI
-environment issue</li>
-<li>a bug in JRuby&#8217;s implementation of
-<a href="http://ruby-doc.org/stdlib-1.8.7/libdoc/open3/rdoc/Open3.html#method-c-popen3">Open3.popen3</a>
-which I&#8217;m working up a bug report for</li>
-<li>an odd autoload problem I&#8217;ve filed
-<a href="https://jira.codehaus.org/browse/JRUBY-6658">JRUBY-6658</a> for and
-sent an accompanying
-<a href="https://github.com/rubyspec/rubyspec/pull/136">RubySpec patch</a>
-for</li>
-<li>a problem with libxml-jruby, which appears unmaintained, for which
-I&#8217;ve submitted a
-<a href="https://github.com/bioruby/bioruby/pull/55">BioRuby patch</a> plus
-<a href="http://jira.codehaus.org/browse/JRUBY-6662">JRUBY-6662</a></li>
-<li>and a small test case bug relating to floating point handling,
-which I&#8217;ve submitted a
-<a href="https://github.com/bioruby/bioruby/pull/54">patch</a> for.</li>
-</ul>
-
-
-<p>Once these are resolved, JRuby should be passing the BioRuby unit
-tests in 1.8 mode, and closer to passing in 1.9 mode. (There are a few
-extra failures under 1.9 that I haven&#8217;t sorted through yet.)</p>
-
-<p>I&#8217;ve also gotten a start on my project itself, creating the
-<a href="https://github.com/csw/bioruby-maf">bioruby-maf</a> Github repository
-with a project skeleton and writing my
-<a href="https://github.com/csw/bioruby-maf/blob/79004f9b75c1e33f9b265a1a97241d3c9d382997/features/maf-to-fasta.feature">first Cucumber feature</a>
-for it. This is, in fact, my first Cucumber feature ever. However, I
-did spend a few cross-country flights reading the
-<a href="http://pragprog.com/book/achbd/the-rspec-book">RSpec</a> and
-<a href="http://pragprog.com/book/hwcuc/the-cucumber-book">Cucumber</a> books
-last week; between that and cribbing from
-<a href="https://github.com/pjotrp/bioruby-alignment/tree/master/features">Pjotr&#8217;s code</a>
-I feel like I have some idea what I&#8217;m doing. Just assembling that
-feature has been useful, too, since I&#8217;ve had to get several of the
-existing MAF tools running on my machine. In fact, my test MAF data and
-the FASTA version of it are courtesy of
-<a href="https://bitbucket.org/james_taylor/bx-python/wiki/Home">bx-python</a>,
-which will be my reference implementation in many respects.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/bioruby-maf/blog/page/2/">&larr; Older</a>
@@ -1154,6 +1112,10 @@ which will be my reference implementation in many respects.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/bioruby-maf/blog/2012/07/18/bio-maf_0.3.0/">Bio-MAF 0.3.0</a>
+      </li>
+    
+      <li class="post">
         <a href="/bioruby-maf/blog/2012/07/09/bio-maf_0.2.0/">Bio-MAF 0.2.0</a>
       </li>
     
@@ -1167,10 +1129,6 @@ which will be my reference implementation in many respects.</p>
     
       <li class="post">
         <a href="/bioruby-maf/blog/2012/06/13/jruby_support_and_performance_work/">JRuby support and I/O performance</a>
-      </li>
-    
-      <li class="post">
-        <a href="/bioruby-maf/blog/2012/06/09/filtering-work/">Filtering work</a>
       </li>
     
   </ul>

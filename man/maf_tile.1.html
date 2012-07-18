@@ -162,10 +162,11 @@ species.</p>
 <p>The <var>maf</var> parameter must specify either a Multiple Alignment Format
 (MAF) file or a directory of such files, with indexes.</p>
 
-<p>The <var>index</var> must be a MAF index built with <a class="man-ref" href="maf_index.1.html">maf_index<span class="s">(1)</span></a>. This can be
-omitted if a single MAF file is given as a parameter, but in this case
-the entire file will be parsed to build a temporary index. For large
-files which will be reused, this is not advisable.</p>
+<p>The <var>index</var> must be a MAF index built with <a class="man-ref" href="maf_index.1.html">maf_index<span class="s">(1)</span></a>. This
+parameter is ignored if the <var>maf</var> parameter is a directory. It can be
+omitted if a single MAF file is given, but in this case the entire
+file will be parsed to build a temporary index. For large files which
+will be reused, this is not advisable.</p>
 
 <p>If <code>--bed</code> <var>bed</var> is specified, its argument must be a BED file. Only
 the second and third columns will be used, to specify the zero-based

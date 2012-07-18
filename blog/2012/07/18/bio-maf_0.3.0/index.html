@@ -5,12 +5,13 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>JRuby support and I/O performance - BioRuby MAF blog</title>
+  <title>Bio-MAF 0.3.0 - BioRuby MAF blog</title>
   <meta name="author" content="Clayton Wheeler">
 
   
-  <meta name="description" content="I/O performance and the Magic Number My MAF parser is designed to read data from disk in relatively large
-chunks before parsing it, to minimize read( &hellip;">
+  <meta name="description" content="bio-maf version 0.3.0 is released. This version adds features
+including joining adjacent MAF blocks when sequences that caused
+them to be split have &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -19,7 +20,7 @@ chunks before parsing it, to minimize read( &hellip;">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://csw.github.com/bioruby-maf/blog/2012/06/13/jruby_support_and_performance_work">
+  <link rel="canonical" href="http://csw.github.com/bioruby-maf/blog/2012/07/18/bio-maf_0.3.0">
   <link href="/bioruby-maf/favicon.png" rel="icon">
   <link href="/bioruby-maf/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <script src="/bioruby-maf/javascripts/modernizr-2.0.js"></script>
@@ -68,7 +69,7 @@ chunks before parsing it, to minimize read( &hellip;">
   
   <header>
     
-      <h1 class="entry-title">JRuby Support and I/O Performance</h1>
+      <h1 class="entry-title">Bio-MAF 0.3.0</h1>
     
     
       <p class="meta">
@@ -84,7 +85,7 @@ chunks before parsing it, to minimize read( &hellip;">
   
 
 
-<time datetime="2012-06-13T22:54:00-04:00" pubdate data-updated="true">Jun 13<span>th</span>, 2012</time>
+<time datetime="2012-07-18T12:48:00-04:00" pubdate data-updated="true">Jul 18<span>th</span>, 2012</time>
         
          | <a href="#disqus_thread">Comments</a>
         
@@ -93,72 +94,27 @@ chunks before parsing it, to minimize read( &hellip;">
   </header>
 
 
-<div class="entry-content"><h2>I/O performance and the Magic Number</h2>
+<div class="entry-content"><p><a href="https://github.com/csw/bioruby-maf">bio-maf</a> version 0.3.0 is released. This version adds features
+including <a href="https://github.com/csw/bioruby-maf#join-blocks-after-filtering-together">joining</a> adjacent MAF blocks when sequences that caused
+them to be split have been filtered out; <a href="https://github.com/csw/bioruby-maf#extract-bio-alignment-representations-of-blocks">returning</a>
+<a href="https://github.com/pjotrp/bioruby-alignment">bio-alignment</a> objects; and <a href="https://github.com/csw/bioruby-maf#extract-alignment-blocks-truncated-to-a-given-interval">truncating</a> (or &#8216;slicing&#8217;) alignment
+blocks to only cover a given genomic interval.</p>
 
-<p>My MAF parser is designed to read data from disk in relatively large
-chunks before parsing it, to minimize read(2) calls. I started out
-using a chunk size of 8 MB, but using the <a href="">jvisualvm</a> profiler with
-JRuby, I observed that during index builds with <code>maf_index</code>, it was
-spending about 37% of its time in
-<code>org.jruby.util.io.ChannelDescriptor.read()</code> calls. (I had observed
-MRI spending a similar amount of time in read calls as well.) Since
-Mac OS X has DTrace, I used <a href="http://www.brendangregg.com/DTrace/iosnoop">iosnoop</a> to watch the I/O activity at
-the OS level, and observed that reads were actually being issued with
-sizes of 128k:</p>
+<p>For developers, this also adds a higher-level <a href="http://rdoc.info/github/csw/bioruby-maf/master/Bio/MAF/Access">Bio::MAF::Access</a> API
+for working with directories containing indexed MAF files (or,
+alternatively, single files), providing all relevant functionality for
+indexed access in a simpler way than using the KyotoIndex and Parser
+classes directly. The <a href="http://csw.github.com/bioruby-maf/man/maf_tile.1.html">maf_tile(1)</a> utility has been updated to use
+this functionality; a directory of indexed MAF files can now be
+specified, and the correct file will now be parsed as appropriate.</p>
 
-<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
-<span class='line-number'>2</span>
-<span class='line-number'>3</span>
-<span class='line-number'>4</span>
-<span class='line-number'>5</span>
-</pre></td><td class='code'><pre><code class=''><span class='line'>  501 55424 R 1139635624 131072       java ??/maf/chr22.maf
-</span><span class='line'>  501 55424 R 1139635880 131072       java ??/maf/chr22.maf
-</span><span class='line'>  501 55424 R 1139636136 131072       java ??/maf/chr22.maf
-</span><span class='line'>  501 55424 R 1139636392 131072       java ??/maf/chr22.maf
-</span><span class='line'>  501 55424 R 1139636904 131072       java ??/maf/chr22.maf</span></code></pre></td></tr></table></div></figure>
-
-
-<p>Suspecting that merging the data from these read calls into an 8 MB
-buffer might be a problem, I changed the chunk size constant
-(<code>SEQ_CHUNK_SIZE</code>) to 128k to match, and saw the processing rate jump
-from 19 MB/s to 30 MB/s, with only 2.4% of CPU time spent in
-<code>ChannelDescriptor.read()</code>.</p>
-
-<p>MRI 1.9.3 exhibited a similar improvement, from 18 to 24 MB/s.</p>
-
-<p>It turns out, though, that 128k is not, as I guessed, a hard-coded
-Ruby setting. I later ran the same test on my MacBook Air&#8217;s built-in
-SSD instead of a USB-attached SATA disk, and saw I/O sizes of 1048576
-instead. Here, changing the chunk size to match showed no significant
-improvement. Presumably this is due to the lower I/O latency of the
-SSD.</p>
-
-<p>Requiring users to divine the best I/O size for their environment to
-achieve the best parsing performance seems a bit arcane; I wonder if
-it might be worthwhile to try to automatically detect the
-best-performing chunk size at runtime by defaulting to 128k, varying
-it in both directions, and tracking average latencies.</p>
-
-<h2>JRuby support with Kyoto Cabinet</h2>
-
-<p>Kyoto Cabinet has turned out to perform well and be easy to
-use. However, while the parser code runs substantially faster under
-JRuby, there is not a straightforward out-of-the-box way to use Kyoto
-Cabinet with Ruby. The standard <code>kyotocabinet-ruby</code> gem uses the C
-Extension API, so it isn&#8217;t really practical to use with
-JRuby. (Technically, JRuby has partial support for the C Extension
-API, but at least on my machine, it&#8217;s broken in several ways under
-RVM, needs to be enabled with a specific runtime option, and is
-generally frowned upon.) However, Kyoto Cabinet also has a Java API;
-both it and the Ruby API are based on the same underlying C++ library,
-so the APIs are quite similar. I wrote a small Ruby <a href="https://github.com/csw/bioruby-maf/blob/8e90c5d5f58524052e5d19d9ea6956ec361bf85b/lib/kyotocabinet-java.rb">wrapper</a> around
-the Java library, so it can be used under JRuby in an identical way to
-the native Ruby library.</p>
-
-<p>Unfortunately, this still requires users to build and install the
-JNI-based [Java library][] for Kyoto Cabinet as well as Kyoto Cabinet
-itself. This isn&#8217;t ideal, but shouldn&#8217;t be too difficult. I plan to
-separate this out as its own gem.</p>
+<p>Usage of Enumerators and blocks has also been substantially improved;
+all access methods for multiple blocks such as <code>Access#find</code>,
+<code>Access#slice</code>, <code>Parser#each_block</code> now accept a block parameter,
+which will be called for each block in turn. If no block parameter is
+given, they will all return an <a href="http://www.ruby-doc.org/core-1.9.3/Enumerator.html">Enumerator</a> for the resulting
+blocks. This is how most of the Ruby standard library,
+e.g. <code>Array#each</code>, works.</p>
 </div>
 
 
@@ -181,7 +137,7 @@ separate this out as its own gem.</p>
   
 
 
-<time datetime="2012-06-13T22:54:00-04:00" pubdate data-updated="true">Jun 13<span>th</span>, 2012</time>
+<time datetime="2012-07-18T12:48:00-04:00" pubdate data-updated="true">Jul 18<span>th</span>, 2012</time>
       
 
 
@@ -189,7 +145,7 @@ separate this out as its own gem.</p>
     
       <div class="sharing">
   
-  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://csw.github.com/bioruby-maf/blog/2012/06/13/jruby_support_and_performance_work/" data-via="" data-counturl="http://csw.github.com/bioruby-maf/blog/2012/06/13/jruby_support_and_performance_work/" >Tweet</a>
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://csw.github.com/bioruby-maf/blog/2012/07/18/bio-maf_0.3.0/" data-via="" data-counturl="http://csw.github.com/bioruby-maf/blog/2012/07/18/bio-maf_0.3.0/" >Tweet</a>
   
   
   
@@ -198,10 +154,8 @@ separate this out as its own gem.</p>
     
     <p class="meta">
       
-        <a class="basic-alignment left" href="/bioruby-maf/blog/2012/06/09/filtering-work/" title="Previous Post: Filtering work">&laquo; Filtering work</a>
+        <a class="basic-alignment left" href="/bioruby-maf/blog/2012/07/09/bio-maf_0.2.0/" title="Previous Post: Bio-MAF 0.2.0">&laquo; Bio-MAF 0.2.0</a>
       
-      
-        <a class="basic-alignment right" href="/bioruby-maf/blog/2012/06/21/parallel_io/" title="Next Post: Parallel I/O">Parallel I/O &raquo;</a>
       
     </p>
   </footer>
@@ -297,8 +251,8 @@ separate this out as its own gem.</p>
       
         
         // var disqus_developer = 1;
-        var disqus_identifier = 'http://csw.github.com/bioruby-maf/blog/2012/06/13/jruby_support_and_performance_work/';
-        var disqus_url = 'http://csw.github.com/bioruby-maf/blog/2012/06/13/jruby_support_and_performance_work/';
+        var disqus_identifier = 'http://csw.github.com/bioruby-maf/blog/2012/07/18/bio-maf_0.3.0/';
+        var disqus_url = 'http://csw.github.com/bioruby-maf/blog/2012/07/18/bio-maf_0.3.0/';
         var disqus_script = 'embed.js';
       
     (function () {
