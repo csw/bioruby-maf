@@ -119,6 +119,19 @@ Or, equivalently, one can work with a specific MAF file and index directly:
     # => Matched block at 80082592, 121 bases
     # => Matched block at 80082713, 54 bases
 
+### Extract alignment blocks truncated to a given interval
+
+Given a genomic interval of interest, one can also extract only the
+subsets of blocks that intersect with that interval, using the
+`#slice` method like so:
+
+    require 'bio-maf'
+    access = Bio::MAF::Access.maf_dir('test/data')
+    int = Bio::GenomicInterval.zero_based('mm8.chr7', 80082350, 80082380)
+    blocks = access.slice(int).to_a
+    puts "Got #{blocks.size} blocks, first #{blocks.first.ref_seq.size} base pairs."
+    # => Got 2 blocks, first 18 base pairs.
+
 ### Filter species returned in alignment blocks
 
     require 'bio-maf'
@@ -225,6 +238,30 @@ two adjacent alignment blocks to be split. By enabling the
     require 'bio-maf'
     access = Bio::MAF::Access.maf_dir('test/data')
     access.parse_options[:join_blocks] = true
+
+See the [Cucumber feature][] for more details.
+
+[Cucumber feature]: https://github.com/csw/bioruby-maf/blob/master/features/block-joining.feature
+
+### Extract bio-alignment representations of blocks
+
+When the `:as_bio_alignment` parser option is given, blocks will be
+returned as [Bio::BioAlignment::Alignment][] objects as used in the
+[bio-alignment] Biogem. This offers a great deal of built-in
+functionality for column-wise operations, alignment manipulation, and
+more.
+
+[Bio::BioAlignment::Alignment]: http://rdoc.info/gems/bio-alignment/Bio/BioAlignment/Alignment
+[bio-alignment]: https://github.com/pjotrp/bioruby-alignment
+
+    require 'bio-maf'
+    access = Bio::MAF::Access.maf_dir('test/data')
+    access.parse_options[:as_bio_alignment] = true
+    q = [Bio::GenomicInterval.zero_based('mm8.chr7', 80082592, 80082766)]
+    access.find(q) do |aln|
+      col = aln.columns[3]
+      puts "bases in column 3: #{col}"
+    end
 
 ### Tile blocks together over an interval
 
