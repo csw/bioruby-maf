@@ -61,17 +61,49 @@ module Bio
       end
     end
 
+    # Top-level class for working with a set of indexed MAF
+    # files. Provides a higher-level alternative to working with
+    # {Parser} and {KyotoIndex} objects directly.
+    #
+    # Create with {Access.maf_dir} and {Access.file} methods.
     class Access
 
-      attr_accessor :parse_options, :sequence_filter, :block_filter
+      # Parser options.
+      # @return [Hash]
+      # @see Parser
+      attr_accessor :parse_options
+      # Sequence filter to apply.
+      # @return [Hash]
+      # @see Parser#sequence_filter
+      attr_accessor :sequence_filter
+      # Block filter to apply.
+      # @return [Hash]
+      # @see KyotoIndex#find
+      attr_accessor :block_filter
       attr_reader :indices
 
+      # Provides access to a directory of indexed MAF files. Any files
+      # with .maf suffixes and accompanying .kct indexes in the given
+      # directory will be accessible.
+      # @param [String] dir directory to scan
+      # @param [Hash] options parser options
+      # @return Access
       def self.maf_dir(dir, options={})
         o = options.dup
         o[:dir] = dir
         self.new(o)
       end
 
+      # Provides access to a single MAF file. If this file is not
+      # indexed, it will be fully parsed to create a temporary
+      # in-memory index. For large MAF files or ones which will be
+      # used multiple times, this is inefficient, and an index file
+      # should be created with maf_index(1).
+      #
+      # @param [String] maf path to MAF file
+      # @param [String] index Kyoto Cabinet index file
+      # @param [Hash] options parser options
+      # @return Access
       def self.file(maf, index=nil, options={})
         o = options.dup
         o[:maf] = maf
@@ -79,10 +111,22 @@ module Bio
         self.new(o)
       end
 
+      # Close all open resources, in particular Kyoto Cabinet database
+      # handles.
       def close
         @indices.values.each { |ki| ki.close }
       end
 
+      # Find all alignment blocks in the genomic regions in the list
+      # of Bio::GenomicInterval objects, and parse them with the given
+      # parser.
+      #
+      # @param [Enumerable<Bio::GenomicInterval>] intervals genomic
+      #  intervals to parse.
+      # @yield [block] each {Block} matched, in turn
+      # @return [Enumerable<Block>] each matching {Block}, if no block given
+      # @api public
+      # @see KyotoIndex#find
       def find(intervals, &blk)
         if block_given?
           by_chrom = intervals.group_by { |i| i.chrom }
@@ -102,6 +146,14 @@ module Bio
         end
       end
 
+      # Find and parse all alignment blocks in the genomic region
+      # given by a Bio::GenomicInterval, and combine them to
+      # synthesize a single alignment covering that interval
+      # exactly.
+      #
+      # @param [Bio::GenomicInterval] interval interval to search
+      # @yield [tiler] a {Tiler} ready to operate on the given interval
+      # @api public
       def tile(interval)
         index = chrom_index(interval.chrom)
         with_parser(interval.chrom) do |parser|
@@ -113,6 +165,15 @@ module Bio
         end
       end
 
+      # Find and parse all alignment blocks in the genomic region
+      # given by a Bio::GenomicInterval, and truncate them to just the
+      # region intersecting that interval.
+      #
+      # @param [Bio::GenomicInterval] interval interval to search
+      # @yield [block] each {Block} matched, in turn
+      # @return [Enumerable<Block>] each matching {Block}, if no block given
+      # @api public
+      # @see KyotoIndex#slice
       def slice(interval, &blk)
         index = chrom_index(interval.chrom)
         with_parser(interval.chrom) do |parser|
@@ -152,17 +213,20 @@ module Bio
         end
       end
 
+      # @api private
       def find_index_file(maf)
         base = File.basename(maf, '.maf')
         index_f = "#{@dir}/#{base}.kct"
         File.exists?(index_f) ? index_f : nil
       end
 
+      # @api private
       def register_index(index, maf)
         @indices[index.ref_seq] = index
         @maf_by_chrom[index.ref_seq] = maf
       end
 
+      # @api private
       def scan_indices!
         @maf_files.each do |maf|
           index_f = find_index_file(maf)
@@ -173,6 +237,7 @@ module Bio
         end
       end
 
+      # @api private
       def chrom_index(chrom)
         unless @indices.has_key? chrom
           raise "No index available for chromosome #{chrom}!"
@@ -180,6 +245,7 @@ module Bio
         @indices[chrom]
       end
 
+      # @api private
       def with_parser(chrom)
         # $stderr.puts "Creating parser with options #{@parse_options.inspect}"
         parser = Parser.new(@maf_by_chrom[chrom], @parse_options)
