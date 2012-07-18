@@ -84,9 +84,11 @@ create one with [maf_index(1)][], like so:
     
 Or programmatically:
 
+```ruby
     require 'bio-maf'
     parser = Bio::MAF::Parser.new("test/data/mm8_chr7_tiny.maf")
     idx = Bio::MAF::KyotoIndex.build(parser, "/tmp/mm8_chr7_tiny.kct")
+```
 
 ### Extract blocks from an indexed MAF file, by genomic interval
 
