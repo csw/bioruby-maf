@@ -87,7 +87,7 @@ The output is generated in FASTA format, with one sequence per species\.
 The \fImaf\fR parameter must specify either a Multiple Alignment Format (MAF) file or a directory of such files, with indexes\.
 .
 .P
-The \fIindex\fR must be a MAF index built with maf_index(1)\. This can be omitted if a single MAF file is given as a parameter, but in this case the entire file will be parsed to build a temporary index\. For large files which will be reused, this is not advisable\.
+The \fIindex\fR must be a MAF index built with maf_index(1)\. This parameter is ignored if the \fImaf\fR parameter is a directory\. It can be omitted if a single MAF file is given, but in this case the entire file will be parsed to build a temporary index\. For large files which will be reused, this is not advisable\.
 .
 .P
 If \fB\-\-bed\fR \fIbed\fR is specified, its argument must be a BED file\. Only the second and third columns will be used, to specify the zero\-based start and end positions of intervals\.
