@@ -13,6 +13,7 @@ group :development do
   gem "redcarpet", "~> 2.1.1", :platforms => :mri
   gem "ronn", "~> 0.7.3", :platforms => :mri
   gem "sinatra", "~> 1.3.2" # for ronn --server
+  gem "jruby-openssl", ">= 0.7", :platforms => :jruby
 end
 
 group :test do
