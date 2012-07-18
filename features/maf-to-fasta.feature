@@ -48,3 +48,12 @@ Feature: Convert MAF file to FASTA
     
     """
 
+  @no_jruby
+  Scenario: Convert MAF to FASTA with CLI tool
+    Given test files:
+    | mm8_chr7_tiny.maf |
+    When I run `maf_to_fasta mm8_chr7_tiny.maf mm8_chr7_tiny.fa`
+    Then it should pass with:
+    """
+    """
+    And the file "mm8_chr7_tiny.fa" should contain ">rn4.chr1:136011785-136011819"

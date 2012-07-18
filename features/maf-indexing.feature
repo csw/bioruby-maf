@@ -29,3 +29,26 @@ Feature: Indexed access to MAF files
     Then 2 blocks are obtained
     And sequence mm8.chr7 of block 0 has start 80082592
     And sequence mm8.chr7 of block 1 has start 80082713
+
+  @no_jruby
+  Scenario: Build MAF index with CLI tool
+    Given test files:
+    | mm8_chr7_tiny.maf |
+    When I run `maf_index mm8_chr7_tiny.maf mm8_chr7_tiny.kct`
+    Then it should pass with:
+    """
+    """
+    And a file named "mm8_chr7_tiny.kct" should exist
+
+  @no_jruby
+  Scenario: Dump MAF index with CLI tool
+    Given test files:
+    | mm8_chr7_tiny.maf |
+    | mm8_chr7_tiny.kct |
+    When I run `maf_index -d mm8_chr7_tiny.kct`
+    Then it should pass with regex:
+    """
+    0 \[bin 1195\] 80082334:80082368
+    """
+
+  
