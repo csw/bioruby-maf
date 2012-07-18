@@ -1,4 +1,4 @@
-When /^open a new MAF writer$/ do
+When /^(?:I )?open a new MAF writer$/ do
   @dst = Tempfile.new(["cuke", ".maf"])
   @writer = Bio::MAF::Writer.new(@dst)
 end

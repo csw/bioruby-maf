@@ -1,0 +1,10 @@
+##maf version=1
+a score=30120.0
+s mm8.chr7                 80082718 10 + 145134094 CAAAGGCAGC 
+s rn4.chr1                136012152 10 + 267910886 CAGAGGCAGC 
+s hg18.chr15               88557993 10 + 100338915 CTGAACCAGC 
+s panTro2.chr15            87960238 10 + 100063422 CTGAACCAGC 
+s rheMac2.chr7             69865091 10 + 169801366 CTGAACCAGC 
+s canFam2.chr3             56030954 10 +  94715083 TTGACCCAGC 
+s echTel1.scaffold_304651       922 10 -     10007 TCCATCCCAC 
+

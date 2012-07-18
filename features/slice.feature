@@ -32,3 +32,23 @@ Feature: MAF slicing
     And write all the matched blocks
     Then the output should match, except whitespace, "mm8_chr7_tiny_slice1.maf"
     
+  Scenario: Interval in block subset
+    Given indexed MAF files in "test/data"
+    When I open a new MAF writer
+    And write a default header
+    And I extract a slice over the genomic interval
+      | chrom    |    start |      end |
+      | mm8.chr7 | 80082718 | 80082728 |
+    And write all the matched blocks
+    Then the output should match, except whitespace, "mm8_chr7_tiny_slice2.maf"
+    
+  Scenario: Interval to end of block
+    Given indexed MAF files in "test/data"
+    When I open a new MAF writer
+    And write a default header
+    And I extract a slice over the genomic interval
+      | chrom    |    start |      end |
+      | mm8.chr7 | 80082757 | 80082767 |
+    And write all the matched blocks
+    Then the output should match, except whitespace, "mm8_chr7_tiny_slice3.maf"
+    

@@ -1,9 +1,9 @@
 ##maf version=1
-a score=0.0
+a score=10542.0
 s mm8.chr7                 80082350 18 + 145134094 TGGAGGGCGGTCCCAGCA
 s rn4.chr1                136011801 18 + 267910886 CGGAGGGCGGTCCCAGCA
 
-a score=0.0
+a score=-33148.0
 s mm8.chr7                 80082368 12 + 145134094 TGAGAGGGCATG
 s rn4.chr1                136011819 12 + 267910886 TGAGAGGGCATG
 

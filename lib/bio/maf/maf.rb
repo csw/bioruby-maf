@@ -145,9 +145,9 @@ module Bio
       # @return [Block] block covering intersection with interval
       def slice(interval)
         case interval.compare(ref_seq.interval)
-        when :contains, :equal
+        when :equal
           return self
-        when :contained_by, :left_overlapped, :right_overlapped
+        when :contains, :contained_by, :left_overlapped, :right_overlapped
           _slice(interval.intersection(ref_seq.interval))
         when :left_adjacent, :right_adjacent, :left_off, :right_off
           raise "Cannot slice a block with a non-overlapping interval! Block #{ref_seq.interval}, interval #{interval}"
@@ -159,13 +159,39 @@ module Bio
       end
 
       def _slice(interval)
-        offset = interval.zero_start - ref_seq.start
-        i_len  = interval.length
-        s2 = sequences.collect { |s| s.slice(offset, i_len) }
+        #offset = interval.zero_start - ref_seq.start
+        #i_len  = interval.length
+        range = _slice_text_range(interval)
+        s2 = sequences.collect { |s| s.slice(range) }
         v2 = vars.dup
-        v2[:score] = '0.0'
+        #v2[:score] = '0.0'
         # TODO: should the filtered param be #modified? instead?
         Block.new(v2, s2, offset, size, @filtered)
+      end
+
+      def _slice_text_range(interval)
+        i_start  = interval.zero_start
+        i_end    = interval.zero_end
+        g_pos    = ref_seq.start
+        t_start  = nil
+        t_end    = nil
+        ref_seq.text.each_char.each_with_index do |c, t_pos|
+          if c != '-'
+            # non-gap
+            if g_pos == i_start
+              t_start = t_pos
+            end
+            g_pos += 1
+            if t_start && g_pos == i_end
+              t_end = t_pos + 1
+              break
+            end
+          end
+        end
+        unless t_start && t_end
+          raise "did not find start and end for #{interval} in #{ref_seq.inspect}!"
+        end
+        return t_start...t_end
       end
 
       def joinable_with?(other)
@@ -246,14 +272,21 @@ module Bio
         GenomicInterval.zero_based(self.source, self.start, self.end)
       end
 
-      def slice(offset, len)
+      def slice(range)
+        before = text.slice(0...(range.begin))
+        non_gap_prev = before.delete("-").size
+        new_text = text.slice(range)
+        unless new_text
+          raise "could not extract slice #{range} from #{self.inspect}!"
+        end
+        non_gap_text = new_text.delete("-").size
         s2 = Sequence.new(source,
-                          start + offset,
-                          len,
+                          start + non_gap_prev,
+                          non_gap_text,
                           strand,
                           src_size,
-                          text.slice(offset, len))
-        s2.quality = quality.slice(offset, len) if quality
+                          new_text)
+        s2.quality = quality.slice(range) if quality
         # TODO: what to do with synteny data?
         s2
       end
