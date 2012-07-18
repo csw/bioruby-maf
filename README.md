@@ -94,32 +94,36 @@ idx = Bio::MAF::KyotoIndex.build(parser, "/tmp/mm8_chr7_tiny.kct")
 
 Refer to [`mm8_chr7_tiny.maf`](https://github.com/csw/bioruby-maf/blob/master/test/data/mm8_chr7_tiny.maf).
 
-    require 'bio-maf'
-    access = Bio::MAF::Access.maf_dir('test/data')
+```ruby
+require 'bio-maf'
+access = Bio::MAF::Access.maf_dir('test/data')
 
-    q = [Bio::GenomicInterval.zero_based('mm8.chr7', 80082592, 80082766)]
-    access.find(q) do |block|
-      ref_seq = block.sequences[0]
-      puts "Matched block at #{ref_seq.start}, #{ref_seq.size} bases"
-    end
+q = [Bio::GenomicInterval.zero_based('mm8.chr7', 80082592, 80082766)]
+access.find(q) do |block|
+  ref_seq = block.sequences[0]
+  puts "Matched block at #{ref_seq.start}, #{ref_seq.size} bases"
+end
 
-    # => Matched block at 80082592, 121 bases
-    # => Matched block at 80082713, 54 bases
+# => Matched block at 80082592, 121 bases
+# => Matched block at 80082713, 54 bases
+```
 
 Or, equivalently, one can work with a specific MAF file and index directly:
 
-    require 'bio-maf'
-    parser = Bio::MAF::Parser.new('test/data/mm8_chr7_tiny.maf')
-    idx = Bio::MAF::KyotoIndex.open('test/data/mm8_chr7_tiny.kct')
+```ruby
+require 'bio-maf'
+parser = Bio::MAF::Parser.new('test/data/mm8_chr7_tiny.maf')
+idx = Bio::MAF::KyotoIndex.open('test/data/mm8_chr7_tiny.kct')
 
-    q = [Bio::GenomicInterval.zero_based('mm8.chr7', 80082592, 80082766)]
-    idx.find(q, parser).each do |block|
-      ref_seq = block.sequences[0]
-      puts "Matched block at #{ref_seq.start}, #{ref_seq.size} bases"
-    end
+q = [Bio::GenomicInterval.zero_based('mm8.chr7', 80082592, 80082766)]
+idx.find(q, parser).each do |block|
+  ref_seq = block.sequences[0]
+  puts "Matched block at #{ref_seq.start}, #{ref_seq.size} bases"
+end
 
-    # => Matched block at 80082592, 121 bases
-    # => Matched block at 80082713, 54 bases
+# => Matched block at 80082592, 121 bases
+# => Matched block at 80082713, 54 bases
+```
 
 ### Extract alignment blocks truncated to a given interval
 
@@ -127,25 +131,29 @@ Given a genomic interval of interest, one can also extract only the
 subsets of blocks that intersect with that interval, using the
 `#slice` method like so:
 
-    require 'bio-maf'
-    access = Bio::MAF::Access.maf_dir('test/data')
-    int = Bio::GenomicInterval.zero_based('mm8.chr7', 80082350, 80082380)
-    blocks = access.slice(int).to_a
-    puts "Got #{blocks.size} blocks, first #{blocks.first.ref_seq.size} base pairs."
-    # => Got 2 blocks, first 18 base pairs.
+```ruby
+require 'bio-maf'
+access = Bio::MAF::Access.maf_dir('test/data')
+int = Bio::GenomicInterval.zero_based('mm8.chr7', 80082350, 80082380)
+blocks = access.slice(int).to_a
+puts "Got #{blocks.size} blocks, first #{blocks.first.ref_seq.size} base pairs."
+# => Got 2 blocks, first 18 base pairs.
+```
 
 ### Filter species returned in alignment blocks
 
-    require 'bio-maf'
-    access = Bio::MAF::Access.maf_dir('test/data')
+```ruby
+require 'bio-maf'
+access = Bio::MAF::Access.maf_dir('test/data')
 
-    access.sequence_filter = { :only_species => %w(hg18 mm8 rheMac2) }
-    q = [Bio::GenomicInterval.zero_based('mm8.chr7', 80082592, 80082766)]
-    blocks = access.find(q)
-    block = blocks.first
-    puts "Block has #{block.sequences.size} sequences."
+access.sequence_filter = { :only_species => %w(hg18 mm8 rheMac2) }
+q = [Bio::GenomicInterval.zero_based('mm8.chr7', 80082592, 80082766)]
+blocks = access.find(q)
+block = blocks.first
+puts "Block has #{block.sequences.size} sequences."
 
-    # => Block has 3 sequences.
+# => Block has 3 sequences.
+```
 
 ### Extract blocks matching certain conditions
 
@@ -156,68 +164,80 @@ See also the [Cucumber feature][] and [step definitions][] for this.
 
 #### Match only blocks with all specified species
 
-    access = Bio::MAF::Access.maf_dir('test/data')
-    q = [Bio::GenomicInterval.zero_based('mm8.chr7', 80082471, 80082730)]
-    access.block_filter = { :with_all_species => %w(panTro2 loxAfr1) }
-    n_blocks = access.find(q).count
-    # => 1
+```ruby
+access = Bio::MAF::Access.maf_dir('test/data')
+q = [Bio::GenomicInterval.zero_based('mm8.chr7', 80082471, 80082730)]
+access.block_filter = { :with_all_species => %w(panTro2 loxAfr1) }
+n_blocks = access.find(q).count
+# => 1
+```
 
 #### Match only blocks with a certain number of sequences
 
-    access = Bio::MAF::Access.maf_dir('test/data')
-    q = [Bio::GenomicInterval.zero_based('mm8.chr7', 80082767, 80083008)]
-    access.block_filter = { :at_least_n_sequences => 6 }
-    n_blocks = access.find(q).count
-    # => 1
+```ruby
+access = Bio::MAF::Access.maf_dir('test/data')
+q = [Bio::GenomicInterval.zero_based('mm8.chr7', 80082767, 80083008)]
+access.block_filter = { :at_least_n_sequences => 6 }
+n_blocks = access.find(q).count
+# => 1
+```
 
 #### Match only blocks within a text size range
 
-    access = Bio::MAF::Access.maf_dir('test/data')
-    q = [Bio::GenomicInterval.zero_based('mm8.chr7', 0, 80100000)]
-    access.block_filter = { :min_size => 72, :max_size => 160 }
-    n_blocks = access.find(q).count
-    # => 3
+```ruby
+access = Bio::MAF::Access.maf_dir('test/data')
+q = [Bio::GenomicInterval.zero_based('mm8.chr7', 0, 80100000)]
+access.block_filter = { :min_size => 72, :max_size => 160 }
+n_blocks = access.find(q).count
+# => 3
+```
 
 ### Process each block in a MAF file
 
-    require 'bio-maf'
-    p = Bio::MAF::Parser.new('test/data/mm8_chr7_tiny.maf')
-    puts "MAF version: #{p.header.version}"
-    # => MAF version: 1
+```ruby
+require 'bio-maf'
+p = Bio::MAF::Parser.new('test/data/mm8_chr7_tiny.maf')
+puts "MAF version: #{p.header.version}"
+# => MAF version: 1
 
-    p.each_block do |block|
-      block.sequences.each do |seq|
-        do_something(seq)
-      end
-    end
+p.each_block do |block|
+  block.sequences.each do |seq|
+    do_something(seq)
+  end
+end
+```
 
 ### Parse empty ('e') lines
 
 Refer to [`chr22_ieq.maf`](https://github.com/csw/bioruby-maf/blob/master/test/data/chr22_ieq.maf).
 
-    require 'bio-maf'
-    p = Bio::MAF::Parser.new('test/data/chr22_ieq.maf',
-                             :parse_empty => false)
-    block = p.parse_block
-    block.sequences.size
-    # => 3
+```ruby
+require 'bio-maf'
+p = Bio::MAF::Parser.new('test/data/chr22_ieq.maf',
+                         :parse_empty => false)
+block = p.parse_block
+block.sequences.size
+# => 3
 
-    p = Bio::MAF::Parser.new('test/data/chr22_ieq.maf',
-                             :parse_empty => true)
-    block = p.parse_block
-    block.sequences.size
-    # => 4
-    block.sequences.find { |s| s.empty? }
-    # => #<Bio::MAF::EmptySequence:0x007fe1f39882d0 
-    #      @source="turTru1.scaffold_109008", @start=25049,
-    #      @size=1601, @strand=:+, @src_size=50103, @text=nil,
-    #      @status="I"> 
+p = Bio::MAF::Parser.new('test/data/chr22_ieq.maf',
+                         :parse_empty => true)
+block = p.parse_block
+block.sequences.size
+# => 4
+block.sequences.find { |s| s.empty? }
+# => #<Bio::MAF::EmptySequence:0x007fe1f39882d0 
+#      @source="turTru1.scaffold_109008", @start=25049,
+#      @size=1601, @strand=:+, @src_size=50103, @text=nil,
+#      @status="I"> 
+```
 
 Such options can also be set on a Bio::MAF::Access object:
 
-    require 'bio-maf'
-    access = Bio::MAF::Access.maf_dir('test/data')
-    access.parse_options[:parse_empty] = true
+```ruby
+require 'bio-maf'
+access = Bio::MAF::Access.maf_dir('test/data')
+access.parse_options[:parse_empty] = true
+```
 
 ### Remove gaps from parsed blocks
 
@@ -227,9 +247,11 @@ gaps may be left where there was an insertion present only in
 sequences that were filtered out. Such gaps can be removed by setting
 the `:remove_gaps` parser option:
 
-    require 'bio-maf'
-    access = Bio::MAF::Access.maf_dir('test/data')
-    access.parse_options[:remove_gaps] = true
+```ruby
+require 'bio-maf'
+access = Bio::MAF::Access.maf_dir('test/data')
+access.parse_options[:remove_gaps] = true
+```
 
 ### Join blocks after filtering together
 
@@ -237,9 +259,11 @@ Similarly, filtering out species may remove a species which had caused
 two adjacent alignment blocks to be split. By enabling the
 `:join_blocks` parser option, such blocks can be joined together:
 
-    require 'bio-maf'
-    access = Bio::MAF::Access.maf_dir('test/data')
-    access.parse_options[:join_blocks] = true
+```ruby
+require 'bio-maf'
+access = Bio::MAF::Access.maf_dir('test/data')
+access.parse_options[:join_blocks] = true
+```
 
 See the [Cucumber feature][] for more details.
 
@@ -256,14 +280,16 @@ more.
 [Bio::BioAlignment::Alignment]: http://rdoc.info/gems/bio-alignment/Bio/BioAlignment/Alignment
 [bio-alignment]: https://github.com/pjotrp/bioruby-alignment
 
-    require 'bio-maf'
-    access = Bio::MAF::Access.maf_dir('test/data')
-    access.parse_options[:as_bio_alignment] = true
-    q = [Bio::GenomicInterval.zero_based('mm8.chr7', 80082592, 80082766)]
-    access.find(q) do |aln|
-      col = aln.columns[3]
-      puts "bases in column 3: #{col}"
-    end
+```ruby
+require 'bio-maf'
+access = Bio::MAF::Access.maf_dir('test/data')
+access.parse_options[:as_bio_alignment] = true
+q = [Bio::GenomicInterval.zero_based('mm8.chr7', 80082592, 80082766)]
+access.find(q) do |aln|
+  col = aln.columns[3]
+  puts "bases in column 3: #{col}"
+end
+```
 
 ### Tile blocks together over an interval
 
@@ -278,23 +304,25 @@ man page.
 
 [feature]: https://github.com/csw/bioruby-maf/blob/master/features/tiling.feature
 
-    require 'bio-maf'
-    access = Bio::MAF::Access.maf_dir('test/data')
-    interval = Bio::GenomicInterval.zero_based('mm8.chr7',
-                                               80082334,
-                                               80082468)
-    access.tile(interval) do |tiler|
-      # reference is optional
-      tiler.reference = 'reference.fa.gz'
-      tiler.species = %w(mm8 rn4 hg18)
-      # species_map is optional
-      tiler.species_map = {
-        'mm8' => 'mouse',
-        'rn4' => 'rat',
-        'hg18' => 'human'
-      }
-      tiler.write_fasta($stdout)
-    end
+```ruby
+require 'bio-maf'
+access = Bio::MAF::Access.maf_dir('test/data')
+interval = Bio::GenomicInterval.zero_based('mm8.chr7',
+                                           80082334,
+                                           80082468)
+access.tile(interval) do |tiler|
+  # reference is optional
+  tiler.reference = 'reference.fa.gz'
+  tiler.species = %w(mm8 rn4 hg18)
+  # species_map is optional
+  tiler.species_map = {
+    'mm8' => 'mouse',
+    'rn4' => 'rat',
+    'hg18' => 'human'
+  }
+  tiler.write_fasta($stdout)
+end
+```
 
 ### Command line tools
 
