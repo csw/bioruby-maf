@@ -159,8 +159,6 @@ module Bio
       end
 
       def _slice(interval)
-        #offset = interval.zero_start - ref_seq.start
-        #i_len  = interval.length
         range = _slice_text_range(interval)
         s2 = sequences.collect { |s| s.slice(range) }
         v2 = vars.dup
