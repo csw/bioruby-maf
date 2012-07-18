@@ -65,7 +65,7 @@ module Bio
     # files. Provides a higher-level alternative to working with
     # {Parser} and {KyotoIndex} objects directly.
     #
-    # Create with {Access.maf_dir} and {Access.file} methods.
+    # Instantiate with {Access.maf_dir} and {Access.file} methods.
     class Access
 
       # Parser options.
@@ -87,7 +87,7 @@ module Bio
       # directory will be accessible.
       # @param [String] dir directory to scan
       # @param [Hash] options parser options
-      # @return Access
+      # @return [Access]
       def self.maf_dir(dir, options={})
         o = options.dup
         o[:dir] = dir
@@ -103,7 +103,7 @@ module Bio
       # @param [String] maf path to MAF file
       # @param [String] index Kyoto Cabinet index file
       # @param [Hash] options parser options
-      # @return Access
+      # @return [Access]
       def self.file(maf, index=nil, options={})
         o = options.dup
         o[:maf] = maf
