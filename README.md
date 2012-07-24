@@ -81,13 +81,17 @@ create one with [maf_index(1)][], like so:
 
 
     $ maf_index test/data/mm8_chr7_tiny.maf /tmp/mm8_chr7_tiny.kct
-    
-Or programmatically:
+
+To index all sequences for searching, not just the reference sequence:
+
+    $ maf_index --all test/data/mm8_chr7_tiny.maf /tmp/mm8_chr7_tiny.kct
+
+To build an index programmatically:
 
 ```ruby
 require 'bio-maf'
 parser = Bio::MAF::Parser.new("test/data/mm8_chr7_tiny.maf")
-idx = Bio::MAF::KyotoIndex.build(parser, "/tmp/mm8_chr7_tiny.kct")
+idx = Bio::MAF::KyotoIndex.build(parser, "/tmp/mm8_chr7_tiny.kct", false)
 ```
 
 ### Extract blocks from an indexed MAF file, by genomic interval

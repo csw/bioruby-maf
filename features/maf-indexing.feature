@@ -50,6 +50,17 @@ Feature: Indexed access to MAF files
     And a file named "mm8_chr7_tiny.kct" should exist
 
   @no_jruby
+  Scenario: Build MAF index on all sequences with CLI tool
+    Given test files:
+    | mm8_chr7_tiny.maf |
+    When I run `maf_index --all mm8_chr7_tiny.maf mm8_chr7_tiny.kct`
+    And I run `maf_index -d mm8_chr7_tiny.kct`
+    Then it should pass with regex:
+    """
+    9 \[bin 585\] 594:631
+    """
+
+  @no_jruby
   Scenario: Dump MAF index with CLI tool
     Given test files:
     | mm8_chr7_tiny.maf |

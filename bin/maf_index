@@ -13,13 +13,14 @@ PRINTERS = {
 
 $options = OpenStruct.new
 $options.mode = :build
+$options.ref_only = true
 $options.reader = Bio::MAF::ChunkReader
 
 def build_index(maf, index)
   parser = Bio::MAF::Parser.new(maf,
                                 :chunk_reader => $options.reader,
                                 :parse_extended => false)
-  idx = Bio::MAF::KyotoIndex.build(parser, index)
+  idx = Bio::MAF::KyotoIndex.build(parser, index, $options.ref_only)
   idx.close
 end
 
@@ -27,7 +28,10 @@ op = OptionParser.new do |opts|
   opts.banner = "Usage: maf_index [options] <maf> <index>"
   #opts.separator ""
   #opts.separator "Options:"
-  opts.on("--time", "print elapsed time") do
+  opts.on("-a", "--all") do
+    $options.ref_only = false
+  end 
+ opts.on("--time", "print elapsed time") do
     $options.bench = true
   end
   opts.on("-d", "--dump") do

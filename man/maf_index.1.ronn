@@ -29,9 +29,11 @@ The index created is a Kyoto Cabinet TreeDB (B+ tree) database;
 
 ## OPTIONS
 
-TODO
-
- * `-d`, `--dump`:
+ * `-a`, `--all`:
+   All sequences, not just the reference sequence, will be indexed for
+   searching. 
+   
+* `-d`, `--dump`:
    Instead of creating an index, dump out the given <index> in
    human-readable form. Index records will appear like:
    
