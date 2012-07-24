@@ -30,6 +30,15 @@ Feature: Indexed access to MAF files
     And sequence mm8.chr7 of block 0 has start 80082592
     And sequence mm8.chr7 of block 1 has start 80082713
 
+  Scenario: Extract alignment blocks by chromosomal range on non-ref sequence
+    Given a MAF source file "mm8_chr7_tiny.maf"
+    When I open it with a MAF reader
+    And build an index on all sequences
+    And search for blocks between positions 136011819 and 136012026 of rn4.chr1
+    Then 2 blocks are obtained
+    And sequence mm8.chr7 of block 0 has start 80082368
+    And sequence mm8.chr7 of block 1 has start 80082471
+
   @no_jruby
   Scenario: Build MAF index with CLI tool
     Given test files:
@@ -51,4 +60,4 @@ Feature: Indexed access to MAF files
     0 \[bin 1195\] 80082334:80082368
     """
 
-  
+

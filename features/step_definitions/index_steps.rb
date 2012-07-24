@@ -2,6 +2,10 @@ When /^build an index on the reference sequence$/ do
   @idx = Bio::MAF::KyotoIndex.build(@parser, '%')
 end
 
+When /^build an index on all sequences$/ do
+  @idx = Bio::MAF::KyotoIndex.build(@parser, '%', false)
+end
+
 Given /^a Kyoto Cabinet index file "(.*?)"$/ do |name|
   @idx = Bio::MAF::KyotoIndex.open($test_data + name)
 end

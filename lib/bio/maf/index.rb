@@ -353,9 +353,9 @@ module Bio
       # @param [Parser] parser MAF parser for file to index
       # @param [String] path path to index file to create
       # @return [KyotoIndex]
-      def self.build(parser, path)
+      def self.build(parser, path, ref_only=true)
         idx = self.new(path)
-        idx.build_default(parser)
+        idx.build(parser, ref_only)
         return idx
       end
 
@@ -659,10 +659,10 @@ module Bio
          || gi.include?(i_start)
       end
 
-      def build_default(parser)
+      def build(parser, ref_only=true)
         first_block = parser.parse_block
         self.ref_seq = first_block.sequences.first.source
-        @ref_only = true
+        @ref_only = ref_only
         db[REF_SEQ_KEY] = ref_seq
         db[FORMAT_VERSION_KEY] = FORMAT_VERSION
         @index_sequences = {}
