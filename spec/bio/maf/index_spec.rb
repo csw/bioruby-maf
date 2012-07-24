@@ -43,6 +43,17 @@ module Bio
             buf.string.should == File.read(TestData + 'gap-filled1.fa')
           end
         end
+        it "gives a bio-alignment representation" do
+          access = Access.maf_dir(TestData)
+          interval = GenomicInterval.zero_based('sp1.chr1', 0, 50)
+          aln = access.tile(interval) do |tiler|
+            tiler.reference = TestData + 'gap-sp1.fa'
+            tiler.species = %w(sp1 sp2 sp3)
+            tiler.build_bio_alignment
+          end
+          aln.sequences[0].id.should == 'sp1'
+          aln.sequences[0].to_s.start_with?('CCAGGATGC').should be_true
+        end
       end
       describe ".file" do
         it "accepts a MAF file and index" do

@@ -57,6 +57,10 @@ module Bio::MAF
       species || species_map.keys
     end
 
+    def species_for_output
+      species_to_use.collect { |s| species_map[s] || s }
+    end
+
     def tile
       parser.sequence_filter[:only_species] = species_to_use
       # TODO: remove gaps
@@ -109,9 +113,12 @@ module Bio::MAF
       text
     end
 
+    def build_bio_alignment
+      Bio::BioAlignment::Alignment.new(tile(), species_for_output)
+    end
+
     def write_fasta(f)
-      species_to_use.zip(tile()) do |species, text|
-        sp_out = species_map[species] || species
+      species_for_output.zip(tile()) do |sp_out, text|
         f.puts ">#{sp_out}"
         f.puts text
       end
