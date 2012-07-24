@@ -262,7 +262,7 @@ module Bio
     class KyotoIndex
       include KVHelpers
 
-      attr_reader :db, :species, :species_max_id
+      attr_reader :db, :species, :species_max_id, :ref_only
       attr_accessor :index_sequences, :ref_seq
 
       FORMAT_VERSION_KEY = 'bio-maf:index-format-version'
@@ -426,6 +426,7 @@ module Bio
       def initialize(path, db_arg=nil)
         @species = {}
         @species_max_id = -1
+        @max_sid = -1
         if db_arg || ((path.size > 1) and File.exist?(path))
           mode = KyotoCabinet::DB::OREADER
         else
@@ -661,10 +662,10 @@ module Bio
       def build_default(parser)
         first_block = parser.parse_block
         self.ref_seq = first_block.sequences.first.source
+        @ref_only = true
         db[REF_SEQ_KEY] = ref_seq
         db[FORMAT_VERSION_KEY] = FORMAT_VERSION
-        @index_sequences = { ref_seq => 0 }
-        store_index_sequences!
+        @index_sequences = {}
         index_blocks([first_block])
         parser.enum_for(:each_block).each_slice(1000).each do |blocks|
           index_blocks(blocks)
@@ -685,12 +686,18 @@ module Bio
           h[name] = id
         end
         @index_sequences = h
+        @max_sid = @index_sequences.values.max
       end
 
-      def store_index_sequences!
-        index_sequences.each do |name, id|
-          db.set("sequence:#{name}", id.to_s)
+      def seq_id_for(name)
+        sid = index_sequences[name]
+        if ! sid
+          @max_sid += 1
+          sid = @max_sid
+          db.set("sequence:#{name}", sid.to_s)
+          index_sequences[name] = sid
         end
+        return sid
       end
 
       def load_species
@@ -742,9 +749,9 @@ module Bio
         end
         h = {}
         val = build_block_value(block)
-        block.sequences.each do |seq|
-          seq_id = index_sequences[seq.source]
-          next unless seq_id
+        to_index = ref_only ? [block.sequences.first] : block.sequences
+        to_index.each do |seq|
+          seq_id = seq_id_for(seq.source)
           seq_end = seq.start + seq.size
           bin = Bio::Ucsc::UcscBin.bin_from_range(seq.start, seq_end)
           key = [255, seq_id, bin, seq.start, seq_end].pack(KEY_FMT)
