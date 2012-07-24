@@ -54,6 +54,18 @@ module Bio
           aln.sequences[0].id.should == 'sp1'
           aln.sequences[0].to_s.start_with?('CCAGGATGC').should be_true
         end
+        it "allows setting the fill character" do
+          access = Access.maf_dir(TestData)
+          interval = GenomicInterval.zero_based('sp1.chr1', 0, 50)
+          aln = access.tile(interval) do |tiler|
+            tiler.reference = TestData + 'gap-sp1.fa'
+            tiler.species = %w(sp1 sp2 sp3)
+            tiler.fill_char = '-'
+            tiler.build_bio_alignment
+          end
+          aln.sequences[1].id.should == 'sp2'
+          aln.sequences[1].to_s.start_with?('----------GGGCTG').should be_true
+        end
       end
       describe ".file" do
         it "accepts a MAF file and index" do

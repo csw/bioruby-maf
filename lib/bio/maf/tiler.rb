@@ -15,9 +15,21 @@ module Bio::MAF
     attr_accessor :interval
     attr_accessor :species
     attr_accessor :species_map
+    attr_reader   :fill_char
 
     def initialize
       @species_map = {}
+      self.fill_char = '*'
+    end
+
+    # Set the character to be used for filling regions with no
+    # sequence data from the MAF file or a reference sequence.
+    # @param c [String] a one-character String to fill with
+    def fill_char=(c)
+      unless c.is_a?(String) && c.length == 1
+        raise ArgumentError, "not a single character: #{c.inspect}" 
+      end
+      @fill_char = c
     end
 
     # Set the reference sequence.
@@ -92,8 +104,8 @@ module Bio::MAF
                      else
                        'N' * range_size
                      end
-          stars = '*' * range_size
-          nonref_text.each { |t| t << stars }
+          fill_text = fill_char * range_size
+          nonref_text.each { |t| t << fill_text }
         else
           # covered by an alignment block
           t_range = block.ref_seq.text_range(g_range)
@@ -104,8 +116,8 @@ module Bio::MAF
               # got alignment text
               sp_text << seq.text.slice(t_range)
             else
-              # no alignment for this one here, use '*'
-              sp_text << '*' * (t_range.end - t_range.begin)
+              # no alignment for this one here, use the fill char
+              sp_text << fill_char * (t_range.end - t_range.begin)
             end
           end
         end
