@@ -13,8 +13,21 @@ module Bio::MAF
     attr_reader :reference
     # GenomicInterval
     attr_accessor :interval
+
+    # The species of interest to extract from the MAF file. Will be
+    # set as a {Parser#sequence_filter} for parsing. Defaults to the
+    # keys of {#species_map}.
+    #
+    # @return [Array<String>]
     attr_accessor :species
+
+    # A hash mapping species to their desired output names.
+    #
+    # @return [Hash]
     attr_accessor :species_map
+
+    # The character used to fill regions where no sequence data is available for a particular species. Defaults to `*`.
+    # @return [String]
     attr_reader   :fill_char
 
     def initialize
@@ -32,9 +45,12 @@ module Bio::MAF
       @fill_char = c
     end
 
-    # Set the reference sequence.
+    # Set the reference sequence. This can be a {Pathname} or a
+    # {String} giving the path to an optionally-gzipped FASTA file, an
+    # open {IO} stream to a FASTA file, a String containing FASTA
+    # data, or a {FASTARangeReader} instance.
     #
-    # @param source [FASTARangeReader, String, Pathname]
+    # @param source [FASTARangeReader, String, Pathname, #readline]
     def reference=(source)
       ref = case
             when source.is_a?(FASTARangeReader)
@@ -73,6 +89,9 @@ module Bio::MAF
       species_to_use.collect { |s| species_map[s] || s }
     end
 
+    # Return an array of tiled sequence data, in the order given by
+    # {#species_to_use}.
+    # @return [Array<String>]
     def tile
       parser.sequence_filter[:only_species] = species_to_use
       # TODO: remove gaps
@@ -125,10 +144,24 @@ module Bio::MAF
       text
     end
 
+    # Tile sequences to build a new {Bio::BioAlignment::Alignment
+    # Alignment} object. This will have one
+    # {Bio::BioAlignment::Sequence Sequence} per entry in {#species}
+    # or {#species_map}, in the same order. Each sequence will have an
+    # {Bio::BioAlignment::Sequence#id id} given by {#species_map} or,
+    # if none is present, the identifier from {#species}.
+    #
+    # @return [Bio::BioAlignment::Alignment]
+    # @api public
     def build_bio_alignment
       Bio::BioAlignment::Alignment.new(tile(), species_for_output)
     end
 
+    # Write a FASTA representation of the tiled sequences to the given
+    # output stream.
+    #
+    # @param [#puts] f the output stream to write the FASTA data to.
+    # @api public
     def write_fasta(f)
       species_for_output.zip(tile()) do |sp_out, text|
         f.puts ">#{sp_out}"
