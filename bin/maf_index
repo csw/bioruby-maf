@@ -34,8 +34,9 @@ op = OptionParser.new do |opts|
   opts.separator "Options:"
   opts.on("-a", "--all", "Index all sequences, not just reference seq") do
     $options.ref_only = false
-  end 
- opts.on("--time", "print elapsed time") do
+  end
+  Bio::MAF::handle_logging_options(opts)
+  opts.on("--time", "print elapsed time") do
     $options.bench = true
   end
   opts.on("-d", "--dump", "Dump contents of given INDEX") do
@@ -54,6 +55,7 @@ op = OptionParser.new do |opts|
 end
 
 op.parse!(ARGV)
+Bio::Log::CLI.configure('bio-maf')
 
 maf_p = ARGV.shift if $options.mode == :build
 index_p = ARGV.shift

@@ -48,6 +48,15 @@ The index created is a Kyoto Cabinet TreeDB (B+ tree) database;
    performance with different Ruby implementations, I/O subsystems,
    etc.
    
+ * `-q`, `--quiet`:
+   Run quietly, with warnings suppressed.
+
+ * `-v`, `--verbose`:
+   Run verbosely, with additional informational messages.
+   
+ * `--debug`:
+   Log debugging information.
+   
 ## EXAMPLES
 
 Build an index on a MAF file:

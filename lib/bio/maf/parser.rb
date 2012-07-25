@@ -902,6 +902,27 @@ module Bio
       include MAFParsing
     end
 
+    def handle_logging_options(opts)
+      opts.on("--logger filename", String,
+              "Log to file (default STDOUT)") do |name|
+        Bio::Log::CLI.logger(name)
+      end
+      opts.on("--trace options", String,
+              "Set log level (default INFO, see bio-logger)") do |s|
+        Bio::Log::CLI.trace(s)
+      end
+      opts.on("-q", "--quiet", "Run quietly") do
+        Bio::Log::CLI.trace('error')
+      end
+      opts.on("-v", "--verbose", "Run verbosely") do
+        Bio::Log::CLI.trace('info')
+      end
+      opts.on("--debug", "Run with extra debugging output") do
+        Bio::Log::CLI.trace('debug')
+      end
+    end
+    module_function :handle_logging_options
+
   end
   
 end
