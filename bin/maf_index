@@ -30,15 +30,15 @@ end
 
 op = OptionParser.new do |opts|
   opts.banner = "Usage: maf_index [options] <maf> <index>"
-  #opts.separator ""
-  #opts.separator "Options:"
-  opts.on("-a", "--all") do
+  opts.separator ""
+  opts.separator "Options:"
+  opts.on("-a", "--all", "Index all sequences, not just reference seq") do
     $options.ref_only = false
   end 
  opts.on("--time", "print elapsed time") do
     $options.bench = true
   end
-  opts.on("-d", "--dump") do
+  opts.on("-d", "--dump", "Dump contents of given INDEX") do
     $options.mode = :dump
   end
   opts.on("--ruby-prof PATH", "Profile with ruby-prof") do |pspec|
