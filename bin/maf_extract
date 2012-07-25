@@ -1,0 +1,166 @@
+#!/usr/bin/env ruby
+
+require 'bio-maf'
+require 'optparse'
+require 'ostruct'
+
+include Bio::MAF
+
+options = OpenStruct.new
+options.mode = :intersect
+options.format = :maf
+options.seq_filter = {}
+options.block_filter = {}
+options.parse_options = {}
+
+def handle_list_spec(spec)
+  if spec =~ /^@(.+)/
+    File.read($1).split
+  else
+    spec.split(',')
+  end
+end
+
+def handle_interval_spec(int)
+  parts = int.split(':')
+  Bio::GenomicInterval.zero_based(parts[0], parts[1].to_i, parts[2].to_i)
+end
+
+$op = OptionParser.new do |opts|
+  opts.banner = "Usage: maf_extract (-m MAF [-i INDEX] | -d MAFDIR) [options]"
+  opts.separator ""
+  opts.separator "MAF source options (either --maf or --maf-dir must be given):"
+  opts.on("-m", "--maf MAF", "MAF file") do |maf|
+    options.maf = maf
+  end
+  opts.on("-i", "--index INDEX", "MAF index") do |idx|
+    options.idx = idx
+  end
+  opts.on("-d", "--maf-dir DIR", "MAF directory") do |dir|
+    options.maf_dir = dir
+  end
+  opts.separator ""
+  opts.separator "Extraction options:"
+  opts.on("--mode MODE", [:intersect, :slice],
+          "Extraction mode; 'intersect' to match blocks intersecting the given region,",
+          "or 'slice' to extract subsets covering given regions") do |mode|
+    options.mode = mode
+  end
+  opts.on("--bed BED", "Use intervals from the given BED file") do |bed|
+    options.bed = bed
+  end
+  opts.on("--interval SEQ:START:END", "Zero-based genomic interval to match") do |int|
+    options.interval = handle_interval_spec(int)
+  end
+  opts.separator ""
+  opts.separator "Output options:"
+  opts.on("-f", "--format FMT", [:maf, :fasta], "Output format") do |fmt|
+    options.format = fmt
+  end
+  opts.on("-o", "--output OUT", "Write output to file OUT") do |out|
+    options.out_path = out
+  end
+  opts.separator ""
+  opts.separator "Filtering options:"
+  opts.on("--only-species SPECIES",
+          "Filter out all but the species in the given comma-separated list",
+          "(or @FILE to read from a file)") do |spec|
+    options.seq_filter[:only_species] = handle_list_spec(spec)
+  end
+  opts.on("--with-all-species SPECIES",
+          "Only match blocks with all the given comma-separated species",
+          "(or @FILE to read from a file)") do |spec|
+    options.block_filter[:with_all_species] = handle_list_spec(spec)
+  end
+  opts.on("--with-min-sequences N", Integer,
+          "Match only blocks with at least N sequences") do |n|
+    options.block_filter[:at_least_n_sequences] = n
+  end
+  opts.on("--min-text-size N", Integer,
+          "Match only blocks with minimum text size N") do |n|
+    options.block_filter[:min_size] = n
+  end
+  opts.on("--max-text-size N", Integer,
+          "Match only blocks with maximum text size N") do |n|
+    options.block_filter[:max_size] = n
+  end
+  opts.separator ""
+  opts.separator "Block processing options:"
+  opts.on("--join-blocks", "Join blocks if appropriate after filtering out sequences") do
+    options.parse_options[:join_blocks] = true
+  end
+  opts.on("--remove-gaps", "Remove gaps after filtering out sequences") do
+    options.parse_options[:remove_gaps] = true
+  end
+  opts.on("-O", "--parse-option OPT",
+          "Set parse option OPT") do |opt|
+    options.parse_options[opt.to_sym] = true
+  end
+  opts.separator ""
+  opts.separator "Logging options:"
+  Bio::MAF::handle_logging_options(opts)
+end
+$op.parse!(ARGV)
+Bio::Log::CLI.configure('bio-maf')
+
+def usage(msg)
+  $stderr.puts msg
+  $stderr.puts $op
+  exit 2
+end
+
+if options.maf
+  access = Access.file(options.maf, options.idx, options.parse_options)
+elsif options.maf_dir
+  access = Access.maf_dir(options.maf_dir, options.parse_options)
+else
+  usage "Must supply --maf or --maf-dir!"
+end
+
+begin
+  access.sequence_filter = options.seq_filter unless options.seq_filter.empty?
+  access.block_filter = options.block_filter unless options.block_filter.empty?
+  if options.out_path
+    outf = File.open(options.out_path, 'w')
+  else
+    outf = $stdout
+  end
+
+  case options.format
+  when :maf
+    writer = Writer.new(outf)
+  when :fasta
+    raise "fasta not yet implemented!"
+  else
+    raise "unsupported output format #{format}!"
+  end
+
+  # TODO: provide access to original MAF header, somehow...
+
+  if options.bed
+    intervals = read_bed_intervals(options.bed)
+  elsif options.interval
+    intervals = [options.interval]
+  else
+    usage "Must supply --interval or --bed!"
+  end
+
+  case options.mode
+  when :intersect
+    access.find(intervals) do |block|
+      writer.write_block(block)
+    end
+  when :slice
+    # TODO: multiple files if intervals.size > 1?
+    intervals.each do |interval|
+      access.slice(interval) do |block|
+        writer.write_block(block)
+      end
+    end
+  else
+    raise "Unsupported mode #{options.mode}!"
+  end
+  
+ensure
+  access.close
+end
