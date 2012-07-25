@@ -667,9 +667,12 @@ module Bio
         db[FORMAT_VERSION_KEY] = FORMAT_VERSION
         @index_sequences = {}
         index_blocks([first_block])
-        parser.enum_for(:each_block).each_slice(1000).each do |blocks|
+        n = 0
+        parser.each_block.each_slice(1000).each do |blocks|
           index_blocks(blocks)
+          n += blocks.size
         end
+        LOG.debug { "Created index for #{n} blocks and #{@index_sequences.size} sequences." }
         db.synchronize(true)
       end
 
