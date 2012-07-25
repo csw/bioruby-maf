@@ -11,6 +11,7 @@
 require 'bio-logger'
 log = Bio::Log::LoggerPlus.new('bio-maf')
 log.outputters = Bio::Log::Outputter.stderr
+log.level = Bio::Log::WARN
 
 require 'bio/ucsc'
 require 'bio/maf'

@@ -605,10 +605,6 @@ module Bio
         rate = (total_size / 1048576.0) / elapsed
         LOG.debug { sprintf("Fetched blocks in %.3fs, %.1f MB/s.",
                             elapsed, rate) }
-        # TODO: debug log
-        # rate = (total_size / 1048576.0) / elapsed
-        # $stderr.printf("Fetched blocks in %.3fs, %.1f MB/s.\n",
-        #                elapsed, rate)
       end
 
       # Fetch and parse the blocks given by the merged fetch list, in
@@ -671,8 +667,8 @@ module Bio
               end
             end
           rescue Exception => e
-            $stderr.puts "Worker failing: #{e.class}: #{e}"
-            $stderr.puts e.backtrace.join("\n")
+            LOG.error "Worker failing: #{e.class}: #{e}"
+            LOG.error e
             raise e
           end
         end
@@ -839,8 +835,8 @@ module Bio
             end
             queue.put(:eof)
           rescue
-            $stderr.puts "worker exiting: #{$!.class}: #{$!}"
-            $stderr.puts $!.backtrace.join("\n")
+            LOG.error "worker exiting: #{$!.class}: #{$!}"
+            LOG.error $!
           end
         end
         saw_eof = false

@@ -207,7 +207,7 @@ module Bio
           # (could build a real one, too...)
           maf = options[:maf]
           parser = Parser.new(maf, @parse_options)
-          # $stderr.puts "WARNING: building temporary index on #{maf}."
+          LOG.warn { "WARNING: building temporary index on #{maf}." }
           index = KyotoIndex.build(parser, '%')
           register_index(index, maf)
         end
@@ -247,7 +247,7 @@ module Bio
 
       # @api private
       def with_parser(chrom)
-        # $stderr.puts "Creating parser with options #{@parse_options.inspect}"
+        LOG.debug { "Creating parser with options #{@parse_options.inspect}" }
         parser = Parser.new(@maf_by_chrom[chrom], @parse_options)
         parser.sequence_filter = self.sequence_filter
         begin
@@ -393,9 +393,9 @@ module Bio
       def find(intervals, parser, filter={}, &blk)
         # start = Time.now
         fl = fetch_list(intervals, filter)
-        # $stderr.printf("Built fetch list of %d items in %.3fs.\n",
-        #                fl.size,
-        #                Time.now - start)
+        LOG.debug { sprintf("Built fetch list of %d items in %.3fs.\n",
+                            fl.size,
+                            Time.now - start) }
         if ! fl.empty?
           parser.fetch_blocks(fl, &blk)
         else
@@ -586,8 +586,8 @@ module Bio
           n_completed += 1
         end
         threads.each { |t| t.join }
-        $stderr.printf("Matched %d index records with %d threads in %.3f seconds.\n",
-                       to_fetch.size, n_threads, Time.now - start)
+        LOG.debug { sprintf("Matched %d index records with %d threads in %.3f seconds.\n",
+                            to_fetch.size, n_threads, Time.now - start) }
         to_fetch
       end
 
@@ -603,8 +603,8 @@ module Bio
                   completed.put(result)
                 rescue Exception => e
                   completed.put(e)
-                  $stderr.puts "Worker failing: #{e.class}: #{e}"
-                  $stderr.puts e.backtrace.join("\n")
+                  LOG.error "Worker failing: #{e.class}: #{e}"
+                  LOG.error e
                   raise e
                 end
               end
