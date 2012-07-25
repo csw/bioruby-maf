@@ -43,10 +43,6 @@ The index created is a Kyoto Cabinet TreeDB (B+ tree) database;
          sequences in block: 10
          species vector: 00000000000003ff
 
- * `-t`, `--threaded`:
-   Use a separate reader thread to do I/O in parallel with
-   parsing. Only useful on JRuby.
-
  * `--time`:
    Print elapsed time for index creation. Mainly useful for measuring
    performance with different Ruby implementations, I/O subsystems,

@@ -14,7 +14,11 @@ PRINTERS = {
 $options = OpenStruct.new
 $options.mode = :build
 $options.ref_only = true
-$options.reader = Bio::MAF::ChunkReader
+$options.reader = if RUBY_PLATFORM == 'java'
+                    Bio::MAF::ThreadedChunkReader
+                  else
+                    Bio::MAF::ChunkReader
+                  end
 
 def build_index(maf, index)
   parser = Bio::MAF::Parser.new(maf,
@@ -36,9 +40,6 @@ op = OptionParser.new do |opts|
   end
   opts.on("-d", "--dump") do
     $options.mode = :dump
-  end
-  opts.on("-t", "--threaded") do
-    $options.reader = Bio::MAF::ThreadedChunkReader
   end
   opts.on("--ruby-prof PATH", "Profile with ruby-prof") do |pspec|
     require 'ruby-prof'
