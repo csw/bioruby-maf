@@ -391,7 +391,7 @@ module Bio
       # @return [Enumerable<Block>] each matching {Block}, if no block given
       # @api public
       def find(intervals, parser, filter={}, &blk)
-        # start = Time.now
+        start = Time.now
         fl = fetch_list(intervals, filter)
         LOG.debug { sprintf("Built fetch list of %d items in %.3fs.\n",
                             fl.size,
