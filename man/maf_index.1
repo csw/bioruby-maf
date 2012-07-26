@@ -28,7 +28,10 @@ The \fImaf\fR input file must be a valid MAF file of any length\.
 The index created is a Kyoto Cabinet TreeDB (B+ tree) database; \fIindex\fR must have a \fB\.kct\fR extension\.
 .
 .SH "OPTIONS"
-TODO
+.
+.TP
+\fB\-a\fR, \fB\-\-all\fR
+All sequences, not just the reference sequence, will be indexed for searching\.
 .
 .TP
 \fB\-d\fR, \fB\-\-dump\fR
@@ -38,11 +41,11 @@ Instead of creating an index, dump out the given \fIindex\fR in human\-readable 
 .
 .nf
 
-0 [bin 1195] 80082334:80082368
-  offset 16, length 1087
-  text size: 54
-  sequences in block: 10
-  species vector: 00000000000003ff
+ 0 [bin 1195] 80082334:80082368
+   offset 16, length 1087
+   text size: 54
+   sequences in block: 10
+   species vector: 00000000000003ff
 .
 .fi
 .
@@ -50,12 +53,20 @@ Instead of creating an index, dump out the given \fIindex\fR in human\-readable 
 
 .
 .TP
-\fB\-t\fR, \fB\-\-threaded\fR
-Use a separate reader thread to do I/O in parallel with parsing\. Only useful on JRuby\.
-.
-.TP
 \fB\-\-time\fR
 Print elapsed time for index creation\. Mainly useful for measuring performance with different Ruby implementations, I/O subsystems, etc\.
+.
+.TP
+\fB\-q\fR, \fB\-\-quiet\fR
+Run quietly, with warnings suppressed\.
+.
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR
+Run verbosely, with additional informational messages\.
+.
+.TP
+\fB\-\-debug\fR
+Log debugging information\.
 .
 .SH "EXAMPLES"
 Build an index on a MAF file:
