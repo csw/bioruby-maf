@@ -98,9 +98,11 @@ $op = OptionParser.new do |opts|
   opts.on("--remove-gaps", "Remove gaps after filtering out sequences") do
     options.parse_options[:remove_gaps] = true
   end
-  opts.on("-O", "--parse-option OPT",
-          "Set parse option OPT") do |opt|
-    options.parse_options[opt.to_sym] = true
+  opts.on("--parse-extended", "Parse 'extended' MAF data (i, q lines)") do
+    options.parse_options[:parse_extended] = true
+  end
+  opts.on("--parse-empty", "Parse empty (e) lines of MAF data") do
+    options.parse_options[:parse_empty] = true
   end
   opts.separator ""
   opts.separator "Logging options:"
