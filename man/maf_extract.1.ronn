@@ -3,8 +3,13 @@ maf_extract(1) -- extract blocks from MAF files
 
 ## SYNOPSIS
 
-`maf_extract` (-m MAF [-i INDEX] | -d MAFDIR) --interval SEQ:START:END [OPTIONS]
-`maf_extract` (-m MAF [-i INDEX] | -d MAFDIR) --bed BED [OPTIONS]
+`maf_extract` -m MAF [-i INDEX] --interval SEQ:START:END [OPTIONS]
+
+`maf_extract` -m MAF [-i INDEX] --bed BED [OPTIONS]
+
+`maf_extract` -d MAFDIR --interval SEQ:START:END [OPTIONS]
+
+`maf_extract` -d MAFDIR --bed BED [OPTIONS]
 
 ## DESCRIPTION
 

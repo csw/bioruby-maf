@@ -1,0 +1,156 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "MAF_EXTRACT" "1" "July 2012" "BioRuby" "BioRuby Manual"
+.
+.SH "NAME"
+\fBmaf_extract\fR \- extract blocks from MAF files
+.
+.SH "SYNOPSIS"
+\fBmaf_extract\fR \-m MAF [\-i INDEX] \-\-interval SEQ:START:END \fIOPTIONS\fR
+.
+.P
+\fBmaf_extract\fR \-m MAF [\-i INDEX] \-\-bed BED \fIOPTIONS\fR
+.
+.P
+\fBmaf_extract\fR \-d MAFDIR \-\-interval SEQ:START:END \fIOPTIONS\fR
+.
+.P
+\fBmaf_extract\fR \-d MAFDIR \-\-bed BED \fIOPTIONS\fR
+.
+.SH "DESCRIPTION"
+\fBmaf_extract\fR extracts alignment blocks from one or more indexed MAF files, according to either a genomic interval specified with \fB\-\-interval\fR or multiple intervals given in a BED file specified with \fB\-\-bed\fR\.
+.
+.P
+It can either match blocks intersecting the specified intervals with \fB\-\-mode intersect\fR, the default, or extract slices of them which cover only the specified intervals, with \fB\-\-mode slice\fR\.
+.
+.P
+Blocks and the sequences they contain can be filtered with a variety of options including \fB\-\-only\-species\fR, \fB\-\-with\-all\-species\fR, \fB\-\-min\-sequences\fR, \fB\-\-min\-text\-size\fR, and \fB\-\-max\-text\-size\fR\.
+.
+.P
+With the \fB\-\-join\-blocks\fR option, adjacent parsed blocks can be joined if sequence filtering has removed a species causing them to be separated\. The \fB\-\-remove\-gaps\fR option will remove columns containing only gaps (\fB\-\fR)\.
+.
+.P
+Blocks can be output in MAF format, with \fB\-\-format maf\fR (the default), or FASTA format, with \fB\-\-format fasta\fR\. Output can be directed to a file with \fB\-\-output\fR\.
+.
+.SH "FILES"
+A single MAF file can be processed by specifying it with \fB\-\-maf\fR\. Its accompanying index, created by maf_index(1), is specified with \fB\-\-index\fR\. If \fB\-\-maf\fR is given but no index is specified, the entire file will be parsed to build a temporary in\-memory index\. This facilitates processing small, transient MAF files\. However, on a large file this will incur a great deal of overhead; files expected to be used more than once should be indexed with maf_index(1)\.
+.
+.P
+Alternatively, a directory of indexed MAF files can be specified with \fB\-\-maf\-dir\fR; in this case, they will all be used to satisfy queries\.
+.
+.SH "OPTIONS"
+MAF source options:
+.
+.TP
+\fB\-m\fR, \fB\-\-maf MAF\fR
+A single MAF file to process\.
+.
+.TP
+\fB\-i\fR, \fB\-\-index INDEX\fR
+An index for the file specified with \fB\-\-maf\fR, as created by maf_index(1)\.
+.
+.TP
+\fB\-d\fR, \fB\-\-maf\-dir DIR\fR
+A directory of indexed MAF files\.
+.
+.P
+Extraction options:
+.
+.TP
+\fB\-\-mode (intersect | slice)\fR
+The extraction mode to use\. With \fB\-\-mode intersect\fR, any alignment block intersecting the genomic intervals specified will be matched in its entirety\. With \fB\-\-mode slice\fR, intersecting blocks will be matched in the same way, but columns extending outside the specified interval will be removed\.
+.
+.TP
+\fB\-\-bed BED\fR
+The specified file will be parsed as a BED file, and each interval it contains will be matched in turn\.
+.
+.TP
+\fB\-\-interval SEQ:START:END\fR
+A single zero\-based half\-open genomic interval will be matched, with sequence identifier \fIseq\fR, (inclusive) start position \fIstart\fR, and (exclusive) end position \fIend\fR\.
+.
+.P
+Output options:
+.
+.TP
+\fB\-f\fR, \fB\-\-format (maf | fasta)\fR
+Output will be written in the specified format, either MAF or FASTA\.
+.
+.TP
+\fB\-o\fR, \fB\-\-output OUT\fR
+Output will be written to the file \fIout\fR\.
+.
+.P
+Filtering options:
+.
+.TP
+\fB\-\-only\-species (SP1,SP2,SP3 | @FILE)\fR
+Alignment blocks will be filtered to contain only the specified species\. These can be given as a comma\-separated list or as a file, prefixed with \fB@\fR, from which a list of species will be read\.
+.
+.TP
+\fB\-\-with\-all\-species (SP1,SP2,SP3 | @FILE)\fR
+Only alignment blocks containing all the specified species will be matched\. These can be given as a comma\-separated list or as a file, prefixed with \fB@\fR, from which a list of species will be read\.
+.
+.TP
+\fB\-\-min\-sequences N\fR
+Only alignment blocks containing at least \fIn\fR sequences will be matched\.
+.
+.TP
+\fB\-\-min\-text\-size N\fR
+Only alignment blocks with a text size (including gaps) of at least \fIn\fR will be matched\.
+.
+.TP
+\fB\-\-max\-text\-size N\fR
+Only alignment blocks with a text size (including gaps) of at most \fIn\fR will be matched\.
+.
+.P
+Block processing options:
+.
+.TP
+\fB\-\-join\-blocks\fR
+If sequence filtering with \fB\-\-only\-species\fR removes a species which caused two adjacent blocks to be separate, this option will join them together into a single alignment block\. The filtered blocks must contain the same sequences in contiguous positions and on the same strand\.
+.
+.TP
+\fB\-\-remove\-gaps\fR
+If sequence filtering with \fB\-\-only\-species\fR leaves a block containing columns consisting only of gap characters (\fB\-\fR), these will be removed\.
+.
+.TP
+\fB\-\-parse\-extended\fR
+Parse \fBi\fR lines, giving information on the context of sequence lines, and \fBq\fR lines, giving quality scores\.
+.
+.TP
+\fB\-\-parse\-empty\fR
+Parse \fBe\fR lines, indicating cases where a species does not align with the current block but does align with blocks before and after it\.
+.
+.P
+Logging options:
+.
+.TP
+\fB\-q\fR, \fB\-\-quiet\fR
+Run quietly, with warnings suppressed\.
+.
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR
+Run verbosely, with additional informational messages\.
+.
+.TP
+\fB\-\-debug\fR
+Log debugging information\.
+.
+.SH "EXAMPLES"
+TODO
+.
+.SH "ENVIRONMENT"
+\fBmaf_index\fR is a Ruby program and relies on ordinary Ruby environment variables\.
+.
+.SH "BUGS"
+No provision exists for writing output to multiple files\.
+.
+.P
+FASTA description lines are always in the format \fB>source:start\-end\fR\.
+.
+.SH "COPYRIGHT"
+\fBmaf_index\fR is copyright (C) 2012 Clayton Wheeler\.
+.
+.SH "SEE ALSO"
+ruby(1), maf_index(1), maf_tile(1)
