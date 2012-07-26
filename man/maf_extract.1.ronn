@@ -1,0 +1,166 @@
+maf_extract(1) -- extract blocks from MAF files
+===============================================
+
+## SYNOPSIS
+
+`maf_extract` (-m MAF [-i INDEX] | -d MAFDIR) --interval SEQ:START:END [OPTIONS]
+`maf_extract` (-m MAF [-i INDEX] | -d MAFDIR) --bed BED [OPTIONS]
+
+## DESCRIPTION
+
+**maf_extract** extracts alignment blocks from one or more indexed MAF
+files, according to either a genomic interval specified with
+`--interval` or multiple intervals given in a BED file specified with
+`--bed`. 
+
+It can either match blocks intersecting the specified intervals with
+`--mode intersect`, the default, or extract slices of them which cover
+only the specified intervals, with `--mode slice`. 
+
+Blocks and the sequences they contain can be filtered with a variety
+of options including `--only-species`, `--with-all-species`,
+`--min-sequences`, `--min-text-size`, and `--max-text-size`.
+
+With the `--join-blocks` option, adjacent parsed blocks can be joined if
+sequence filtering has removed a species causing them to be
+separated. The `--remove-gaps` option will remove columns containing
+only gaps (`-`).
+
+Blocks can be output in MAF format, with `--format maf` (the default),
+or FASTA format, with `--format fasta`. Output can be directed to a
+file with `--output`.
+
+## FILES
+
+A single MAF file can be processed by specifying it with `--maf`. Its
+accompanying index, created by maf_index(1), is specified with
+`--index`. If `--maf` is given but no index is specified, the entire
+file will be parsed to build a temporary in-memory index. This
+facilitates processing small, transient MAF files. However, on a large
+file this will incur a great deal of overhead; files expected to be
+used more than once should be indexed with maf_index(1).
+
+Alternatively, a directory of indexed MAF files can be specified with
+`--maf-dir`; in this case, they will all be used to satisfy queries.
+
+## OPTIONS
+
+MAF source options:
+
+ * `-m`, `--maf MAF`:
+   A single MAF file to process.
+   
+ * `-i`, `--index INDEX`:
+   An index for the file specified with `--maf`, as created by
+   maf_index(1).
+
+ * `-d`, `--maf-dir DIR`:
+   A directory of indexed MAF files.
+
+Extraction options:
+
+ * `--mode (intersect | slice)`:
+   The extraction mode to use. With `--mode intersect`, any alignment
+   block intersecting the genomic intervals specified will be matched
+   in its entirety. With `--mode slice`, intersecting blocks will be
+   matched in the same way, but columns extending outside the
+   specified interval will be removed.
+
+ * `--bed BED`:
+   The specified file will be parsed as a BED file, and each interval
+   it contains will be matched in turn.
+
+ * `--interval SEQ:START:END`:
+   A single zero-based half-open genomic interval will be matched,
+   with sequence identifier <seq>, (inclusive) start position <start>,
+   and (exclusive) end position <end>.
+
+Output options:
+
+ * `-f`, `--format (maf | fasta)`:
+   Output will be written in the specified format, either MAF or
+   FASTA.
+
+ * `-o`, `--output OUT`:
+   Output will be written to the file <out>.
+
+Filtering options:
+
+ * `--only-species (SP1,SP2,SP3 | @FILE)`:
+   Alignment blocks will be filtered to contain only the specified
+   species. These can be given as a comma-separated list or as a file,
+   prefixed with `@`, from which a list of species will be read.
+
+ * `--with-all-species (SP1,SP2,SP3 | @FILE)`:
+   Only alignment blocks containing all the specified species will be
+   matched. These can be given as a comma-separated list or as a file,
+   prefixed with `@`, from which a list of species will be read.
+
+ * `--min-sequences N`:
+   Only alignment blocks containing at least <n> sequences will be
+   matched.
+   
+ * `--min-text-size N`:
+   Only alignment blocks with a text size (including gaps) of at least
+   <n> will be matched.
+   
+ * `--max-text-size N`:
+   Only alignment blocks with a text size (including gaps) of at most
+   <n> will be matched.
+
+Block processing options:
+
+ * `--join-blocks`:
+   If sequence filtering with `--only-species` removes a species which
+   caused two adjacent blocks to be separate, this option will join
+   them together into a single alignment block. The filtered blocks
+   must contain the same sequences in contiguous positions and on the
+   same strand.
+
+ * `--remove-gaps`:
+   If sequence filtering with `--only-species` leaves a block
+   containing columns consisting only of gap characters (`-`), these
+   will be removed.
+
+ * `--parse-extended`:
+   Parse `i` lines, giving information on the context of sequence
+   lines, and `q` lines, giving quality scores.
+
+ * `--parse-empty`:
+   Parse `e` lines, indicating cases where a species does not align
+   with the current block but does align with blocks before and after
+   it.
+
+Logging options:
+
+ * `-q`, `--quiet`:
+   Run quietly, with warnings suppressed.
+
+ * `-v`, `--verbose`:
+   Run verbosely, with additional informational messages.
+   
+ * `--debug`:
+   Log debugging information.
+
+## EXAMPLES
+
+TODO
+
+## ENVIRONMENT
+
+`maf_index` is a Ruby program and relies on ordinary Ruby environment
+variables.
+
+## BUGS
+
+No provision exists for writing output to multiple files.
+
+FASTA description lines are always in the format `>source:start-end`.
+
+## COPYRIGHT
+
+`maf_index` is copyright (C) 2012 Clayton Wheeler.
+
+## SEE ALSO
+
+ruby(1), maf_index(1), maf_tile(1)
