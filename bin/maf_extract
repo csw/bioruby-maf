@@ -135,7 +135,7 @@ begin
     raise "unsupported output format #{format}!"
   end
 
-  # TODO: provide access to original MAF header, somehow...
+  # TODO: provide access to original MAF header?
 
   if options.bed
     intervals = read_bed_intervals(options.bed)
@@ -143,6 +143,10 @@ begin
     intervals = [options.interval]
   else
     usage "Must supply --interval or --bed!"
+  end
+
+  if options.format == :maf
+    writer.write_header(Header.default)
   end
 
   case options.mode
