@@ -42,8 +42,10 @@ $op = OptionParser.new do |opts|
   opts.separator ""
   opts.separator "Extraction options:"
   opts.on("--mode MODE", [:intersect, :slice],
-          "Extraction mode; 'intersect' to match blocks intersecting the given region,",
-          "or 'slice' to extract subsets covering given regions") do |mode|
+          "Extraction mode; 'intersect' to match ",
+          "blocks intersecting the given region,",
+          "or 'slice' to extract subsets covering ",
+          "given regions") do |mode|
     options.mode = mode
   end
   opts.on("--bed BED", "Use intervals from the given BED file") do |bed|
@@ -63,12 +65,14 @@ $op = OptionParser.new do |opts|
   opts.separator ""
   opts.separator "Filtering options:"
   opts.on("--only-species SPECIES",
-          "Filter out all but the species in the given comma-separated list",
+          "Filter out all but the species in the",
+          "given comma-separated list",
           "(or @FILE to read from a file)") do |spec|
     options.seq_filter[:only_species] = handle_list_spec(spec)
   end
   opts.on("--with-all-species SPECIES",
-          "Only match blocks with all the given comma-separated species",
+          "Only match blocks with all the given",
+          "species, comma-separated",
           "(or @FILE to read from a file)") do |spec|
     options.block_filter[:with_all_species] = handle_list_spec(spec)
   end
@@ -86,7 +90,9 @@ $op = OptionParser.new do |opts|
   end
   opts.separator ""
   opts.separator "Block processing options:"
-  opts.on("--join-blocks", "Join blocks if appropriate after filtering out sequences") do
+  opts.on("--join-blocks",
+          "Join blocks if appropriate after filtering",
+          "out sequences") do
     options.parse_options[:join_blocks] = true
   end
   opts.on("--remove-gaps", "Remove gaps after filtering out sequences") do

@@ -908,7 +908,8 @@ module Bio
         Bio::Log::CLI.logger(name)
       end
       opts.on("--trace options", String,
-              "Set log level (default INFO, see bio-logger)") do |s|
+              "Set log level",
+              "(default INFO, see bio-logger)") do |s|
         Bio::Log::CLI.trace(s)
       end
       opts.on("-q", "--quiet", "Run quietly") do
