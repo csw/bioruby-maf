@@ -2,11 +2,11 @@
 
 Gem::Specification.new do |s|
   s.name = "bio-maf"
-  s.version = "0.3.0"
+  s.version = "0.3.1"
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Clayton Wheeler"]
-  s.date = "2012-07-18"
+  s.date = "2012-07-26"
   s.description = "Multiple Alignment Format parser for BioRuby."
   s.email = "cswh@umich.edu"
   s.executables = ["maf_count", "maf_dump_blocks", "maf_extract_ranges_count", "maf_index", "maf_parse_bench", "maf_to_fasta", "maf_write", "random_ranges"]
