@@ -9,7 +9,6 @@ Gem::Specification.new do |s|
   s.date = "2012-07-26"
   s.description = "Multiple Alignment Format parser for BioRuby."
   s.email = "cswh@umich.edu"
-  s.executables = ["maf_count", "maf_dump_blocks", "maf_extract_ranges_count", "maf_index", "maf_parse_bench", "maf_to_fasta", "maf_write", "random_ranges"]
   s.extra_rdoc_files = [
     "LICENSE.txt",
     "README.md"
