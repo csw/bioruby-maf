@@ -76,7 +76,7 @@ $op = OptionParser.new do |opts|
           "(or @FILE to read from a file)") do |spec|
     options.block_filter[:with_all_species] = handle_list_spec(spec)
   end
-  opts.on("--with-min-sequences N", Integer,
+  opts.on("--min-sequences N", Integer,
           "Match only blocks with at least N sequences") do |n|
     options.block_filter[:at_least_n_sequences] = n
   end
