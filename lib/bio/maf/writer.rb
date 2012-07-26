@@ -69,7 +69,9 @@ module Bio::MAF
     end
 
     def write_block(block)
-      block.sequences.each { |seq| write_sequence(seq) }
+      block.sequences.each do |seq|
+        write_sequence(seq) unless seq.empty?
+      end
     end
 
     def write_sequence(seq)
