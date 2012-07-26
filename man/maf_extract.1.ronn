@@ -35,6 +35,10 @@ Blocks can be output in MAF format, with `--format maf` (the default),
 or FASTA format, with `--format fasta`. Output can be directed to a
 file with `--output`.
 
+This tool exposes almost all the random-access functionality of the
+Bio::MAF::Access class. The exception is MAF tiling, which is provided
+by maf_tile(1).
+
 ## FILES
 
 A single MAF file can be processed by specifying it with `--maf`. Its

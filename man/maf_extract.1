@@ -33,6 +33,9 @@ With the \fB\-\-join\-blocks\fR option, adjacent parsed blocks can be joined if 
 .P
 Blocks can be output in MAF format, with \fB\-\-format maf\fR (the default), or FASTA format, with \fB\-\-format fasta\fR\. Output can be directed to a file with \fB\-\-output\fR\.
 .
+.P
+This tool exposes almost all the random\-access functionality of the Bio::MAF::Access class\. The exception is MAF tiling, which is provided by maf_tile(1)\.
+.
 .SH "FILES"
 A single MAF file can be processed by specifying it with \fB\-\-maf\fR\. Its accompanying index, created by maf_index(1), is specified with \fB\-\-index\fR\. If \fB\-\-maf\fR is given but no index is specified, the entire file will be parsed to build a temporary in\-memory index\. This facilitates processing small, transient MAF files\. However, on a large file this will incur a great deal of overhead; files expected to be used more than once should be indexed with maf_index(1)\.
 .
