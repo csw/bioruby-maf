@@ -65,9 +65,11 @@ o_parser = OptionParser.new do |opts|
           "(requires --output-base)") do |bed|
     options.bed = bed
   end
+  Bio::MAF::handle_logging_options(opts)
 end
 
 o_parser.parse!(ARGV)
+Bio::Log::CLI.configure('bio-maf')
 
 maf_p = ARGV.shift
 index_p = ARGV.shift

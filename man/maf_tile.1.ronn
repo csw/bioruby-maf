@@ -52,6 +52,15 @@ output.
    The given path will be used as the base name for output files, as
    described above.
 
+ * `-q`, `--quiet`:
+   Run quietly, with warnings suppressed.
+
+ * `-v`, `--verbose`:
+   Run verbosely, with additional informational messages.
+   
+ * `--debug`:
+   Log debugging information.
+   
 ## EXAMPLES
 
 Generate an alignment of the `hg19`, `petMar1`, and `ornAna1`

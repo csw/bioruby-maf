@@ -43,6 +43,18 @@ The given BED file will be used to provide a list of intervals to process\. If p
 \fB\-o\fR, \fB\-\-output\-base BASE\fR
 The given path will be used as the base name for output files, as described above\.
 .
+.TP
+\fB\-q\fR, \fB\-\-quiet\fR
+Run quietly, with warnings suppressed\.
+.
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR
+Run verbosely, with additional informational messages\.
+.
+.TP
+\fB\-\-debug\fR
+Log debugging information\.
+.
 .SH "EXAMPLES"
 Generate an alignment of the \fBhg19\fR, \fBpetMar1\fR, and \fBornAna1\fR sequences from \fBchrY\.maf\fR over the interval 14400 to 15000 on the reference sequence of the MAF file\. Fills in gaps from \fBchrY\.refseq\.fa\.gz\fR\. Writes FASTA output to stdout\.
 .
