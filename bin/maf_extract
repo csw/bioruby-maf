@@ -130,12 +130,10 @@ begin
   when :maf
     writer = Writer.new(outf)
   when :fasta
-    raise "fasta not yet implemented!"
+    writer = FASTAWriter.new(outf)
   else
     raise "unsupported output format #{format}!"
   end
-
-  # TODO: provide access to original MAF header?
 
   if options.bed
     intervals = read_bed_intervals(options.bed)
@@ -145,6 +143,7 @@ begin
     usage "Must supply --interval or --bed!"
   end
 
+  # TODO: provide access to original MAF header?
   if options.format == :maf
     writer.write_header(Header.default)
   end

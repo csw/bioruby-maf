@@ -59,5 +59,29 @@ module Bio::MAF
       end
     end
   end
+
+  FASTA_LINE_LEN = 72
+
+  class FASTAWriter
+
+    def initialize(outf)
+      @f = outf
+    end
+
+    def write_block(block)
+      block.sequences.each { |seq| write_sequence(seq) }
+    end
+
+    def write_sequence(seq)
+      @f.puts(">#{seq.fasta_desc}")
+      0.step(seq.text.size, FASTA_LINE_LEN) do |pos|
+        @f.puts(seq.text.slice(pos, FASTA_LINE_LEN))
+      end
+    end
+
+    def close
+      @f.close
+    end
+  end
   
 end

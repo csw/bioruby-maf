@@ -1,5 +1,3 @@
-require 'bigbio'                # FASTA support
-
 Given /^a MAF source file "(.*?)"$/ do |src|
   @src_f = $test_data + src
   @src_f.exist?.should be_true
@@ -13,15 +11,12 @@ end
 
 When /^I select FASTA output$/ do
   @dst = Tempfile.new(['cuke', ".#{@out_fmt.to_s}"])
-  @dst.close
-  @writer = FastaWriter.new(@dst.path)
+  @writer = Bio::MAF::FASTAWriter.new(@dst)
 end
 
 When /^process the file$/ do
   @parser.each_block do |block|
-    block.each_raw_seq do |seq|
-      seq.write_fasta(@writer)
-    end
+    @writer.write_block(block)
   end
   @writer.close
 end

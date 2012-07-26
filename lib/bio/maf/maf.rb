@@ -358,9 +358,8 @@ module Bio
         Bio::BioAlignment::Sequence.new(source, text)
       end
 
-      def write_fasta(writer)
-        writer.write("#{source}:#{start}-#{start + size}",
-                     text)
+      def fasta_desc
+        "#{source}:#{start}-#{start + size}"
       end
 
       def joinable_with?(o)

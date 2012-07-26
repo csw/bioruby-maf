@@ -1,7 +1,6 @@
 #!/usr/bin/env ruby
 
 require 'bio-maf'
-require 'bigbio'
 require 'optparse'
 require 'ostruct'
 
@@ -42,15 +41,13 @@ if options.profile_gc
 end
 
 parser = options.parser.new(src_path)
-writer = FastaWriter.new(dst_path)
+File.open(dst_path, 'w') do |outf|
+  writer = Bio::MAF::FASTAWriter.new(outf)
 
-parser.each_block do |block|
-  block.each_raw_seq do |seq|
-    seq.write_fasta(writer)
+  parser.each_block do |block|
+    writer.write_block(block)
   end
 end
-
-writer.close
 
 if options.profile_gc
   $stderr.puts GC::Profiler.result

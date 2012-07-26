@@ -1,7 +1,6 @@
 #!/usr/bin/env ruby
 
 require 'bio-maf'
-require 'bigbio'
 require 'optparse'
 require 'ostruct'
 
