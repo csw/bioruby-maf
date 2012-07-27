@@ -84,11 +84,11 @@
 
 <h2 id="SYNOPSIS">SYNOPSIS</h2>
 
-<p><code>maf_extract</code> -m MAF [-i INDEX] --interval SEQ:START:END <a href="#OPTIONS" title="OPTIONS" data-bare-link="true">OPTIONS</a></p>
+<p><code>maf_extract</code> -m MAF [-i INDEX] --interval SEQ:START-END <a href="#OPTIONS" title="OPTIONS" data-bare-link="true">OPTIONS</a></p>
 
 <p><code>maf_extract</code> -m MAF [-i INDEX] --bed BED <a href="#OPTIONS" title="OPTIONS" data-bare-link="true">OPTIONS</a></p>
 
-<p><code>maf_extract</code> -d MAFDIR --interval SEQ:START:END <a href="#OPTIONS" title="OPTIONS" data-bare-link="true">OPTIONS</a></p>
+<p><code>maf_extract</code> -d MAFDIR --interval SEQ:START-END <a href="#OPTIONS" title="OPTIONS" data-bare-link="true">OPTIONS</a></p>
 
 <p><code>maf_extract</code> -d MAFDIR --bed BED <a href="#OPTIONS" title="OPTIONS" data-bare-link="true">OPTIONS</a></p>
 
@@ -155,7 +155,7 @@ matched in the same way, but columns extending outside the
 specified interval will be removed.</p></dd>
 <dt><code>--bed BED</code></dt><dd><p>The specified file will be parsed as a BED file, and each interval
 it contains will be matched in turn.</p></dd>
-<dt><code>--interval SEQ:START:END</code></dt><dd><p>A single zero-based half-open genomic interval will be matched,
+<dt><code>--interval SEQ:START-END</code></dt><dd><p>A single zero-based half-open genomic interval will be matched,
 with sequence identifier <var>seq</var>, (inclusive) start position <var>start</var>,
 and (exclusive) end position <var>end</var>.</p></dd>
 </dl>
@@ -218,7 +218,53 @@ it.</p></dd>
 
 <h2 id="EXAMPLES">EXAMPLES</h2>
 
-<p>TODO</p>
+<p>Extract MAF blocks intersecting with a given interval:</p>
+
+<pre><code>$ maf_extract -d test/data --interval mm8.chr7:80082592-80082766
+</code></pre>
+
+<p>As above, but operating on a single file:</p>
+
+<pre><code>$ maf_extract -m test/data/mm8_chr7_tiny.maf \
+      -i test/data/mm8_chr7_tiny.kct \
+      --interval mm8.chr7:80082592-80082766
+</code></pre>
+
+<p>Like the first case, but writing output to a file:</p>
+
+<pre><code>$ maf_extract -d test/data --interval mm8.chr7:80082592-80082766 \
+      --output out.maf
+</code></pre>
+
+<p>Extract a slice of MAF blocks over a given interval:</p>
+
+<pre><code>$ maf_extract -d test/data --mode slice \
+      --interval mm8.chr7:80082592-80082766
+</code></pre>
+
+<p>Filter for sequences from only certain species:</p>
+
+<pre><code>$ maf_extract -d test/data --interval mm8.chr7:80082592-80082766 \
+      --only-species hg18,mm8,rheMac2
+</code></pre>
+
+<p>Extract only blocks with all specified species:</p>
+
+<pre><code>$ maf_extract -d test/data --interval mm8.chr7:80082471-80082730 \
+      --with-all-species panTro2,loxAfr1
+</code></pre>
+
+<p>Extract blocks with at least a certain number of sequences:</p>
+
+<pre><code>$ maf_extract -d test/data --interval mm8.chr7:80082767-80083008 \
+      --min-sequences 6
+</code></pre>
+
+<p>Extract blocks with text sizes in a certain range:</p>
+
+<pre><code>$ maf_extract -d test/data --interval mm8.chr7:0-80100000 \
+      --min-text-size 72 --max-text-size 160
+</code></pre>
 
 <h2 id="ENVIRONMENT">ENVIRONMENT</h2>
 
