@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv='content-type' value='text/html;charset=utf8'>
+  <meta name='generator' value='Ronn/v0.7.3 (http://github.com/rtomayko/ronn/tree/0.7.3)'>
+  <title>maf_extract(1) - extract blocks from MAF files</title>
+  <style type='text/css' media='all'>
+  /* style: man */
+  body#manpage {margin:0}
+  .mp {max-width:100ex;padding:0 9ex 1ex 4ex}
+  .mp p,.mp pre,.mp ul,.mp ol,.mp dl {margin:0 0 20px 0}
+  .mp h2 {margin:10px 0 0 0}
+  .mp > p,.mp > pre,.mp > ul,.mp > ol,.mp > dl {margin-left:8ex}
+  .mp h3 {margin:0 0 0 4ex}
+  .mp dt {margin:0;clear:left}
+  .mp dt.flush {float:left;width:8ex}
+  .mp dd {margin:0 0 0 9ex}
+  .mp h1,.mp h2,.mp h3,.mp h4 {clear:left}
+  .mp pre {margin-bottom:20px}
+  .mp pre+h2,.mp pre+h3 {margin-top:22px}
+  .mp h2+pre,.mp h3+pre {margin-top:5px}
+  .mp img {display:block;margin:auto}
+  .mp h1.man-title {display:none}
+  .mp,.mp code,.mp pre,.mp tt,.mp kbd,.mp samp,.mp h3,.mp h4 {font-family:monospace;font-size:14px;line-height:1.42857142857143}
+  .mp h2 {font-size:16px;line-height:1.25}
+  .mp h1 {font-size:20px;line-height:2}
+  .mp {text-align:justify;background:#fff}
+  .mp,.mp code,.mp pre,.mp pre code,.mp tt,.mp kbd,.mp samp {color:#131211}
+  .mp h1,.mp h2,.mp h3,.mp h4 {color:#030201}
+  .mp u {text-decoration:underline}
+  .mp code,.mp strong,.mp b {font-weight:bold;color:#131211}
+  .mp em,.mp var {font-style:italic;color:#232221;text-decoration:none}
+  .mp a,.mp a:link,.mp a:hover,.mp a code,.mp a pre,.mp a tt,.mp a kbd,.mp a samp {color:#0000ff}
+  .mp b.man-ref {font-weight:normal;color:#434241}
+  .mp pre {padding:0 4ex}
+  .mp pre code {font-weight:normal;color:#434241}
+  .mp h2+pre,h3+pre {padding-left:0}
+  ol.man-decor,ol.man-decor li {margin:3px 0 10px 0;padding:0;float:left;width:33%;list-style-type:none;text-transform:uppercase;color:#999;letter-spacing:1px}
+  ol.man-decor {width:100%}
+  ol.man-decor li.tl {text-align:left}
+  ol.man-decor li.tc {text-align:center;letter-spacing:4px}
+  ol.man-decor li.tr {text-align:right;float:right}
+  </style>
+  <style type='text/css' media='all'>
+  /* style: toc */
+  .man-navigation {display:block !important;position:fixed;top:0;left:113ex;height:100%;width:100%;padding:48px 0 0 0;border-left:1px solid #dbdbdb;background:#eee}
+  .man-navigation a,.man-navigation a:hover,.man-navigation a:link,.man-navigation a:visited {display:block;margin:0;padding:5px 2px 5px 30px;color:#999;text-decoration:none}
+  .man-navigation a:hover {color:#111;text-decoration:underline}
+  </style>
+</head>
+<!--
+  The following styles are deprecated and will be removed at some point:
+  div#man, div#man ol.man, div#man ol.head, div#man ol.man.
+
+  The .man-page, .man-decor, .man-head, .man-foot, .man-title, and
+  .man-navigation should be used instead.
+-->
+<body id='manpage'>
+  <div class='mp' id='man'>
+
+  <div class='man-navigation' style='display:none'>
+    <a href="#NAME">NAME</a>
+    <a href="#SYNOPSIS">SYNOPSIS</a>
+    <a href="#DESCRIPTION">DESCRIPTION</a>
+    <a href="#FILES">FILES</a>
+    <a href="#OPTIONS">OPTIONS</a>
+    <a href="#EXAMPLES">EXAMPLES</a>
+    <a href="#ENVIRONMENT">ENVIRONMENT</a>
+    <a href="#BUGS">BUGS</a>
+    <a href="#COPYRIGHT">COPYRIGHT</a>
+    <a href="#SEE-ALSO">SEE ALSO</a>
+  </div>
+
+  <ol class='man-decor man-head man head'>
+    <li class='tl'>maf_extract(1)</li>
+    <li class='tc'>BioRuby Manual</li>
+    <li class='tr'>maf_extract(1)</li>
+  </ol>
+
+  <h2 id="NAME">NAME</h2>
+<p class="man-name">
+  <code>maf_extract</code> - <span class="man-whatis">extract blocks from MAF files</span>
+</p>
+
+<h2 id="SYNOPSIS">SYNOPSIS</h2>
+
+<p><code>maf_extract</code> -m MAF [-i INDEX] --interval SEQ:START:END <a href="#OPTIONS" title="OPTIONS" data-bare-link="true">OPTIONS</a></p>
+
+<p><code>maf_extract</code> -m MAF [-i INDEX] --bed BED <a href="#OPTIONS" title="OPTIONS" data-bare-link="true">OPTIONS</a></p>
+
+<p><code>maf_extract</code> -d MAFDIR --interval SEQ:START:END <a href="#OPTIONS" title="OPTIONS" data-bare-link="true">OPTIONS</a></p>
+
+<p><code>maf_extract</code> -d MAFDIR --bed BED <a href="#OPTIONS" title="OPTIONS" data-bare-link="true">OPTIONS</a></p>
+
+<h2 id="DESCRIPTION">DESCRIPTION</h2>
+
+<p><strong>maf_extract</strong> extracts alignment blocks from one or more indexed MAF
+files, according to either a genomic interval specified with
+<code>--interval</code> or multiple intervals given in a BED file specified with
+<code>--bed</code>.</p>
+
+<p>It can either match blocks intersecting the specified intervals with
+<code>--mode intersect</code>, the default, or extract slices of them which cover
+only the specified intervals, with <code>--mode slice</code>.</p>
+
+<p>Blocks and the sequences they contain can be filtered with a variety
+of options including <code>--only-species</code>, <code>--with-all-species</code>,
+<code>--min-sequences</code>, <code>--min-text-size</code>, and <code>--max-text-size</code>.</p>
+
+<p>With the <code>--join-blocks</code> option, adjacent parsed blocks can be joined if
+sequence filtering has removed a species causing them to be
+separated. The <code>--remove-gaps</code> option will remove columns containing
+only gaps (<code>-</code>).</p>
+
+<p>Blocks can be output in MAF format, with <code>--format maf</code> (the default),
+or FASTA format, with <code>--format fasta</code>. Output can be directed to a
+file with <code>--output</code>.</p>
+
+<p>This tool exposes almost all the random-access functionality of the
+Bio::MAF::Access class. The exception is MAF tiling, which is provided
+by <a class="man-ref" href="maf_tile.1.html">maf_tile<span class="s">(1)</span></a>.</p>
+
+<h2 id="FILES">FILES</h2>
+
+<p>A single MAF file can be processed by specifying it with <code>--maf</code>. Its
+accompanying index, created by <a class="man-ref" href="maf_index.1.html">maf_index<span class="s">(1)</span></a>, is specified with
+<code>--index</code>. If <code>--maf</code> is given but no index is specified, the entire
+file will be parsed to build a temporary in-memory index. This
+facilitates processing small, transient MAF files. However, on a large
+file this will incur a great deal of overhead; files expected to be
+used more than once should be indexed with <a class="man-ref" href="maf_index.1.html">maf_index<span class="s">(1)</span></a>.</p>
+
+<p>Alternatively, a directory of indexed MAF files can be specified with
+<code>--maf-dir</code>; in this case, they will all be used to satisfy queries.</p>
+
+<h2 id="OPTIONS">OPTIONS</h2>
+
+<p>MAF source options:</p>
+
+<dl>
+<dt><code>-m</code>, <code>--maf MAF</code></dt><dd><p>A single MAF file to process.</p></dd>
+<dt><code>-i</code>, <code>--index INDEX</code></dt><dd><p>An index for the file specified with <code>--maf</code>, as created by
+<a class="man-ref" href="maf_index.1.html">maf_index<span class="s">(1)</span></a>.</p></dd>
+<dt><code>-d</code>, <code>--maf-dir DIR</code></dt><dd><p>A directory of indexed MAF files.</p></dd>
+</dl>
+
+
+<p>Extraction options:</p>
+
+<dl>
+<dt><code>--mode (intersect | slice)</code></dt><dd><p>The extraction mode to use. With <code>--mode intersect</code>, any alignment
+block intersecting the genomic intervals specified will be matched
+in its entirety. With <code>--mode slice</code>, intersecting blocks will be
+matched in the same way, but columns extending outside the
+specified interval will be removed.</p></dd>
+<dt><code>--bed BED</code></dt><dd><p>The specified file will be parsed as a BED file, and each interval
+it contains will be matched in turn.</p></dd>
+<dt><code>--interval SEQ:START:END</code></dt><dd><p>A single zero-based half-open genomic interval will be matched,
+with sequence identifier <var>seq</var>, (inclusive) start position <var>start</var>,
+and (exclusive) end position <var>end</var>.</p></dd>
+</dl>
+
+
+<p>Output options:</p>
+
+<dl>
+<dt><code>-f</code>, <code>--format (maf | fasta)</code></dt><dd><p>Output will be written in the specified format, either MAF or
+FASTA.</p></dd>
+<dt><code>-o</code>, <code>--output OUT</code></dt><dd><p>Output will be written to the file <var>out</var>.</p></dd>
+</dl>
+
+
+<p>Filtering options:</p>
+
+<dl>
+<dt><code>--only-species (SP1,SP2,SP3 | @FILE)</code></dt><dd><p>Alignment blocks will be filtered to contain only the specified
+species. These can be given as a comma-separated list or as a file,
+prefixed with <code>@</code>, from which a list of species will be read.</p></dd>
+<dt><code>--with-all-species (SP1,SP2,SP3 | @FILE)</code></dt><dd><p>Only alignment blocks containing all the specified species will be
+matched. These can be given as a comma-separated list or as a file,
+prefixed with <code>@</code>, from which a list of species will be read.</p></dd>
+<dt><code>--min-sequences N</code></dt><dd><p>Only alignment blocks containing at least <var>n</var> sequences will be
+matched.</p></dd>
+<dt><code>--min-text-size N</code></dt><dd><p>Only alignment blocks with a text size (including gaps) of at least
+<var>n</var> will be matched.</p></dd>
+<dt><code>--max-text-size N</code></dt><dd><p>Only alignment blocks with a text size (including gaps) of at most
+<var>n</var> will be matched.</p></dd>
+</dl>
+
+
+<p>Block processing options:</p>
+
+<dl>
+<dt><code>--join-blocks</code></dt><dd><p>If sequence filtering with <code>--only-species</code> removes a species which
+caused two adjacent blocks to be separate, this option will join
+them together into a single alignment block. The filtered blocks
+must contain the same sequences in contiguous positions and on the
+same strand.</p></dd>
+<dt><code>--remove-gaps</code></dt><dd><p>If sequence filtering with <code>--only-species</code> leaves a block
+containing columns consisting only of gap characters (<code>-</code>), these
+will be removed.</p></dd>
+<dt><code>--parse-extended</code></dt><dd><p>Parse <code>i</code> lines, giving information on the context of sequence
+lines, and <code>q</code> lines, giving quality scores.</p></dd>
+<dt><code>--parse-empty</code></dt><dd><p>Parse <code>e</code> lines, indicating cases where a species does not align
+with the current block but does align with blocks before and after
+it.</p></dd>
+</dl>
+
+
+<p>Logging options:</p>
+
+<dl>
+<dt><code>-q</code>, <code>--quiet</code></dt><dd><p>Run quietly, with warnings suppressed.</p></dd>
+<dt><code>-v</code>, <code>--verbose</code></dt><dd><p>Run verbosely, with additional informational messages.</p></dd>
+<dt class="flush"><code>--debug</code></dt><dd><p>Log debugging information.</p></dd>
+</dl>
+
+
+<h2 id="EXAMPLES">EXAMPLES</h2>
+
+<p>TODO</p>
+
+<h2 id="ENVIRONMENT">ENVIRONMENT</h2>
+
+<p><code>maf_index</code> is a Ruby program and relies on ordinary Ruby environment
+variables.</p>
+
+<h2 id="BUGS">BUGS</h2>
+
+<p>No provision exists for writing output to multiple files.</p>
+
+<p>FASTA description lines are always in the format <code>&gt;source:start-end</code>.</p>
+
+<h2 id="COPYRIGHT">COPYRIGHT</h2>
+
+<p><code>maf_index</code> is copyright (C) 2012 Clayton Wheeler.</p>
+
+<h2 id="SEE-ALSO">SEE ALSO</h2>
+
+<p><span class="man-ref">ruby<span class="s">(1)</span></span>, <a class="man-ref" href="maf_index.1.html">maf_index<span class="s">(1)</span></a>, <a class="man-ref" href="maf_tile.1.html">maf_tile<span class="s">(1)</span></a></p>
+
+
+  <ol class='man-decor man-foot man foot'>
+    <li class='tl'>BioRuby</li>
+    <li class='tc'>July 2012</li>
+    <li class='tr'>maf_extract(1)</li>
+  </ol>
+
+  </div>
+</body>
+</html>

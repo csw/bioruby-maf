@@ -110,23 +110,24 @@ form for debugging.</p>
 
 <h2 id="OPTIONS">OPTIONS</h2>
 
-<p>TODO</p>
-
 <dl>
-<dt><code>-d</code>, <code>--dump</code></dt><dd><p>Instead of creating an index, dump out the given <var>index</var> in
-human-readable form. Index records will appear like:</p>
+<dt><code>-a</code>, <code>--all</code></dt><dd><p>All sequences, not just the reference sequence, will be indexed for
+searching.</p></dd>
+<dt><code>-d</code>, <code>--dump</code></dt><dd><p> Instead of creating an index, dump out the given <var>index</var> in
+ human-readable form. Index records will appear like:</p>
 
-<pre><code>0 [bin 1195] 80082334:80082368
-  offset 16, length 1087
-  text size: 54
-  sequences in block: 10
-  species vector: 00000000000003ff
+<pre><code> 0 [bin 1195] 80082334:80082368
+   offset 16, length 1087
+   text size: 54
+   sequences in block: 10
+   species vector: 00000000000003ff
 </code></pre></dd>
-<dt><code>-t</code>, <code>--threaded</code></dt><dd><p>Use a separate reader thread to do I/O in parallel with
-parsing. Only useful on JRuby.</p></dd>
 <dt class="flush"><code>--time</code></dt><dd><p>Print elapsed time for index creation. Mainly useful for measuring
 performance with different Ruby implementations, I/O subsystems,
 etc.</p></dd>
+<dt><code>-q</code>, <code>--quiet</code></dt><dd><p>Run quietly, with warnings suppressed.</p></dd>
+<dt><code>-v</code>, <code>--verbose</code></dt><dd><p>Run verbosely, with additional informational messages.</p></dd>
+<dt class="flush"><code>--debug</code></dt><dd><p>Log debugging information.</p></dd>
 </dl>
 
 
