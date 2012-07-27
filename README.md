@@ -129,7 +129,7 @@ end
 # => Matched block at 80082713, 54 bases
 ```
 
-This can be done with [`maf_extract(1)`][] as well:
+This can be done with [`maf_extract(1)`](http://csw.github.com/bioruby-maf/man/maf_extract.1.html) as well:
 
     $ maf_extract -d test/data --interval mm8.chr7:80082592-80082766
 
@@ -148,7 +148,7 @@ puts "Got #{blocks.size} blocks, first #{blocks.first.ref_seq.size} base pairs."
 # => Got 2 blocks, first 18 base pairs.
 ```
 
-Or, with [`maf_extract(1)`][]
+Or, with [`maf_extract(1)`](http://csw.github.com/bioruby-maf/man/maf_extract.1.html):
 
     $ maf_extract -d test/data --mode slice --interval mm8.chr7:80082592-80082766
 
@@ -167,7 +167,7 @@ puts "Block has #{block.sequences.size} sequences."
 # => Block has 3 sequences.
 ```
 
-With [`maf_extract(1)`][]:
+With [`maf_extract(1)`](http://csw.github.com/bioruby-maf/man/maf_extract.1.html):
 
     $ maf_extract -d test/data --interval mm8.chr7:80082592-80082766 --only-species hg18,mm8,rheMac2
 
@@ -188,7 +188,7 @@ n_blocks = access.find(q).count
 # => 1
 ```
 
-With [`maf_extract(1)`][]:
+With [`maf_extract(1)`](http://csw.github.com/bioruby-maf/man/maf_extract.1.html):
 
     $ maf_extract -d test/data --interval mm8.chr7:80082471-80082730 --with-all-species panTro2,loxAfr1
 
@@ -202,7 +202,7 @@ n_blocks = access.find(q).count
 # => 1
 ```
 
-With [`maf_extract(1)`][]:
+With [`maf_extract(1)`](http://csw.github.com/bioruby-maf/man/maf_extract.1.html):
 
     $ maf_extract -d test/data --interval mm8.chr7:80082767-80083008 --min-sequences 6
 
@@ -216,7 +216,7 @@ n_blocks = access.find(q).count
 # => 3
 ```
 
-With [`maf_extract(1)`][]:
+With [`maf_extract(1)`](http://csw.github.com/bioruby-maf/man/maf_extract.1.html):
 
     $ maf_extract -d test/data --interval mm8.chr7:0-80100000 --min-text-size 72 --max-text-size 160
 
@@ -402,4 +402,3 @@ This Biogem is published at [biogems.info](http://biogems.info/index.html#bio-ma
 ## Copyright
 
 Copyright (c) 2012 Clayton Wheeler. See LICENSE.txt for further details.
-
