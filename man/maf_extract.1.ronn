@@ -3,11 +3,11 @@ maf_extract(1) -- extract blocks from MAF files
 
 ## SYNOPSIS
 
-`maf_extract` -m MAF [-i INDEX] --interval SEQ:START:END [OPTIONS]
+`maf_extract` -m MAF [-i INDEX] --interval SEQ:START-END [OPTIONS]
 
 `maf_extract` -m MAF [-i INDEX] --bed BED [OPTIONS]
 
-`maf_extract` -d MAFDIR --interval SEQ:START:END [OPTIONS]
+`maf_extract` -d MAFDIR --interval SEQ:START-END [OPTIONS]
 
 `maf_extract` -d MAFDIR --bed BED [OPTIONS]
 
@@ -79,7 +79,7 @@ Extraction options:
    The specified file will be parsed as a BED file, and each interval
    it contains will be matched in turn.
 
- * `--interval SEQ:START:END`:
+ * `--interval SEQ:START-END`:
    A single zero-based half-open genomic interval will be matched,
    with sequence identifier <seq>, (inclusive) start position <start>,
    and (exclusive) end position <end>.

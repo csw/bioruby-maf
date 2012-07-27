@@ -22,8 +22,11 @@ def handle_list_spec(spec)
 end
 
 def handle_interval_spec(int)
-  parts = int.split(':')
-  Bio::GenomicInterval.zero_based(parts[0], parts[1].to_i, parts[2].to_i)
+  if int =~ /(.+):(\d+)-(\d+)/
+    Bio::GenomicInterval.zero_based($1, $2.to_i, $3.to_i)
+  else
+    raise "Invalid interval specification: #{int}"
+  end
 end
 
 $op = OptionParser.new do |opts|
