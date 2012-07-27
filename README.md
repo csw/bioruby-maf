@@ -129,6 +129,10 @@ end
 # => Matched block at 80082713, 54 bases
 ```
 
+This can be done with [`maf_extract(1)`][] as well:
+
+    $ maf_extract -d test/data --interval mm8.chr7:80082592-80082766
+
 ### Extract alignment blocks truncated to a given interval
 
 Given a genomic interval of interest, one can also extract only the
@@ -144,6 +148,10 @@ puts "Got #{blocks.size} blocks, first #{blocks.first.ref_seq.size} base pairs."
 # => Got 2 blocks, first 18 base pairs.
 ```
 
+Or, with [`maf_extract(1)`][]
+
+    $ maf_extract -d test/data --mode slice --interval mm8.chr7:80082592-80082766
+
 ### Filter species returned in alignment blocks
 
 ```ruby
@@ -158,6 +166,10 @@ puts "Block has #{block.sequences.size} sequences."
 
 # => Block has 3 sequences.
 ```
+
+With [`maf_extract(1)`][]:
+
+    $ maf_extract -d test/data --interval mm8.chr7:80082592-80082766 --only-species hg18,mm8,rheMac2
 
 ### Extract blocks matching certain conditions
 
@@ -176,6 +188,10 @@ n_blocks = access.find(q).count
 # => 1
 ```
 
+With [`maf_extract(1)`][]:
+
+    $ maf_extract -d test/data --interval mm8.chr7:80082471-80082730 --with-all-species panTro2,loxAfr1
+
 #### Match only blocks with a certain number of sequences
 
 ```ruby
@@ -186,6 +202,10 @@ n_blocks = access.find(q).count
 # => 1
 ```
 
+With [`maf_extract(1)`][]:
+
+    $ maf_extract -d test/data --interval mm8.chr7:80082767-80083008 --min-sequences 6
+
 #### Match only blocks within a text size range
 
 ```ruby
@@ -195,6 +215,10 @@ access.block_filter = { :min_size => 72, :max_size => 160 }
 n_blocks = access.find(q).count
 # => 3
 ```
+
+With [`maf_extract(1)`][]:
+
+    $ maf_extract -d test/data --interval mm8.chr7:0-80100000 --min-text-size 72 --max-text-size 160
 
 ### Process each block in a MAF file
 
@@ -333,6 +357,7 @@ end
 Man pages for command line tools:
 
 * [`maf_index(1)`](http://csw.github.com/bioruby-maf/man/maf_index.1.html)
+* [`maf_extract(1)`](http://csw.github.com/bioruby-maf/man/maf_extract.1.html)
 * [`maf_to_fasta(1)`](http://csw.github.com/bioruby-maf/man/maf_to_fasta.1.html)
 * [`maf_tile(1)`](http://csw.github.com/bioruby-maf/man/maf_tile.1.html)
 

@@ -7,13 +7,13 @@
 \fBmaf_extract\fR \- extract blocks from MAF files
 .
 .SH "SYNOPSIS"
-\fBmaf_extract\fR \-m MAF [\-i INDEX] \-\-interval SEQ:START:END \fIOPTIONS\fR
+\fBmaf_extract\fR \-m MAF [\-i INDEX] \-\-interval SEQ:START\-END \fIOPTIONS\fR
 .
 .P
 \fBmaf_extract\fR \-m MAF [\-i INDEX] \-\-bed BED \fIOPTIONS\fR
 .
 .P
-\fBmaf_extract\fR \-d MAFDIR \-\-interval SEQ:START:END \fIOPTIONS\fR
+\fBmaf_extract\fR \-d MAFDIR \-\-interval SEQ:START\-END \fIOPTIONS\fR
 .
 .P
 \fBmaf_extract\fR \-d MAFDIR \-\-bed BED \fIOPTIONS\fR
@@ -69,7 +69,7 @@ The extraction mode to use\. With \fB\-\-mode intersect\fR, any alignment block 
 The specified file will be parsed as a BED file, and each interval it contains will be matched in turn\.
 .
 .TP
-\fB\-\-interval SEQ:START:END\fR
+\fB\-\-interval SEQ:START\-END\fR
 A single zero\-based half\-open genomic interval will be matched, with sequence identifier \fIseq\fR, (inclusive) start position \fIstart\fR, and (exclusive) end position \fIend\fR\.
 .
 .P
@@ -141,7 +141,116 @@ Run verbosely, with additional informational messages\.
 Log debugging information\.
 .
 .SH "EXAMPLES"
-TODO
+Extract MAF blocks intersecting with a given interval:
+.
+.IP "" 4
+.
+.nf
+
+$ maf_extract \-d test/data \-\-interval mm8\.chr7:80082592\-80082766
+.
+.fi
+.
+.IP "" 0
+.
+.P
+As above, but operating on a single file:
+.
+.IP "" 4
+.
+.nf
+
+$ maf_extract \-m test/data/mm8_chr7_tiny\.maf \e
+      \-i test/data/mm8_chr7_tiny\.kct \e
+      \-\-interval mm8\.chr7:80082592\-80082766
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Like the first case, but writing output to a file:
+.
+.IP "" 4
+.
+.nf
+
+$ maf_extract \-d test/data \-\-interval mm8\.chr7:80082592\-80082766 \e
+      \-\-output out\.maf
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Extract a slice of MAF blocks over a given interval:
+.
+.IP "" 4
+.
+.nf
+
+$ maf_extract \-d test/data \-\-mode slice \e
+      \-\-interval mm8\.chr7:80082592\-80082766
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Filter for sequences from only certain species:
+.
+.IP "" 4
+.
+.nf
+
+$ maf_extract \-d test/data \-\-interval mm8\.chr7:80082592\-80082766 \e
+      \-\-only\-species hg18,mm8,rheMac2
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Extract only blocks with all specified species:
+.
+.IP "" 4
+.
+.nf
+
+$ maf_extract \-d test/data \-\-interval mm8\.chr7:80082471\-80082730 \e
+      \-\-with\-all\-species panTro2,loxAfr1
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Extract blocks with at least a certain number of sequences:
+.
+.IP "" 4
+.
+.nf
+
+$ maf_extract \-d test/data \-\-interval mm8\.chr7:80082767\-80083008 \e
+      \-\-min\-sequences 6
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Extract blocks with text sizes in a certain range:
+.
+.IP "" 4
+.
+.nf
+
+$ maf_extract \-d test/data \-\-interval mm8\.chr7:0\-80100000 \e
+      \-\-min\-text\-size 72 \-\-max\-text\-size 160
+.
+.fi
+.
+.IP "" 0
 .
 .SH "ENVIRONMENT"
 \fBmaf_index\fR is a Ruby program and relies on ordinary Ruby environment variables\.

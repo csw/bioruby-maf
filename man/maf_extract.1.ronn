@@ -153,7 +153,45 @@ Logging options:
 
 ## EXAMPLES
 
-TODO
+Extract MAF blocks intersecting with a given interval:
+
+    $ maf_extract -d test/data --interval mm8.chr7:80082592-80082766
+    
+As above, but operating on a single file:
+
+    $ maf_extract -m test/data/mm8_chr7_tiny.maf \
+          -i test/data/mm8_chr7_tiny.kct \
+          --interval mm8.chr7:80082592-80082766
+
+Like the first case, but writing output to a file:
+
+    $ maf_extract -d test/data --interval mm8.chr7:80082592-80082766 \
+          --output out.maf
+
+Extract a slice of MAF blocks over a given interval:
+
+    $ maf_extract -d test/data --mode slice \
+          --interval mm8.chr7:80082592-80082766
+
+Filter for sequences from only certain species:
+
+    $ maf_extract -d test/data --interval mm8.chr7:80082592-80082766 \
+          --only-species hg18,mm8,rheMac2
+
+Extract only blocks with all specified species:
+
+    $ maf_extract -d test/data --interval mm8.chr7:80082471-80082730 \
+          --with-all-species panTro2,loxAfr1
+
+Extract blocks with at least a certain number of sequences:
+
+    $ maf_extract -d test/data --interval mm8.chr7:80082767-80083008 \
+          --min-sequences 6
+
+Extract blocks with text sizes in a certain range:
+
+    $ maf_extract -d test/data --interval mm8.chr7:0-80100000 \
+          --min-text-size 72 --max-text-size 160
 
 ## ENVIRONMENT
 
