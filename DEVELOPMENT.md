@@ -20,6 +20,10 @@ platform.
 The version is simply set by hand in `bio-maf.gemspec`. Don't forget
 to increment it!
 
+First, verify that you are on the `master` branch:
+
+    $ git branch
+
 Testing the build:
 
     $ rake build
