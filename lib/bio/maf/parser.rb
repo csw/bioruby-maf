@@ -1,5 +1,6 @@
 require 'strscan'
 require 'java' if RUBY_PLATFORM == 'java'
+require 'bio-bgzf'
 
 # @api public
 module Bio
@@ -67,6 +68,27 @@ module Bio
         chunk = f.read(size_hint)
         @pos = offset + chunk.bytesize
         return chunk
+      end
+    end
+
+    class BGZFChunkReader
+      attr_reader :f, :r
+
+      def initialize(f, _chunk_size)
+        @f = f
+        @r = BGZFReader.new(f)
+      end
+
+      def pos
+        r.tell
+      end
+
+      def read_chunk
+        r.read_block
+      end
+
+      def read_chunk_at(vo, _size)
+        r.read_block_at(vo)
       end
     end
 
@@ -385,7 +407,11 @@ module Bio
         @f = fd
         @parser = parser
         @opts = parser.opts
-        reader = opts[:chunk_reader] || ChunkReader
+        if f.path =~ /\.b?gzf?$/
+          reader = BGZFChunkReader
+        else
+          reader = opts[:chunk_reader] || ChunkReader
+        end
         @cr = reader.new(@f, chunk_size)
         @last_block_pos = -1
       end
@@ -517,7 +543,11 @@ module Bio
         @chunk_start = 0
         @file_spec = file_spec
         @f = File.open(file_spec)
-        reader = opts[:chunk_reader] || ChunkReader
+        if file_spec =~ /\.b?gzf?$/
+          reader = BGZFChunkReader
+        else
+          reader = opts[:chunk_reader] || ChunkReader
+        end
         @cr = reader.new(@f, chunk_size)
         @s = StringScanner.new(cr.read_chunk())
         set_last_block_pos!
