@@ -263,10 +263,12 @@ module Bio
     class KyotoIndex
       include KVHelpers
 
-      attr_reader :db, :species, :species_max_id, :ref_only
+      attr_reader :db, :species, :species_max_id, :ref_only, :path
+      attr_reader :maf_file
       attr_accessor :index_sequences, :ref_seq
 
       COMPRESSION_KEY = 'bio-maf:compression'
+      FILE_KEY = 'bio-maf:file'
       FORMAT_VERSION_KEY = 'bio-maf:index-format-version'
       FORMAT_VERSION = 2
       REF_SEQ_KEY = 'bio-maf:reference-sequence'
@@ -440,6 +442,7 @@ module Bio
           raise "Could not open DB file!"
         end
         if mode == KyotoCabinet::DB::OREADER
+          @maf_file = db[FILE_KEY]
           self.ref_seq = db[REF_SEQ_KEY]
           load_index_sequences
           load_species
@@ -668,6 +671,8 @@ module Bio
       end
 
       def build(parser, ref_only=true)
+        db[FILE_KEY] = File.basename(parser.file_spec)
+        @maf_file = db[FILE_KEY]
         if parser.compression
           db[COMPRESSION_KEY] = parser.compression.to_s
         end
