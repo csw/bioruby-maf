@@ -190,18 +190,20 @@ module Bio
         @indices = {}
         @maf_by_chrom = {}
         if options[:dir]
-          @dir = options[:dir]
-          @maf_files = Dir.glob("#{@dir}/*.maf")
+          scan_dir(options[:dir])
         elsif options[:maf]
-          @maf_files = [options[:maf]]
           if options[:index]
             register_index(KyotoIndex.open(options[:index]),
                            options[:maf])
+          else
+            idx = find_index_file(options[:maf])
+            if idx
+              register_index(KyotoIndex.open(idx), options[:maf])
+            end
           end
         else
           raise "Must specify :dir or :maf!"
         end
-        scan_indices!
         if options[:maf] && @indices.empty?
           # MAF file explicitly given but no index
           # build a temporary one
@@ -216,23 +218,27 @@ module Bio
 
       # @api private
       def find_index_file(maf)
-        base = File.basename(maf, '.maf')
-        index_f = "#{@dir}/#{base}.kct"
-        File.exists?(index_f) ? index_f : nil
+        dir = File.dirname(maf)
+        base = File.basename(maf)
+        noext = base.gsub(/\.maf.*/, '')
+        idx = [base, noext].collect { |n| "#{dir}/#{n}.kct" }.find { |path| File.exist? path }
       end
 
       # @api private
       def register_index(index, maf)
+        unless index.maf_file == File.basename(maf)
+          raise "Index #{index.path} was created for #{index.maf_file}, not #{File.basename(maf)}!"
+        end
         @indices[index.ref_seq] = index
         @maf_by_chrom[index.ref_seq] = maf
       end
 
       # @api private
-      def scan_indices!
-        @maf_files.each do |maf|
-          index_f = find_index_file(maf)
-          if index_f
-            index = KyotoIndex.open(index_f)
+      def scan_dir(dir)
+        Dir.glob("#{dir}/*.kct").each do |index_f|
+          index = KyotoIndex.open(index_f)
+          maf = "#{dir}/#{index.maf_file}"
+          if File.exist? maf
             register_index(index, maf)
           end
         end
