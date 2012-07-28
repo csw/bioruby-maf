@@ -1,3 +1,5 @@
+require 'bundler/setup'
+
 unless ENV.has_key?('TRAVIS') || RUBY_PLATFORM == 'java'
   begin
     require 'simplecov'
