@@ -92,58 +92,76 @@ module Bio
       end
     end
 
-    # Variant ChunkReader using a read-ahead thread with internal
-    # queue for sequential parsing. Not useful for random-access
-    # parsing.
-    #
-    # Only beneficial on JRuby.
-    class ThreadedChunkReader < ChunkReader
+    class ThreadedChunkReaderWrapper
 
-      def initialize(f, chunk_size, buffer_size=64)
-        super(f, chunk_size)
-        @buffer = SizedQueue.new(buffer_size)
+      attr_reader :cr, :pos
+
+      def initialize(cr, buffer_size=64)
+        @cr = cr
+        @buffer = java.util.concurrent.LinkedBlockingQueue.new(buffer_size)
         @eof_reached = false
-        start_read_ahead
+        @first_seq_read = false
       end
-
+      
       # Spawn a read-ahead thread. Called from {#initialize}.
       def start_read_ahead
         @read_thread = Thread.new { read_ahead }
+      end
+
+      def f
+        cr.f
       end
 
       # Read ahead into queue.
       def read_ahead
         # n = 0
         begin
-          f_pos = 0
           until f.eof?
-            chunk = f.read(@chunk_size)
-            @buffer << [f_pos, chunk]
-            f_pos += chunk.bytesize
-            # n += 1
-            # if (n % 100) == 0
-            #   $stderr.puts "buffer size: #{@buffer.size}"
-            # end
+            chunk = cr.read_chunk
+            c_pos = cr.pos
+            @buffer.put([c_pos, chunk])
           end
-          @eof_reached = true
+          @buffer.put(:eof)
+          # @eof_reached = true
         rescue Exception
           @read_ahead_ex = $!
-          $stderr.puts "read_ahead aborting: #{$!}"
+          LOG.error $!
+          @buffer.put($!)
         end
       end
 
-      # (see ChunkReader#read_chunk)
       def read_chunk
-        raise "readahead failed: #{@read_ahead_ex}" if @read_ahead_ex
-        if @eof_reached && @buffer.empty?
+        if ! @first_seq_read
+          # this is the first read_chunk call to read the header
+          # not necessarily indicative of sequential access
+          @first_seq_read = true
+          chunk = cr.read_chunk
+          @pos = cr.pos
+          return chunk
+        elsif @read_ahead_ex
+          raise @read_ahead_ex
+        elsif @eof_reached
           return nil
         else
-          c_pos, chunk = @buffer.shift()
-          @pos = c_pos
-          return chunk
+          start_read_ahead if @read_thread.nil?
+          e = @buffer.take
+          case
+          when e == :eof
+            @eof_reached = nil
+            return nil
+          when e.is_a?(Exception)
+            raise e
+          else
+            c_pos, chunk = e
+            @pos = c_pos
+            return chunk
+          end
         end
       end
 
+      def read_chunk_at(*args)
+        cr.read_chunk_at(*args)
+      end
     end
 
     # MAF parsing code useful for sequential and random-access parsing.
@@ -407,7 +425,7 @@ module Bio
         @f = fd
         @parser = parser
         @opts = parser.opts
-        @cr = parser.cr.class.new(@f, chunk_size)
+        @cr = parser.base_reader.new(@f, chunk_size)
         @last_block_pos = -1
       end
 
@@ -503,6 +521,9 @@ module Bio
       attr_reader :s
       # @return [ChunkReader] ChunkReader.
       attr_reader :cr
+      # @return [Class] ChunkReader class to use for random access
+      # @see ParseContext
+      attr_reader :base_reader
       # @return [Boolean] whether EOF has been reached.
       attr_reader :at_end
       # @return [Hash] parser options.
@@ -541,12 +562,15 @@ module Bio
         @file_spec = file_spec
         @f = File.open(file_spec)
         if file_spec.to_s =~ /\.b?gzf?$/
-          reader = BGZFChunkReader
+          @base_reader = BGZFChunkReader
           @compression = :bgzf
         else
-          reader = opts[:chunk_reader] || ChunkReader
+          @base_reader = ChunkReader
         end
-        @cr = reader.new(@f, chunk_size)
+        @cr = base_reader.new(@f, chunk_size)
+        if RUBY_PLATFORM == 'java'
+          @cr = ThreadedChunkReaderWrapper.new(@cr)
+        end
         @s = StringScanner.new(cr.read_chunk())
         set_last_block_pos!
         @at_end = false
