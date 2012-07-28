@@ -73,3 +73,12 @@ Feature: Filter results from MAF files
     And search for blocks between positions 0 and 80100000 of mm8.chr7
     Then 3 blocks are obtained
 
+  @no_jruby
+  Scenario: Parse blocks from a BGZF-compressed file
+    Given test files:
+    | mm8.chrM.maf    |
+    | mm8.chrM.maf.gz |
+    When I run `maf_extract -m mm8.chrM.maf --interval mm8.chrM:6938-13030 -o m1.maf`
+    And I run `maf_extract -m mm8.chrM.maf.gz --interval mm8.chrM:6938-13030 -o m2.maf`
+    And I run `diff m1.maf m2.maf`
+    Then the exit status should be 0
