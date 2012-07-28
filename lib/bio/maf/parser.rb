@@ -407,12 +407,7 @@ module Bio
         @f = fd
         @parser = parser
         @opts = parser.opts
-        if f.path =~ /\.b?gzf?$/
-          reader = BGZFChunkReader
-        else
-          reader = opts[:chunk_reader] || ChunkReader
-        end
-        @cr = reader.new(@f, chunk_size)
+        @cr = parser.cr.class.new(@f, chunk_size)
         @last_block_pos = -1
       end
 
@@ -545,7 +540,7 @@ module Bio
         @chunk_start = 0
         @file_spec = file_spec
         @f = File.open(file_spec)
-        if file_spec =~ /\.b?gzf?$/
+        if file_spec.to_s =~ /\.b?gzf?$/
           reader = BGZFChunkReader
           @compression = :bgzf
         else
