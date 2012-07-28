@@ -516,6 +516,8 @@ module Bio
       attr_reader :chunk_start
       # @return [Integer] offset of the last block start in this chunk.
       attr_reader :last_block_pos
+      # @return [Symbol] compression method used for this file, or nil
+      attr_reader :compression
 
       # @api private
       attr_accessor :parse_extended
@@ -545,6 +547,7 @@ module Bio
         @f = File.open(file_spec)
         if file_spec =~ /\.b?gzf?$/
           reader = BGZFChunkReader
+          @compression = :bgzf
         else
           reader = opts[:chunk_reader] || ChunkReader
         end

@@ -1,5 +1,6 @@
 require 'kyotocabinet'
 require 'jruby/profiler' if RUBY_PLATFORM == 'java'
+require 'bio-bgzf'
 
 #require 'bio-ucsc-api'
 require 'bio-genomic-interval'
@@ -265,6 +266,7 @@ module Bio
       attr_reader :db, :species, :species_max_id, :ref_only
       attr_accessor :index_sequences, :ref_seq
 
+      COMPRESSION_KEY = 'bio-maf:compression'
       FORMAT_VERSION_KEY = 'bio-maf:index-format-version'
       FORMAT_VERSION = 2
       REF_SEQ_KEY = 'bio-maf:reference-sequence'
@@ -450,6 +452,7 @@ module Bio
       end
 
       def dump(stream=$stdout)
+        bgzf = (db[COMPRESSION_KEY] == 'bgzf')
         stream.puts "KyotoIndex dump: #{@path}"
         stream.puts
         if db.count == 0
@@ -474,6 +477,11 @@ module Bio
             offset, len, text_size, n_seq, species_vec = pair[1].unpack(VAL_FMT)
             stream.puts "#{chr} [bin #{bin}] #{s_start}:#{s_end}"
             stream.puts "  offset #{offset}, length #{len}"
+            if bgzf
+              block = BioBgzf.vo_block_offset(offset)
+              data = BioBgzf.vo_data_offset(offset)
+              stream.puts "  BGZF block offset #{block}, data offset #{data}"
+            end
             stream.puts "  text size: #{text_size}"
             stream.puts "  sequences in block: #{n_seq}"
             stream.printf("  species vector: %016x\n", species_vec)
@@ -660,6 +668,9 @@ module Bio
       end
 
       def build(parser, ref_only=true)
+        if parser.compression
+          db[COMPRESSION_KEY] = parser.compression.to_s
+        end
         first_block = parser.parse_block
         self.ref_seq = first_block.sequences.first.source
         @ref_only = ref_only
