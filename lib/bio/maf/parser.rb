@@ -76,7 +76,7 @@ module Bio
 
       def initialize(f, _chunk_size)
         @f = f
-        @r = BGZFReader.new(f)
+        @r = Bio::BGZF::Reader.new(f)
       end
 
       def pos
