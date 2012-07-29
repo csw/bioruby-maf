@@ -8,9 +8,9 @@ support for the
 (MAF), used in bioinformatics to store whole-genome sets of multiple
 sequence alignments.
 
-Ultimately it will provide indexed and sequential access to MAF data,
-as well as performing various manipulations on it and writing modified
-MAF files. So far, it only supports simple sequential parsing.
+This library provides indexed and sequential access to MAF data, as
+well as performing various manipulations on it and writing modified
+MAF files.
 
 For more information, see the
 [project wiki](https://github.com/csw/bioruby-maf/wiki).
@@ -351,6 +351,18 @@ access.tile(interval) do |tiler|
   tiler.write_fasta($stdout)
 end
 ```
+
+### Compression
+
+MAF files can optionally be compressed in the [BGZF][] format defined
+in the [SAM specification][]. This can easily be done with the
+[bgzip(1)][] tool. BGZF uses gzip to compress files in 64 KB blocks,
+enabling efficient random access.
+
+[bgzip(1)]: http://samtools.sourceforge.net/tabix.shtml
+[BGZF]: http://blastedbio.blogspot.com/2011/11/bgzf-blocked-bigger-better-gzip.html
+[SAM specification]: http://samtools.sourceforge.net/SAM1.pdf
+
 
 ### Command line tools
 

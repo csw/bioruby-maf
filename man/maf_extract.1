@@ -40,6 +40,9 @@ This tool exposes almost all the random\-access functionality of the Bio::MAF::A
 A single MAF file can be processed by specifying it with \fB\-\-maf\fR\. Its accompanying index, created by maf_index(1), is specified with \fB\-\-index\fR\. If \fB\-\-maf\fR is given but no index is specified, the entire file will be parsed to build a temporary in\-memory index\. This facilitates processing small, transient MAF files\. However, on a large file this will incur a great deal of overhead; files expected to be used more than once should be indexed with maf_index(1)\.
 .
 .P
+MAF files can optionally be BGZF\-compressed, as produced by bgzip(1) from samtools\.
+.
+.P
 Alternatively, a directory of indexed MAF files can be specified with \fB\-\-maf\-dir\fR; in this case, they will all be used to satisfy queries\.
 .
 .SH "OPTIONS"
@@ -265,4 +268,4 @@ FASTA description lines are always in the format \fB>source:start\-end\fR\.
 \fBmaf_index\fR is copyright (C) 2012 Clayton Wheeler\.
 .
 .SH "SEE ALSO"
-ruby(1), maf_index(1), maf_tile(1)
+ruby(1), maf_index(1), maf_tile(1), bgzip(1)

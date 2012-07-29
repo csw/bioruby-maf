@@ -95,6 +95,9 @@ species.
 The <maf> parameter must specify either a Multiple Alignment Format
 (MAF) file or a directory of such files, with indexes.
 
+MAF files can optionally be BGZF-compressed, as produced by bgzip(1)
+from samtools.
+
 The <index> must be a MAF index built with maf_index(1). This
 parameter is ignored if the <maf> parameter is a directory. It can be
 omitted if a single MAF file is given, but in this case the entire
@@ -116,6 +119,6 @@ variables.
 
 ## SEE ALSO
 
-maf_index(1), ruby(1)
+maf_index(1), ruby(1), bgzip(1)
 
  * <https://github.com/csw/bioruby-maf/>
