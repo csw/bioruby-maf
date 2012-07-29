@@ -502,8 +502,6 @@ module Bio
     #  * `:random_chunk_size`: as above, but for random access ({#fetch_blocks})
     #  * `:merge_max`: merge up to this many bytes of blocks for
     #    random access
-    #  * `:chunk_reader`: use the specified class to read
-    #    chunks. (Only useful with {ThreadedChunkReader}).
     #  * `:threads`: number of threads to use for parallel
     #    parsing. Only useful under JRuby.
     # @api public
