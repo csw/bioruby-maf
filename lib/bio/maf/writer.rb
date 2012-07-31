@@ -36,8 +36,8 @@ module Bio::MAF
       block.sequences.each do |seq| 
         write_seq(seq, lines)
       end
-      lines << " "
-      f.puts lines.join("\n")
+      lines << "\n"
+      f.write(lines.join("\n"))
     end
 
     def write_seq(s, lines)
