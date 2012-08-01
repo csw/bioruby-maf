@@ -57,8 +57,7 @@ module Bio
 
       # Reads a chunk of the file.
       #
-      # Currently always reads size_hint bytes but this may change
-      # with BGZF support.
+      # Currently always reads size_hint bytes.
       #
       # @param [Integer] offset file offset to read from.
       # @param [Integer] size_hint desired size of chunk.
@@ -491,7 +490,6 @@ module Bio
       end
 
       def append_chunks_to(len)
-        # XXX: need to rethink this for BGZF; prefetching ChunkReader
         while s.string.size < len
           s.string << cr.read_chunk()
         end
