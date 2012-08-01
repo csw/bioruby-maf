@@ -763,11 +763,16 @@ module Bio
         return r
       end
 
+      # Build a merged fetch list in a BGZF-aware way.  This will
+      # group together all MAF blocks from a single BGZF block. These
+      # MAF blocks may not be consecutive.
       def _merge_bgzf_fetch_list(orig_fl)
         block_e = orig_fl.chunk { |entry|
           offset, length = entry
           Bio::BGZF::vo_block_offset(offset)
         }
+          # text size to read from disk, from the start of the first
+          # block to the end of the last block
         block_e.collect do |bgzf_block, fl|
           text_size = fl.last[0] + fl.last[1] - fl.first[0]
           offsets = fl.collect { |e| e[0] }
