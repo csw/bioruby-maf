@@ -14,15 +14,9 @@ PRINTERS = {
 $options = OpenStruct.new
 $options.mode = :build
 $options.ref_only = true
-$options.reader = if RUBY_PLATFORM == 'java'
-                    Bio::MAF::ThreadedChunkReader
-                  else
-                    Bio::MAF::ChunkReader
-                  end
 
 def build_index(maf, index)
   parser = Bio::MAF::Parser.new(maf,
-                                :chunk_reader => $options.reader,
                                 :parse_extended => false)
   idx = Bio::MAF::KyotoIndex.build(parser, index, $options.ref_only)
   idx.close
