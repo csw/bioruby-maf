@@ -1,0 +1,46 @@
+#!/usr/bin/env ruby
+
+require 'ostruct'
+
+require 'bio-maf'
+require 'bio-bgzf'
+
+$options = OpenStruct.new
+$options.dir = '.'
+
+op = OptionParser.new do |opts|
+  opts.banner = "Usage: maf_bgzip [options] [<maf> ...]"
+  opts.separator ""
+  opts.separator "Options:"
+  opts.on("-d", "--dir DIR",
+          "Directory to write compressed MAF to",
+          "(default is current directory)") do |dir|
+    $options.dir = dir
+  end
+  opts.on("-i", "--index", "Index MAF files after writing") do
+    $options.index = true
+  end
+end
+
+op.parse!(ARGV)
+
+until ARGV.empty?
+  maf_path = ARGV.shift
+  base = File.basename(maf_path, ".maf")
+  bgz_path = "#{$options.dir}/#{base}.maf.bgz"
+  p = Bio::MAF::Parser.new(maf_path)
+  File.open(bgz_path, 'w') do |out_f|
+    Bio::BGZF::Writer.new(out_f) do |bgz_w|
+      maf_w = Bio::MAF::Writer.new(bgz_w)
+      maf_w.write_header(p.header)
+      p.each_block do |block|
+        maf_w.write_block(block)
+      end
+    end
+  end
+  if $options.index
+    p2 = Bio::MAF::Parser.new(bgz_path)
+    idx_path = "#{$options.dir}/#{base}.kct"
+    Bio::MAF::KyotoIndex.build(p2, idx_path, false)
+  end
+end
