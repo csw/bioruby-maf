@@ -487,8 +487,8 @@ module Bio
             stream.puts "#{chr} [bin #{bin}] #{s_start}:#{s_end}"
             stream.puts "  offset #{offset}, length #{len}"
             if bgzf
-              block = BioBgzf.vo_block_offset(offset)
-              data = BioBgzf.vo_data_offset(offset)
+              block = Bio::BGZF.vo_block_offset(offset)
+              data = Bio::BGZF.vo_data_offset(offset)
               stream.puts "  BGZF block offset #{block}, data offset #{data}"
             end
             stream.puts "  text size: #{text_size}"
