@@ -452,6 +452,7 @@ module Bio
       # @return [Array<Block>]
       def fetch_blocks(offset, len, block_offsets)
         if block_given?
+          LOG.debug { "fetching blocks from #{offset} (length #{len}): #{block_offsets.inspect}" }
           start_chunk_read_if_needed(offset, len)
           # read chunks until we have the entire merged set of
           # blocks ready to parse
@@ -459,6 +460,13 @@ module Bio
           append_chunks_to(len)
           # parse the blocks
           block_offsets.each do |expected_offset|
+            # skip ahead, in case there is a gap resulting from a
+            # block that is not being parsed
+            rel_offset = expected_offset - offset
+            if s.pos < rel_offset
+              s.pos = rel_offset
+            end
+            # now actually parse the block data
             block = _parse_block
             parse_error("expected a block at offset #{expected_offset} but could not parse one!") unless block
             parse_error("got block with offset #{block.offset}, expected #{expected_offset}!") unless block.offset == expected_offset
@@ -729,6 +737,15 @@ module Bio
       #
       # Returns `[offset, size, [offset1, offset2, ...]]` tuples.
       def merge_fetch_list(orig_fl)
+        case compression
+        when nil
+          _merge_fetch_list(orig_fl)
+        when :bgzf
+          _merge_bgzf_fetch_list(orig_fl)
+        end
+      end
+
+      def _merge_fetch_list(orig_fl)
         fl = orig_fl.dup
         r = []
         until fl.empty? do
@@ -746,6 +763,15 @@ module Bio
           end
         end
         return r
+      end
+
+      def _merge_bgzf_fetch_list(orig_fl)
+        block_e = orig_fl.chunk { |offset, size| offset >> 16 }
+        block_e.collect do |bgzf_block, fl|
+          text_size = fl.last[0] + fl.last[1] - fl.first[0]
+          offsets = fl.collect { |e| e[0] }
+          [fl.first[0], text_size, offsets]
+        end
       end
 
       # Parse the header of the MAF file.

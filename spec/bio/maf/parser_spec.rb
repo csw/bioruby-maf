@@ -184,6 +184,12 @@ module Bio
         after(:each) do
           @p.f.close
         end
+        it "handles a skipped block in a BGZF file" do
+          @p = described_class.new(TestData + 'mm8.chrM.maf.gz')
+          blocks = @p.fetch_blocks([[5141084112, 2100],
+                                    [5141087379, 2006]])
+          blocks.collect { |b| b.offset }.should == [5141084112, 5141087379]
+        end
       end
 
       describe "#each_block" do
