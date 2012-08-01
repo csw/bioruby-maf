@@ -20,8 +20,8 @@ module Bio::MAF
     end
 
     def write_header(header)
-      f.puts "##maf #{flatten_vars(header.vars)}"
-      f.puts "##{header.alignment_params}" if header.alignment_params
+      f.write "##maf #{flatten_vars(header.vars)}\n"
+      f.write "##{header.alignment_params}\n" if header.alignment_params
     end
 
     def write_blocks(blocks)
