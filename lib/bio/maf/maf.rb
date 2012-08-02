@@ -103,8 +103,9 @@ module Bio
 
       GAP = /-+/
 
-      # Remove gaps present in all sequences. These would generally
+      # Find gaps present in all sequences. These would generally
       # occur when some sequences have been filtered out.
+      #
       # @see #remove_gaps!
       # @see Parser#sequence_filter
       def find_gaps
@@ -126,6 +127,7 @@ module Bio
 
       # Remove gaps present in all sequences. These would generally
       # occur when some sequences have been filtered out.
+      #
       # @see #find_gaps
       # @see Parser#sequence_filter
       def remove_gaps!
