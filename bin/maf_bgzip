@@ -26,7 +26,8 @@ op.parse!(ARGV)
 
 until ARGV.empty?
   maf_path = ARGV.shift
-  base = File.basename(maf_path, ".maf")
+  maf_base = File.basename(maf_path)
+  base = maf_base.gsub(/\.maf.*/, '')
   bgz_path = "#{$options.dir}/#{base}.maf.bgz"
   p = Bio::MAF::Parser.new(maf_path)
   File.open(bgz_path, 'w') do |out_f|
@@ -38,6 +39,7 @@ until ARGV.empty?
       end
     end
   end
+  p.close
   if $options.index
     p2 = Bio::MAF::Parser.new(bgz_path)
     idx_path = "#{$options.dir}/#{base}.kct"
