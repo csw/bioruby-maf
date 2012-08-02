@@ -52,8 +52,8 @@ Feature: Indexed access to MAF files
   @no_jruby
   Scenario: Build MAF index on BGZF file with CLI tool
     Given test files:
-    | mm8.chrM.maf.gz |
-    When I run `maf_index mm8.chrM.maf.gz mm8.chrM.kct`
+    | mm8.chrM.maf.bgz |
+    When I run `maf_index mm8.chrM.maf.bgz mm8.chrM.kct`
     Then it should pass with:
     """
     """
