@@ -1,5 +1,4 @@
 require 'strscan'
-require 'zlib'
 require 'java' if RUBY_PLATFORM == 'java'
 require 'bio-bgzf'
 
@@ -571,12 +570,11 @@ module Bio
           # TODO: gzip?
         else
           @file_spec = file_spec
-          f_class = if file_spec.to_s.end_with?(".maf.gz")
-                      Zlib::GzipReader
-                    else
-                      File
-                    end
-          @f = f_class.open(file_spec)
+          if file_spec.to_s.end_with?(".maf.gz")
+            @f = IO.popen("gzip -dc #{file_spec}")
+          else
+            @f = File.open(file_spec)
+          end
         end
         if @file_spec.to_s =~ /\.bgzf?$/
           @base_reader = BGZFChunkReader
