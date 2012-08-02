@@ -1,4 +1,5 @@
 require 'strscan'
+require 'zlib'
 require 'java' if RUBY_PLATFORM == 'java'
 require 'bio-bgzf'
 
