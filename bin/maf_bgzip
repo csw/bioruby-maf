@@ -7,6 +7,7 @@ require 'bio-bgzf'
 
 $options = OpenStruct.new
 $options.dir = '.'
+$options.ref_only = true
 
 op = OptionParser.new do |opts|
   opts.banner = "Usage: maf_bgzip [options] [<maf> ...]"
@@ -20,6 +21,11 @@ op = OptionParser.new do |opts|
   opts.on("-i", "--index", "Index MAF files after writing") do
     $options.index = true
   end
+  opts.on("-a", "--all",
+          "Index all sequences, not just reference seq",
+          "(has no effect without --index)") do
+    $options.ref_only = false
+  end
 end
 
 op.parse!(ARGV)
@@ -29,7 +35,9 @@ until ARGV.empty?
   maf_base = File.basename(maf_path)
   base = maf_base.gsub(/\.maf.*/, '')
   bgz_path = "#{$options.dir}/#{base}.maf.bgz"
-  p = Bio::MAF::Parser.new(maf_path)
+  p = Bio::MAF::Parser.new(maf_path,
+                           :parse_extended => true,
+                           :parse_empty => true)
   File.open(bgz_path, 'w') do |out_f|
     Bio::BGZF::Writer.new(out_f) do |bgz_w|
       maf_w = Bio::MAF::Writer.new(bgz_w)
@@ -43,6 +51,6 @@ until ARGV.empty?
   if $options.index
     p2 = Bio::MAF::Parser.new(bgz_path)
     idx_path = "#{$options.dir}/#{base}.kct"
-    Bio::MAF::KyotoIndex.build(p2, idx_path, false)
+    Bio::MAF::KyotoIndex.build(p2, idx_path, $options.ref_only)
   end
 end
