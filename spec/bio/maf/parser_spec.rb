@@ -197,6 +197,13 @@ module Bio
           p = described_class.new(TestData + 'mm8_chr7_tiny.maf')
           p.each_block.count.should == 8
         end
+        it "works when parsing from a pipe" do
+          IO.popen("cat #{TestData + 'mm8_chr7_tiny.maf'}") do |pipe|
+            p = described_class.new(pipe)
+            p.each_block.count.should == 8
+          end
+        end
+
       end
 
       describe "sequence_filter" do

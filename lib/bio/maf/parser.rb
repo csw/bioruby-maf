@@ -563,9 +563,21 @@ module Bio
         @parse_extended = opts[:parse_extended] || false
         @parse_empty = opts[:parse_empty] || false
         @chunk_start = 0
-        @file_spec = file_spec
-        @f = File.open(file_spec)
-        if file_spec.to_s =~ /\.b?gzf?$/
+        if file_spec.respond_to? :flush
+          # guess what, Pathnames respond to :read...
+          @f = file_spec
+          @file_spec = @f.path if @f.respond_to?(:path)
+          # TODO: gzip?
+        else
+          @file_spec = file_spec
+          f_class = if file_spec.to_s.end_with?(".maf.gz")
+                      Zlib::GzipReader
+                    else
+                      File
+                    end
+          @f = f_class.open(file_spec)
+        end
+        if @file_spec.to_s =~ /\.bgzf?$/
           @base_reader = BGZFChunkReader
           @compression = :bgzf
         else
@@ -592,7 +604,11 @@ module Bio
       # @api private
       def context(chunk_size)
         # IO#dup calls dup(2) internally, but seems broken on JRuby...
-        fd = File.open(file_spec)
+        if file_spec
+          fd = File.open(file_spec)
+        else
+          fd = f.dup
+        end
         ParseContext.new(fd, chunk_size, self)
       end
 

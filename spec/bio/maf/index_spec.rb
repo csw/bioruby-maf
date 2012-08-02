@@ -115,6 +115,13 @@ module Bio
             @idx.close
           }.not_to raise_error
         end
+        it "works from a pipe" do
+          IO.popen("cat #{TestData + 'mm8_chr7_tiny.maf'}") do |pipe|
+            @p = Parser.new(TestData + 'mm8_chr7_tiny.maf')
+            @idx = KyotoIndex.build(@p, '%')
+            @idx.db.count.should > 10
+          end
+        end
         it "accepts .kct paths"
         it "rejects other paths"
         context "mm8_chr7" do

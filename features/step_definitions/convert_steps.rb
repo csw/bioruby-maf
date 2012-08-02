@@ -6,7 +6,7 @@ end
 Given /^MAF data:$/ do |string|
   @src_f = Tempfile.new(['rspec', '.maf'])
   @src_f.write(string)
-  @src_f.close
+  @src_f.rewind
 end
 
 When /^I select FASTA output$/ do
