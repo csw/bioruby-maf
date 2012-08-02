@@ -6,6 +6,7 @@ Feature: BGZF compression
   So we use BGZF compression to support random access
   To 64 KB chunks
 
+  @no_jruby
   Scenario: Compress a MAF file
     Given test files:
     | mm8_chr7_tiny.maf |
@@ -15,6 +16,7 @@ Feature: BGZF compression
     """
     And a file named "mm8_chr7_tiny.maf.bgz" should exist
     
+  @no_jruby
   Scenario: Compress and index a MAF file
     Given test files:
     | mm8_chr7_tiny.maf |
@@ -25,6 +27,7 @@ Feature: BGZF compression
     And a file named "mm8_chr7_tiny.maf.bgz" should exist
     And a file named "mm8_chr7_tiny.kct" should exist
     
+  @no_jruby
   Scenario: Compress a gzipped MAF file
     Given test files:
     | mm8_chr7_tiny.maf.gz |
@@ -34,6 +37,7 @@ Feature: BGZF compression
     """
     And a file named "mm8_chr7_tiny.maf.bgz" should exist
     
+  @no_jruby
   Scenario: Compress and index a gzipped MAF file
     Given test files:
     | mm8_chr7_tiny.maf.gz |
@@ -44,6 +48,7 @@ Feature: BGZF compression
     And a file named "mm8_chr7_tiny.maf.bgz" should exist
     And a file named "mm8_chr7_tiny.kct" should exist
     
+  @no_jruby
   Scenario: Compress multiple MAF files
     Given test files:
     | mm8_chr7_tiny.maf |
