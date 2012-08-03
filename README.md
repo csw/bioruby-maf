@@ -94,6 +94,20 @@ parser = Bio::MAF::Parser.new("test/data/mm8_chr7_tiny.maf")
 idx = Bio::MAF::KyotoIndex.build(parser, "/tmp/mm8_chr7_tiny.kct", false)
 ```
 
+### Compress and index a MAF file
+
+This library fully supports [BGZF][]-compressed MAF files, which
+combine gzip compression with blocking for efficient random
+access. These can be generated with blocking optimized for MAF access
+using the included
+[`maf_bgzip(1)`](http://csw.github.com/bioruby-maf/man/maf_bgzip.1.html)
+tool. This writes BGZF-compressed MAF files and optionally indexes
+them as well:
+
+    $ maf_bgzip --dir /tmp --index --all test/data/mm8.chrM.maf
+
+This is the easiest way to prepare MAF files for use with this library.
+
 ### Extract blocks from an indexed MAF file, by genomic interval
 
 Refer to [`mm8_chr7_tiny.maf`](https://github.com/csw/bioruby-maf/blob/master/test/data/mm8_chr7_tiny.maf).
@@ -355,19 +369,24 @@ end
 ### Compression
 
 MAF files can optionally be compressed in the [BGZF][] format defined
-in the [SAM specification][]. This can easily be done with the
-[bgzip(1)][] tool. BGZF uses gzip to compress files in 64 KB blocks,
-enabling efficient random access.
+in the [SAM specification][]. This is best done with
+[`maf_bgzip(1)`](http://csw.github.com/bioruby-maf/man/maf_bgzip.1.html),
+but files compressed with the `bgzip(1)` tool from samtools will also
+work, though less efficiently.
 
-[bgzip(1)]: http://samtools.sourceforge.net/tabix.shtml
 [BGZF]: http://blastedbio.blogspot.com/2011/11/bgzf-blocked-bigger-better-gzip.html
 [SAM specification]: http://samtools.sourceforge.net/SAM1.pdf
 
+MAF files compressed with plain gzip will be decompressed on the fly,
+but random access to these files will not be possible. However,
+gzipped MAF files are suitable as input to
+[`maf_bgzip(1)`](http://csw.github.com/bioruby-maf/man/maf_bgzip.1.html).
 
 ### Command line tools
 
 Man pages for command line tools:
 
+* [`maf_bgzip(1)`](http://csw.github.com/bioruby-maf/man/maf_bgzip.1.html)
 * [`maf_index(1)`](http://csw.github.com/bioruby-maf/man/maf_index.1.html)
 * [`maf_extract(1)`](http://csw.github.com/bioruby-maf/man/maf_extract.1.html)
 * [`maf_to_fasta(1)`](http://csw.github.com/bioruby-maf/man/maf_to_fasta.1.html)
