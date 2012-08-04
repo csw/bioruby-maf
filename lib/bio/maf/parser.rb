@@ -1,4 +1,5 @@
 require 'strscan'
+require 'zlib'
 require 'java' if RUBY_PLATFORM == 'java'
 require 'bio-bgzf'
 
@@ -577,7 +578,7 @@ module Bio
         else
           @file_spec = file_spec
           if file_spec.to_s.end_with?(".maf.gz")
-            @f = IO.popen("gzip -dc #{file_spec}")
+            @f = Zlib::GzipReader.open(file_spec)
           else
             @f = File.open(file_spec)
           end
