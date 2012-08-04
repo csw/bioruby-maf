@@ -730,8 +730,11 @@ module Bio
         if ! sid
           @max_sid += 1
           sid = @max_sid
-          db.set("sequence:#{name}", sid.to_s)
-          index_sequences[name] = sid
+          # "" << foo is hideous but apparently what it takes to get a
+          # non-shared copy of a string on JRuby...
+          name_copy = "" << name
+          db.set("sequence:#{name_copy}", sid.to_s)
+          index_sequences[name_copy] = sid
         end
         return sid
       end
@@ -750,10 +753,12 @@ module Bio
         # example: otoGar1.scaffold_104707.1-93001
         parts = seq.split('.', 2)
         if parts.size == 2
-          species_name = parts[0]
+          # "" << foo is hideous but apparently what it takes to get a
+          # non-shared copy of a string on JRuby...
+          species_name = "" << parts[0]
         else
           # not in species.sequence format, apparently
-          species_name = seq
+          species_name = "" << seq
         end
         if species.has_key? species_name
           return species[species_name]
