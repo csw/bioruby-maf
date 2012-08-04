@@ -27,9 +27,11 @@ op = OptionParser.new do |opts|
           "(has no effect without --index)") do
     $options.ref_only = false
   end
+  Bio::MAF::handle_logging_options(opts)
 end
 
 op.parse!(ARGV)
+Bio::Log::CLI.configure('bio-maf')
 
 until ARGV.empty?
   maf_path = ARGV.shift
