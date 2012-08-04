@@ -751,21 +751,21 @@ module Bio
         parts = seq.split('.', 2)
         if parts.size == 2
           species_name = parts[0]
-          if species.has_key? species_name
-            return species[species_name]
-          else
-            species_id = @species_max_id + 1
-            if species_id >= MAX_SPECIES
-              raise "cannot index MAF file with more than #{MAX_SPECIES} species"
-            end
-            species[species_name] = species_id
-            db["species:#{species_name}"] = species_id
-            @species_max_id = species_id
-            return species_id
-          end
         else
           # not in species.sequence format, apparently
-          return nil
+          species_name = seq
+        end
+        if species.has_key? species_name
+          return species[species_name]
+        else
+          species_id = @species_max_id + 1
+          if species_id >= MAX_SPECIES
+            raise "cannot index MAF file with more than #{MAX_SPECIES} species"
+          end
+          species[species_name] = species_id
+          db["species:#{species_name}"] = species_id
+          @species_max_id = species_id
+          return species_id
         end
       end
 
