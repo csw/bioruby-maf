@@ -333,7 +333,11 @@ module Bio
           elsif [I, E, Q, COMMENT, nil].include? first
             next
           else
-            parse_error "unexpected line: '#{line}'"
+            if opts[:strict]
+              parse_error "unexpected line: '#{line}'"
+            else
+              LOG.warn "Ignoring invalid MAF line: '#{line}'"
+            end
           end
         end
         Block.new(block_vars,
@@ -510,6 +514,8 @@ module Bio
     #    random access
     #  * `:threads`: number of threads to use for parallel
     #    parsing. Only useful under JRuby.
+    #  * `:strict`: abort on un-parseable lines instead of continuing with
+    #    a warning.
     # @api public
     
     class Parser
