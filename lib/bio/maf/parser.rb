@@ -105,6 +105,7 @@ module Bio
       
       # Spawn a read-ahead thread. Called from {#initialize}.
       def start_read_ahead
+        LOG.debug { "Starting read-ahead thread." }
         @read_thread = Thread.new { read_ahead }
       end
 
@@ -591,6 +592,7 @@ module Bio
         end
         @cr = base_reader.new(@f, chunk_size)
         if RUBY_PLATFORM == 'java'
+          LOG.debug "Using ThreadedChunkReaderWrapper."
           @cr = ThreadedChunkReaderWrapper.new(@cr)
         end
         @s = StringScanner.new(cr.read_chunk())
@@ -932,7 +934,7 @@ module Bio
         queue = java.util.concurrent.LinkedBlockingQueue.new(128)
         worker = Thread.new do
           begin
-            LOG.debug "Starting worker."
+            LOG.debug "Starting parse worker."
             until at_end
               block = _parse_block()
               queue.put(block) if block
