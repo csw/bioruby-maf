@@ -101,6 +101,13 @@ module Bio
         Bio::BioAlignment::Alignment.new(ba_seq)
       end
 
+      def to_s
+        buf = StringIO.new
+        writer = Writer.new(buf)
+        writer.write_block(self)
+        return buf.string
+      end
+
       GAP = /-+/
 
       # Find gaps present in all sequences. These would generally
