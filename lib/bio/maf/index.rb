@@ -780,20 +780,27 @@ module Bio
       end
 
       def entries_for(block)
-        unless block.ref_seq.source == @ref_seq
-          raise "Inconsistent reference sequence: expected #{@ref_seq}, got #{block.ref_seq.source}"
+        begin
+          unless block.ref_seq.source == @ref_seq
+            raise "Inconsistent reference sequence: expected #{@ref_seq}, got #{block.ref_seq.source}"
+          end
+          h = {}
+          val = build_block_value(block)
+          to_index = ref_only ? [block.sequences.first] : block.sequences
+          to_index.each do |seq|
+            seq_id = seq_id_for(seq.source)
+            # size 0 occurs in e.g. upstream1000.maf.gz
+            next if seq.size == 0
+            seq_end = seq.start + seq.size
+            bin = Bio::Ucsc::UcscBin.bin_from_range(seq.start, seq_end)
+            key = [255, seq_id, bin, seq.start, seq_end].pack(KEY_FMT)
+            h[key] = val
+          end
+          return h
+        rescue Exception => e
+          LOG.error "Failed to index block at offset #{block.offset}:\n#{block}"
+          raise e
         end
-        h = {}
-        val = build_block_value(block)
-        to_index = ref_only ? [block.sequences.first] : block.sequences
-        to_index.each do |seq|
-          seq_id = seq_id_for(seq.source)
-          seq_end = seq.start + seq.size
-          bin = Bio::Ucsc::UcscBin.bin_from_range(seq.start, seq_end)
-          key = [255, seq_id, bin, seq.start, seq_end].pack(KEY_FMT)
-          h[key] = val
-        end
-        return h
       end
     end # class KyotoIndex
 
