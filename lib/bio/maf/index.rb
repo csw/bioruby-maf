@@ -676,6 +676,8 @@ module Bio
          || gi.include?(i_start)
       end
 
+      CHUNK_THRESHOLD_BYTES = 50 * 1024 * 1024
+        
       def build(parser, ref_only=true)
         db[FILE_KEY] = File.basename(parser.file_spec)
         @maf_file = db[FILE_KEY]
@@ -690,10 +692,19 @@ module Bio
         @index_sequences = {}
         index_blocks([first_block])
         n = 0
-        parser.each_block.each_slice(1000).each do |blocks|
-          index_blocks(blocks)
-          n += blocks.size
+        acc = []
+        acc_bytes = 0
+        parser.each_block do |block|
+          acc << block
+          acc_bytes += block.size
+          if acc_bytes > CHUNK_THRESHOLD_BYTES
+            index_blocks(acc)
+            acc = []
+            acc_bytes = 0
+          end
+          n += 1
         end
+        index_blocks(acc)
         LOG.debug { "Created index for #{n} blocks and #{@index_sequences.size} sequences." }
         db.synchronize(true)
       end
