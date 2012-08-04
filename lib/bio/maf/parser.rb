@@ -931,14 +931,17 @@ module Bio
         queue = java.util.concurrent.LinkedBlockingQueue.new(128)
         worker = Thread.new do
           begin
+            LOG.debug "Starting worker."
             until at_end
               block = _parse_block()
               queue.put(block) if block
             end
             queue.put(:eof)
-          rescue
-            LOG.error "worker exiting: #{$!.class}: #{$!}"
+            LOG.debug { "Parse worker reached EOF." }
+          rescue Exception
             LOG.error $!
+            Thread.current[:exception] = $!
+            raise
           end
         end
         saw_eof = false
@@ -952,12 +955,15 @@ module Bio
             yield block
           else
             # timed out
-            n_final_poll += 1 unless worker.alive?
+            unless worker.alive?
+              LOG.debug "Worker has exited."
+              n_final_poll += 1
+            end
           end
           break if n_final_poll > 1
         end
         unless saw_eof
-          raise "worker exited unexpectedly!"
+          raise "worker exited unexpectedly from #{worker[:exception]}!"
         end
       end
 
