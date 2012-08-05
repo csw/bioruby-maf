@@ -343,11 +343,15 @@ module Bio
             end
           end
         end
-        Block.new(block_vars,
-                  seqs,
-                  block_offset,
-                  s.pos - block_start_pos,
-                  filtered)
+        b = Block.new(block_vars,
+                      seqs,
+                      block_offset,
+                      s.pos - block_start_pos,
+                      filtered)
+        if opts[:retain_text]
+          b.orig_text = s.string.slice(block_start_pos...(s.pos))
+        end
+        return b
       end
 
       # Parse an 's' line.

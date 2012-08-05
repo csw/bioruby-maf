@@ -39,8 +39,7 @@ until ARGV.empty?
   base = maf_base.gsub(/\.maf.*/, '')
   bgz_path = "#{$options.dir}/#{base}.maf.bgz"
   p = Bio::MAF::Parser.new(maf_path,
-                           :parse_extended => true,
-                           :parse_empty => true)
+                           :retain_text => true)
   if $options.index
     idx_path = "#{$options.dir}/#{base}.kct"
     idx = Bio::MAF::KyotoIndex.new(idx_path)
@@ -51,7 +50,7 @@ until ARGV.empty?
       maf_w = Bio::MAF::Writer.new(bgz_w)
       maf_w.write_header(p.header)
       p.each_block do |block|
-        maf_w.write_block(block)
+        bgz_w.write(block.orig_text)
         if idx
           block.offset = bgz_w.last_write_pos
           idx.index_blocks([block])

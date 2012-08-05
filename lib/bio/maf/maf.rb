@@ -62,6 +62,10 @@ module Bio
       # Size of the alignment block within the MAF file, in bytes.
       # @return [Integer]
       attr_reader :size
+      # Original text of the MAF block. Only available if the
+      # :retain_text parser option is set.
+      # @return [String]
+      attr_accessor :orig_text
 
       def initialize(vars, sequences, offset, size, filtered)
         @vars = vars
