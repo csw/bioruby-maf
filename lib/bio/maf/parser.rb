@@ -171,6 +171,7 @@ module Bio
       BLOCK_START = /^(?=a)/
       BLOCK_START_OR_EOS = /(?:^(?=a))|\z/
       EOL_OR_EOF = /\n|\z/
+      JRUBY_P = (RUBY_PLATFORM == 'java')
 
       def set_last_block_pos!
         @last_block_pos = s.string.rindex(BLOCK_START)
@@ -555,28 +556,40 @@ module Bio
       RANDOM_CHUNK_SIZE = 4096
       MERGE_MAX = SEQ_CHUNK_SIZE
 
+      DEFAULT_OPTS = {
+        :chunk_size => SEQ_CHUNK_SIZE,
+        :random_chunk_size => RANDOM_CHUNK_SIZE,
+        :merge_max => MERGE_MAX,
+        :parse_extended => false,
+        :parse_empty => false,
+        :readahead_thread => true,
+        :seq_parse_thread => true
+      }
+      if JRUBY_P
+        DEFAULT_OPTS[:threads] = java.lang.Runtime.runtime.availableProcessors
+      end
+
       # Create a new parser instance.
       #
       # @param [String] file_spec path of file to parse.
-      # @param [Hash] opts parser options.
+      # @param [Hash] parse_opts parser options.
       # @api public
-      def initialize(file_spec, opts={})
+      def initialize(file_spec, parse_opts={})
+        opts = DEFAULT_OPTS.merge(parse_opts)
         @opts = opts
-        if RUBY_PLATFORM == 'java'
-          opts[:threads] ||= java.lang.Runtime.runtime.availableProcessors
-        end
-        chunk_size = opts[:chunk_size] || SEQ_CHUNK_SIZE
-        @random_access_chunk_size = opts[:random_chunk_size] || RANDOM_CHUNK_SIZE
-        @merge_max = opts[:merge_max] || MERGE_MAX
-        @parse_extended = opts[:parse_extended] || false
-        @parse_empty = opts[:parse_empty] || false
+        @random_access_chunk_size = opts[:random_chunk_size]
+        @merge_max = opts[:merge_max]
+        @parse_extended = opts[:parse_extended]
+        @parse_empty = opts[:parse_empty]
         @chunk_start = 0
         if file_spec.respond_to? :flush
+          # an IO object
           # guess what, Pathnames respond to :read...
           @f = file_spec
           @file_spec = @f.path if @f.respond_to?(:path)
-          # TODO: gzip?
+          # TODO: test for gzip?
         else
+          # a pathname (or Pathname)
           @file_spec = file_spec
           if file_spec.to_s.end_with?(".maf.gz")
             @f = Zlib::GzipReader.open(file_spec)
@@ -590,8 +603,8 @@ module Bio
         else
           @base_reader = ChunkReader
         end
-        @cr = base_reader.new(@f, chunk_size)
-        if RUBY_PLATFORM == 'java'
+        @cr = base_reader.new(@f, opts[:chunk_size])
+        if JRUBY_P && opts[:readahead_thread]
           LOG.debug "Using ThreadedChunkReaderWrapper."
           @cr = ThreadedChunkReaderWrapper.new(@cr)
         end
@@ -658,7 +671,7 @@ module Bio
       def fetch_blocks(fetch_list, &blk)
         if blk
           merged = merge_fetch_list(fetch_list)
-          if RUBY_PLATFORM == 'java' && @opts.fetch(:threads, 1) > 1
+          if JRUBY_P && @opts.fetch(:threads, 1) > 1
             fun = lambda { |&b2| fetch_blocks_merged_parallel(merged, &b2) }
           else
             fun = lambda { |&b2| fetch_blocks_merged(merged, &b2) }
@@ -829,7 +842,7 @@ module Bio
       # @api public
       def each_block(&blk)
         if block_given?
-          if RUBY_PLATFORM == 'java' && @opts.has_key?(:threads)
+          if JRUBY_P && opts[:seq_parse_thread]
             fun = method(:parse_blocks_parallel)
           else
             fun = method(:each_block_seq)
