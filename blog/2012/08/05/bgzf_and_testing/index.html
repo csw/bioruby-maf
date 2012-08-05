@@ -1,0 +1,358 @@
+
+<!DOCTYPE html>
+<!--[if IEMobile 7 ]><html class="no-js iem7"><![endif]-->
+<!--[if lt IE 9]><html class="no-js lte-ie8"><![endif]-->
+<!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
+<head>
+  <meta charset="utf-8">
+  <title>BGZF and testing - BioRuby MAF blog</title>
+  <meta name="author" content="Clayton Wheeler">
+
+  
+  <meta name="description" content="This post was originally going to be the bio-maf 1.0 release
+announcement. I&#8217;ve added a new command-line maf_extract(1) tool as
+well as support &hellip;">
+  
+
+  <!-- http://t.co/dKP3o1e -->
+  <meta name="HandheldFriendly" content="True">
+  <meta name="MobileOptimized" content="320">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+  <link rel="canonical" href="http://csw.github.com/bioruby-maf/blog/2012/08/05/bgzf_and_testing">
+  <link href="/bioruby-maf/favicon.png" rel="icon">
+  <link href="/bioruby-maf/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
+  <script src="/bioruby-maf/javascripts/modernizr-2.0.js"></script>
+  <script src="/bioruby-maf/javascripts/ender.js"></script>
+  <script src="/bioruby-maf/javascripts/octopress.js" type="text/javascript"></script>
+  <link href="/bioruby-maf/atom.xml" rel="alternate" title="BioRuby MAF blog" type="application/atom+xml">
+  <!--Fonts from Google"s Web font directory at http://google.com/webfonts -->
+<link href="http://fonts.googleapis.com/css?family=PT+Serif:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+<link href="http://fonts.googleapis.com/css?family=PT+Sans:regular,italic,bold,bolditalic" rel="stylesheet" type="text/css">
+
+  
+
+</head>
+
+<body   >
+  <header role="banner"><hgroup>
+  <h1><a href="/bioruby-maf/">BioRuby MAF blog</a></h1>
+  
+    <h2>Multiple Alignment Format support for BioRuby and bio-alignment</h2>
+  
+</hgroup>
+
+</header>
+  <nav role="navigation"><ul class="subscription" data-subscription="rss">
+  <li><a href="/bioruby-maf/atom.xml" rel="subscribe-rss" title="subscribe via RSS">RSS</a></li>
+  
+</ul>
+  
+<form action="http://google.com/search" method="get">
+  <fieldset role="search">
+    <input type="hidden" name="q" value="site:csw.github.com/bioruby-maf" />
+    <input class="search" type="text" name="q" results="0" placeholder="Search"/>
+  </fieldset>
+</form>
+  
+<ul class="main-navigation">
+  <li><a href="/bioruby-maf/">Blog</a></li>
+  <li><a href="/bioruby-maf/blog/archives">Archives</a></li>
+</ul>
+
+</nav>
+  <div id="main">
+    <div id="content">
+      <div>
+<article class="hentry" role="article">
+  
+  <header>
+    
+      <h1 class="entry-title">BGZF and Testing</h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-08-05T18:16:00-04:00" pubdate data-updated="true">Aug 5<span>th</span>, 2012</time>
+        
+         | <a href="#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+<div class="entry-content"><p>This post was originally going to be the bio-maf 1.0 release
+announcement. I&#8217;ve added a new command-line <a href="http://csw.github.com/bioruby-maf/man/maf_extract.1.html">maf_extract(1)</a> tool as
+well as support for <a href="http://blastedbio.blogspot.com/2011/11/bgzf-blocked-bigger-better-gzip.html">BGZF</a> compression of MAF
+files, which allows random access to compressed files, saving disk
+space and also I/O bandwidth. However, in the process of testing my
+tools against UCSC&#8217;s <a href="http://hgdownload.cse.ucsc.edu/goldenpath/hg19/multiz46way/">multiz46way</a> set of MAF files, I&#8217;ve discovered
+a number of issues requiring a bit more work.</p>
+
+<h2>maf_extract</h2>
+
+<p>With some of the other MAF libraries such as bx-python, there are a
+variety of command-line tools for extracting MAF alignments, each
+offering a different query or post-processing mode. I created
+<a href="http://csw.github.com/bioruby-maf/man/maf_extract.1.html">maf_extract(1)</a> to serve as a generic random-access MAF extraction
+tool, exposing most of the capabilities of bio-maf with a simple
+command-line interface. The man page has plenty of examples, but a few
+representative invocations are:</p>
+
+<pre><code>$ maf_extract -d test/data --interval mm8.chr7:80082592-80082766 --only-species hg18,mm8,rheMac2
+
+$ maf_extract -d test/data --mode slice --interval mm8.chr7:80082592-80082766
+</code></pre>
+
+<p>I have already found this useful for ad hoc data extraction from MAF
+files, without writing any code at all.</p>
+
+<h2>BGZF</h2>
+
+<p><a href="http://blastedbio.blogspot.com/2011/11/bgzf-blocked-bigger-better-gzip.html">BGZF</a> is the Blocked GZip Format, defined in the
+<a href="http://samtools.sourceforge.net/SAM1.pdf">SAM/BAM specification</a>. Blocks of up to 64 KB of data are
+separately compressed with gzip and concatenated into a single
+file. For random access, data is addressed with a <em>virtual offset</em>
+scheme: a virtual offset is a 64-bit quantity where the first 48 bits
+give the starting offset of the BGZF block within the file, and the
+last 16 bits give the offset within the decompressed data. Thus, given
+a virtual offset, one can read the relevant BGZF block, decompress it,
+and seek to the appropriate position within the decompressed data.</p>
+
+<p><a href="https://github.com/lomereiter">Artem Tarasov</a> wrote a Ruby
+implementation of basic BGZF compression and decompression, which I
+forked and extended for my needs as <a href="https://github.com/csw/bioruby-bgzf">bio-bgzf</a>. This offers
+rudimentary <a href="http://www.ruby-doc.org/core-1.9.3/IO.html">IO</a>-like interfaces for reading and writing BGZF files.</p>
+
+<p>To use BGZF optimally with bio-maf, I&#8217;ve added the <a href="http://csw.github.com/bioruby-maf/man/maf_bgzip.1.html">maf_bgzip(1)</a>
+tool to compress (or recompress, in the case of gzipped files) MAF
+files, optionally building indexes on them in the process. The idea is
+that this can be used as a &#8216;intake&#8217; tool to prepare a set of MAF files
+such as those from UCSC for random-access querying.</p>
+
+<h2>Stress testing</h2>
+
+<p>In light of that concept, I decided to recompress and index the entire
+set of MAF files from UCSC. It immediately became clear that I should
+have taken that step earlier, and not just tested with selected
+subsets of the 31 GB (compressed!) data set.</p>
+
+<p>I discovered a memory leak ultimately traceable to JRuby&#8217;s very
+aggressive sharing of backing store for strings. This is a great
+feature, until you write code that holds references to occasional
+small strings parsed from a multi-GB file. I wasn&#8217;t happy with my
+<a href="https://github.com/csw/bioruby-maf/commit/891dbfa8d4d7885f23ff16f16f5085d2a368eb48">fix</a>;
+I suspect there is a better alternative for obtaining a totally
+independent copy of a string than <code>"" &lt;&lt; string</code>, but if there is, I
+haven&#8217;t found it yet.</p>
+
+<p>I also found, to my surprise, that doing gzip decompression in the
+parser thread performs substantially better than opening a pipe to
+<code>gzip -dc</code>, cutting elapsed time by about 25%. I suspect I/O buffering
+may be the culprit, but it didn&#8217;t seem worth digging into further.</p>
+
+<p>The slightly nonstandard <code>upstream*.maf</code> files from UCSC led me to
+<a href="https://github.com/csw/bioruby-maf/commit/20b146173e55b2825a8018278133c61193ddd490">add</a>
+a <code>:strict</code> parser option, defaulting to off, since the parser was not
+expecting their <code>r</code> lines. Where possible, I&#8217;m adding non-strict
+parsing.</p>
+
+<p>The performance of <a href="http://csw.github.com/bioruby-maf/man/maf_bgzip.1.html">maf_bgzip(1)</a> on large files turned out to be
+poor, but with a
+<a href="https://github.com/csw/bioruby-maf/commit/d96288413a782af00877f17da76ce2a9600b7cc9">few</a>
+<a href="https://github.com/csw/bioruby-maf/commit/28a55a5c9a0d096de253ec885d35d12392436e13">improvements</a>
+I managed to double the speed of recompressing and indexing files.</p>
+
+<p>The next sticky issue I need to confront is the need for extended UCSC
+<a href="http://genomewiki.ucsc.edu/index.php/Bin_indexing_system">bin indexes</a>; at least one sequence in the UCSC alignments has an
+genomic position beyond 2<sup>29</sup>, causing this
+<a href="https://github.com/csw/bioruby-maf/issues/106">unfortunate surprise</a>.</p>
+
+<h2>Next steps</h2>
+
+<p>After getting a more thoroughly tested release out the door, I&#8217;m going
+to focus on integrating my tools into the <a href="http://wiki.g2.bx.psu.edu/Tool%20Shed">Galaxy Tool Shed</a>, to
+make it even easier for people to use them. I&#8217;ll post more on that
+once I&#8217;ve gotten them integrated with a local Galaxy instance.</p>
+</div>
+
+
+  <footer>
+    <p class="meta">
+      
+  
+
+<span class="byline author vcard">Posted by <span class="fn">Clayton Wheeler</span></span>
+
+      
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-08-05T18:16:00-04:00" pubdate data-updated="true">Aug 5<span>th</span>, 2012</time>
+      
+
+
+    </p>
+    
+      <div class="sharing">
+  
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://csw.github.com/bioruby-maf/blog/2012/08/05/bgzf_and_testing/" data-via="" data-counturl="http://csw.github.com/bioruby-maf/blog/2012/08/05/bgzf_and_testing/" >Tweet</a>
+  
+  
+  
+</div>
+
+    
+    <p class="meta">
+      
+        <a class="basic-alignment left" href="/bioruby-maf/blog/2012/07/18/bio-maf_0.3.0/" title="Previous Post: Bio-MAF 0.3.0">&laquo; Bio-MAF 0.3.0</a>
+      
+      
+    </p>
+  </footer>
+</article>
+
+  <section>
+    <h1>Comments</h1>
+    <div id="disqus_thread" aria-live="polite"><noscript>Please enable JavaScript to view the <a href="http://disqus.com/?ref_noscript">comments powered by Disqus.</a></noscript>
+</div>
+  </section>
+
+</div>
+
+<aside class="sidebar">
+  
+    <section>
+  <h1>Recent Posts</h1>
+  <ul id="recent_posts">
+    
+      <li class="post">
+        <a href="/bioruby-maf/blog/2012/08/05/bgzf_and_testing/">BGZF and testing</a>
+      </li>
+    
+      <li class="post">
+        <a href="/bioruby-maf/blog/2012/07/18/bio-maf_0.3.0/">Bio-MAF 0.3.0</a>
+      </li>
+    
+      <li class="post">
+        <a href="/bioruby-maf/blog/2012/07/09/bio-maf_0.2.0/">Bio-MAF 0.2.0</a>
+      </li>
+    
+      <li class="post">
+        <a href="/bioruby-maf/blog/2012/07/02/kyoto_cabinet_support_for_jruby/">Kyoto Cabinet support for JRuby</a>
+      </li>
+    
+      <li class="post">
+        <a href="/bioruby-maf/blog/2012/06/21/parallel_io/">Parallel I/O</a>
+      </li>
+    
+  </ul>
+</section>
+
+<section>
+  <h1>GitHub Repos</h1>
+  <ul id="gh_repos">
+    <li class="loading">Status updating...</li>
+  </ul>
+  
+  <a href="https://github.com/csw">@csw</a> on GitHub
+  
+  <script type="text/javascript">
+    $.domReady(function(){
+        if (!window.jXHR){
+            var jxhr = document.createElement('script');
+            jxhr.type = 'text/javascript';
+            jxhr.src = '/javascripts/libs/jXHR.js';
+            var s = document.getElementsByTagName('script')[0];
+            s.parentNode.insertBefore(jxhr, s);
+        }
+
+        github.showRepos({
+            user: 'csw',
+            count: 0,
+            skip_forks: true,
+            target: '#gh_repos'
+        });
+    });
+  </script>
+  <script src="/bioruby-maf/javascripts/github.js" type="text/javascript"> </script>
+</section>
+
+
+
+
+
+
+  
+</aside>
+
+
+    </div>
+  </div>
+  <footer role="contentinfo"><p>
+  Copyright &copy; 2012 - Clayton Wheeler -
+  <span class="credit">Powered by <a href="http://octopress.org">Octopress</a></span>
+</p>
+
+</footer>
+  
+
+<script type="text/javascript">
+      var disqus_shortname = 'biorubymafblog';
+      
+        
+        // var disqus_developer = 1;
+        var disqus_identifier = 'http://csw.github.com/bioruby-maf/blog/2012/08/05/bgzf_and_testing/';
+        var disqus_url = 'http://csw.github.com/bioruby-maf/blog/2012/08/05/bgzf_and_testing/';
+        var disqus_script = 'embed.js';
+      
+    (function () {
+      var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+      dsq.src = 'http://' + disqus_shortname + '.disqus.com/' + disqus_script;
+      (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    }());
+</script>
+
+
+
+
+
+
+
+  <script type="text/javascript">
+    (function(){
+      var twitterWidgets = document.createElement('script');
+      twitterWidgets.type = 'text/javascript';
+      twitterWidgets.async = true;
+      twitterWidgets.src = 'http://platform.twitter.com/widgets.js';
+      document.getElementsByTagName('head')[0].appendChild(twitterWidgets);
+    })();
+  </script>
+
+
+
+
+
+</body>
+</html>

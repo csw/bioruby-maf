@@ -9,9 +9,9 @@
   <meta name="author" content="Clayton Wheeler">
 
   
-  <meta name="description" content="bio-maf version 0.3.0 is released. This version adds features
-including joining adjacent MAF blocks when sequences that caused
-them to be split have &hellip;">
+  <meta name="description" content="This post was originally going to be the bio-maf 1.0 release
+announcement. I&#8217;ve added a new command-line maf_extract(1) tool as
+well as support &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -66,6 +66,136 @@ them to be split have &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/bioruby-maf/blog/2012/08/05/bgzf_and_testing/">BGZF and Testing</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-08-05T18:16:00-04:00" pubdate data-updated="true">Aug 5<span>th</span>, 2012</time>
+        
+         | <a href="/bioruby-maf/blog/2012/08/05/bgzf_and_testing/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>This post was originally going to be the bio-maf 1.0 release
+announcement. I&#8217;ve added a new command-line <a href="http://csw.github.com/bioruby-maf/man/maf_extract.1.html">maf_extract(1)</a> tool as
+well as support for <a href="http://blastedbio.blogspot.com/2011/11/bgzf-blocked-bigger-better-gzip.html">BGZF</a> compression of MAF
+files, which allows random access to compressed files, saving disk
+space and also I/O bandwidth. However, in the process of testing my
+tools against UCSC&#8217;s <a href="http://hgdownload.cse.ucsc.edu/goldenpath/hg19/multiz46way/">multiz46way</a> set of MAF files, I&#8217;ve discovered
+a number of issues requiring a bit more work.</p>
+
+<h2>maf_extract</h2>
+
+<p>With some of the other MAF libraries such as bx-python, there are a
+variety of command-line tools for extracting MAF alignments, each
+offering a different query or post-processing mode. I created
+<a href="http://csw.github.com/bioruby-maf/man/maf_extract.1.html">maf_extract(1)</a> to serve as a generic random-access MAF extraction
+tool, exposing most of the capabilities of bio-maf with a simple
+command-line interface. The man page has plenty of examples, but a few
+representative invocations are:</p>
+
+<pre><code>$ maf_extract -d test/data --interval mm8.chr7:80082592-80082766 --only-species hg18,mm8,rheMac2
+
+$ maf_extract -d test/data --mode slice --interval mm8.chr7:80082592-80082766
+</code></pre>
+
+<p>I have already found this useful for ad hoc data extraction from MAF
+files, without writing any code at all.</p>
+
+<h2>BGZF</h2>
+
+<p><a href="http://blastedbio.blogspot.com/2011/11/bgzf-blocked-bigger-better-gzip.html">BGZF</a> is the Blocked GZip Format, defined in the
+<a href="http://samtools.sourceforge.net/SAM1.pdf">SAM/BAM specification</a>. Blocks of up to 64 KB of data are
+separately compressed with gzip and concatenated into a single
+file. For random access, data is addressed with a <em>virtual offset</em>
+scheme: a virtual offset is a 64-bit quantity where the first 48 bits
+give the starting offset of the BGZF block within the file, and the
+last 16 bits give the offset within the decompressed data. Thus, given
+a virtual offset, one can read the relevant BGZF block, decompress it,
+and seek to the appropriate position within the decompressed data.</p>
+
+<p><a href="https://github.com/lomereiter">Artem Tarasov</a> wrote a Ruby
+implementation of basic BGZF compression and decompression, which I
+forked and extended for my needs as <a href="https://github.com/csw/bioruby-bgzf">bio-bgzf</a>. This offers
+rudimentary <a href="http://www.ruby-doc.org/core-1.9.3/IO.html">IO</a>-like interfaces for reading and writing BGZF files.</p>
+
+<p>To use BGZF optimally with bio-maf, I&#8217;ve added the <a href="http://csw.github.com/bioruby-maf/man/maf_bgzip.1.html">maf_bgzip(1)</a>
+tool to compress (or recompress, in the case of gzipped files) MAF
+files, optionally building indexes on them in the process. The idea is
+that this can be used as a &#8216;intake&#8217; tool to prepare a set of MAF files
+such as those from UCSC for random-access querying.</p>
+
+<h2>Stress testing</h2>
+
+<p>In light of that concept, I decided to recompress and index the entire
+set of MAF files from UCSC. It immediately became clear that I should
+have taken that step earlier, and not just tested with selected
+subsets of the 31 GB (compressed!) data set.</p>
+
+<p>I discovered a memory leak ultimately traceable to JRuby&#8217;s very
+aggressive sharing of backing store for strings. This is a great
+feature, until you write code that holds references to occasional
+small strings parsed from a multi-GB file. I wasn&#8217;t happy with my
+<a href="https://github.com/csw/bioruby-maf/commit/891dbfa8d4d7885f23ff16f16f5085d2a368eb48">fix</a>;
+I suspect there is a better alternative for obtaining a totally
+independent copy of a string than <code>"" &lt;&lt; string</code>, but if there is, I
+haven&#8217;t found it yet.</p>
+
+<p>I also found, to my surprise, that doing gzip decompression in the
+parser thread performs substantially better than opening a pipe to
+<code>gzip -dc</code>, cutting elapsed time by about 25%. I suspect I/O buffering
+may be the culprit, but it didn&#8217;t seem worth digging into further.</p>
+
+<p>The slightly nonstandard <code>upstream*.maf</code> files from UCSC led me to
+<a href="https://github.com/csw/bioruby-maf/commit/20b146173e55b2825a8018278133c61193ddd490">add</a>
+a <code>:strict</code> parser option, defaulting to off, since the parser was not
+expecting their <code>r</code> lines. Where possible, I&#8217;m adding non-strict
+parsing.</p>
+
+<p>The performance of <a href="http://csw.github.com/bioruby-maf/man/maf_bgzip.1.html">maf_bgzip(1)</a> on large files turned out to be
+poor, but with a
+<a href="https://github.com/csw/bioruby-maf/commit/d96288413a782af00877f17da76ce2a9600b7cc9">few</a>
+<a href="https://github.com/csw/bioruby-maf/commit/28a55a5c9a0d096de253ec885d35d12392436e13">improvements</a>
+I managed to double the speed of recompressing and indexing files.</p>
+
+<p>The next sticky issue I need to confront is the need for extended UCSC
+<a href="http://genomewiki.ucsc.edu/index.php/Bin_indexing_system">bin indexes</a>; at least one sequence in the UCSC alignments has an
+genomic position beyond 2<sup>29</sup>, causing this
+<a href="https://github.com/csw/bioruby-maf/issues/106">unfortunate surprise</a>.</p>
+
+<h2>Next steps</h2>
+
+<p>After getting a more thoroughly tested release out the door, I&#8217;m going
+to focus on integrating my tools into the <a href="http://wiki.g2.bx.psu.edu/Tool%20Shed">Galaxy Tool Shed</a>, to
+make it even easier for people to use them. I&#8217;ll post more on that
+once I&#8217;ve gotten them integrated with a local Galaxy instance.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -1008,95 +1138,6 @@ links.</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/bioruby-maf/blog/2012/05/21/week_2_progress/">GSoC Week 2</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2012-05-21T11:13:00-04:00" pubdate data-updated="true">May 21<span>st</span>, 2012</time>
-        
-         | <a href="/bioruby-maf/blog/2012/05/21/week_2_progress/#disqus_thread">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>This was my second week of work on my GSoC project, and the last week
-of the &#8216;community bonding&#8217; period before the official start of
-coding. A major focus of mine was BioRuby&#8217;s
-<a href="http://phyloxml.org/">phyloXML</a> support; it uses libxml, which has
-been causing unit test failures under JRuby. In the end, the best
-course of action seemed to separate the phyloXML support as a separate
-plugin, which I have done as the
-<a href="https://github.com/csw/bioruby-phyloxml">bio-phyloxml</a> gem. This will
-remove BioRuby&#8217;s dependency on XML libraries entirely and that JRuby
-issue along with it. At the same time, users of the phyloXML code
-should be able to continue using it with no substantive changes.</p>
-
-<p>Separately, I began porting this phyloXML code to use
-<a href="http://nokogiri.org/">Nokogiri</a> instead of libxml-ruby, but ran into
-difficulties with this effort. While it is possible, and the library
-APIs are very similar, the code uses relatively low-level XML
-processing APIs in ways that seem to be sensitive to subtle
-differences in text node and namespace semantics between the two
-libraries. Substantial restructuring of the code and the addition of
-quite a few unit tests might be necessary to carry out such a port
-with confidence that the resulting code would work well.</p>
-
-<p>Also, someone else submitted a
-<a href="https://github.com/jruby/jruby/pull/176">JRuby patch</a> for
-<a href="http://jira.codehaus.org/browse/JRUBY-6658">JRUBY-6658</a>, one of the
-major causes of BioRuby&#8217;s unit test failures with JRuby; once a fix is
-integrated, we&#8217;ll be close to having all the tests passing under
-JRuby.</p>
-
-<p>I identified another JRuby bug,
-<a href="http://jira.codehaus.org/browse/JRUBY-6666">JRUBY-6666</a>, causing
-several unit test failures. This one affects BioRuby&#8217;s code for
-running external commands, so it would be likely to be encountered in
-production use. For this one, I also worked up a
-<a href="https://github.com/jruby/jruby/pull/173">patch</a>.</p>
-
-<p>I also spent some time preparing a performance testing environment,
-for evaluating existing MAF implementations as well as my own. This
-will be important, since I will be considering the use of an existing
-C parser. I will also want to ensure that the performance of my code
-is competitive with the alternatives. Lacking any hardware more
-powerful than a MacBook Air, I am setting this up with Amazon EC2. To
-simplify environment setup, I&#8217;ll be using
-<a href="http://wiki.opscode.com/display/chef/Home">Chef</a>. I&#8217;ve already set up
-a <a href="https://github.com/csw/chef-repo">Chef repository</a> with
-configuration logic, and some
-<a href="https://github.com/csw/ec2-launcher">rudimentary code</a> to streamline
-launching Ubuntu machines on EC2 and bootstrapping a Chef
-environment. To save money, I plan to make use of
-<a href="http://aws.amazon.com/ec2/spot-instances/">EC2 Spot Instances</a>, which
-are perfect for instances that only need to run for a few hours for
-batch tasks.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/bioruby-maf/blog/page/2/">&larr; Older</a>
@@ -1112,6 +1153,10 @@ batch tasks.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/bioruby-maf/blog/2012/08/05/bgzf_and_testing/">BGZF and testing</a>
+      </li>
+    
+      <li class="post">
         <a href="/bioruby-maf/blog/2012/07/18/bio-maf_0.3.0/">Bio-MAF 0.3.0</a>
       </li>
     
@@ -1125,10 +1170,6 @@ batch tasks.</p>
     
       <li class="post">
         <a href="/bioruby-maf/blog/2012/06/21/parallel_io/">Parallel I/O</a>
-      </li>
-    
-      <li class="post">
-        <a href="/bioruby-maf/blog/2012/06/13/jruby_support_and_performance_work/">JRuby support and I/O performance</a>
       </li>
     
   </ul>

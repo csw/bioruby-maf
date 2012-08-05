@@ -9,9 +9,8 @@
   <meta name="author" content="Clayton Wheeler">
 
   
-  <meta name="description" content="This has been my first half-week of work on my Google Summer of Code
-project, and it&#8217;s off to an exciting start. The first order of
-business &hellip;">
+  <meta name="description" content="This was my second week of work on my GSoC project, and the last week
+of the &#8216;community bonding&#8217; period before the official start of &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -66,6 +65,95 @@ business &hellip;">
     <div id="content">
       <div class="blog-index">
   
+  
+  
+    <article>
+      
+  <header>
+    
+      <h1 class="entry-title"><a href="/bioruby-maf/blog/2012/05/21/week_2_progress/">GSoC Week 2</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-05-21T11:13:00-04:00" pubdate data-updated="true">May 21<span>st</span>, 2012</time>
+        
+         | <a href="/bioruby-maf/blog/2012/05/21/week_2_progress/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>This was my second week of work on my GSoC project, and the last week
+of the &#8216;community bonding&#8217; period before the official start of
+coding. A major focus of mine was BioRuby&#8217;s
+<a href="http://phyloxml.org/">phyloXML</a> support; it uses libxml, which has
+been causing unit test failures under JRuby. In the end, the best
+course of action seemed to separate the phyloXML support as a separate
+plugin, which I have done as the
+<a href="https://github.com/csw/bioruby-phyloxml">bio-phyloxml</a> gem. This will
+remove BioRuby&#8217;s dependency on XML libraries entirely and that JRuby
+issue along with it. At the same time, users of the phyloXML code
+should be able to continue using it with no substantive changes.</p>
+
+<p>Separately, I began porting this phyloXML code to use
+<a href="http://nokogiri.org/">Nokogiri</a> instead of libxml-ruby, but ran into
+difficulties with this effort. While it is possible, and the library
+APIs are very similar, the code uses relatively low-level XML
+processing APIs in ways that seem to be sensitive to subtle
+differences in text node and namespace semantics between the two
+libraries. Substantial restructuring of the code and the addition of
+quite a few unit tests might be necessary to carry out such a port
+with confidence that the resulting code would work well.</p>
+
+<p>Also, someone else submitted a
+<a href="https://github.com/jruby/jruby/pull/176">JRuby patch</a> for
+<a href="http://jira.codehaus.org/browse/JRUBY-6658">JRUBY-6658</a>, one of the
+major causes of BioRuby&#8217;s unit test failures with JRuby; once a fix is
+integrated, we&#8217;ll be close to having all the tests passing under
+JRuby.</p>
+
+<p>I identified another JRuby bug,
+<a href="http://jira.codehaus.org/browse/JRUBY-6666">JRUBY-6666</a>, causing
+several unit test failures. This one affects BioRuby&#8217;s code for
+running external commands, so it would be likely to be encountered in
+production use. For this one, I also worked up a
+<a href="https://github.com/jruby/jruby/pull/173">patch</a>.</p>
+
+<p>I also spent some time preparing a performance testing environment,
+for evaluating existing MAF implementations as well as my own. This
+will be important, since I will be considering the use of an existing
+C parser. I will also want to ensure that the performance of my code
+is competitive with the alternatives. Lacking any hardware more
+powerful than a MacBook Air, I am setting this up with Amazon EC2. To
+simplify environment setup, I&#8217;ll be using
+<a href="http://wiki.opscode.com/display/chef/Home">Chef</a>. I&#8217;ve already set up
+a <a href="https://github.com/csw/chef-repo">Chef repository</a> with
+configuration logic, and some
+<a href="https://github.com/csw/ec2-launcher">rudimentary code</a> to streamline
+launching Ubuntu machines on EC2 and bootstrapping a Chef
+environment. To save money, I plan to make use of
+<a href="http://aws.amazon.com/ec2/spot-instances/">EC2 Spot Instances</a>, which
+are perfect for instances that only need to run for a few hours for
+batch tasks.</p>
+</div>
+  
+  
+
+
+    </article>
   
   
     <article>
@@ -222,6 +310,10 @@ which will be my reference implementation in many respects.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/bioruby-maf/blog/2012/08/05/bgzf_and_testing/">BGZF and testing</a>
+      </li>
+    
+      <li class="post">
         <a href="/bioruby-maf/blog/2012/07/18/bio-maf_0.3.0/">Bio-MAF 0.3.0</a>
       </li>
     
@@ -235,10 +327,6 @@ which will be my reference implementation in many respects.</p>
     
       <li class="post">
         <a href="/bioruby-maf/blog/2012/06/21/parallel_io/">Parallel I/O</a>
-      </li>
-    
-      <li class="post">
-        <a href="/bioruby-maf/blog/2012/06/13/jruby_support_and_performance_work/">JRuby support and I/O performance</a>
       </li>
     
   </ul>
