@@ -3,7 +3,7 @@
 <head>
   <meta http-equiv='content-type' value='text/html;charset=utf8'>
   <meta name='generator' value='Ronn/v0.7.3 (http://github.com/rtomayko/ronn/tree/0.7.3)'>
-  <title>maf_index(1) - build and examine MAF indexes</title>
+  <title>maf_bgzip(1) - optimally BGZF-compresses and indexes MAF files</title>
   <style type='text/css' media='all'>
   /* style: man */
   body#manpage {margin:0}
@@ -62,9 +62,9 @@
     <a href="#NAME">NAME</a>
     <a href="#SYNOPSIS">SYNOPSIS</a>
     <a href="#DESCRIPTION">DESCRIPTION</a>
-    <a href="#FILES">FILES</a>
-    <a href="#OPTIONS">OPTIONS</a>
     <a href="#EXAMPLES">EXAMPLES</a>
+    <a href="#OPTIONS">OPTIONS</a>
+    <a href="#FILES">FILES</a>
     <a href="#ENVIRONMENT">ENVIRONMENT</a>
     <a href="#BUGS">BUGS</a>
     <a href="#COPYRIGHT">COPYRIGHT</a>
@@ -72,87 +72,89 @@
   </div>
 
   <ol class='man-decor man-head man head'>
-    <li class='tl'>maf_index(1)</li>
+    <li class='tl'>maf_bgzip(1)</li>
     <li class='tc'>BioRuby Manual</li>
-    <li class='tr'>maf_index(1)</li>
+    <li class='tr'>maf_bgzip(1)</li>
   </ol>
 
   <h2 id="NAME">NAME</h2>
 <p class="man-name">
-  <code>maf_index</code> - <span class="man-whatis">build and examine MAF indexes</span>
+  <code>maf_bgzip</code> - <span class="man-whatis">optimally BGZF-compresses and indexes MAF files</span>
 </p>
 
 <h2 id="SYNOPSIS">SYNOPSIS</h2>
 
-<p><code>maf_index</code> [-t] <var>maf</var> <var>index</var><br />
-<code>maf_index</code> <code>-d</code>|<code>--dump</code> <var>index</var></p>
+<p><code>maf_bgzip</code> [-d dir] <var>maf</var> ...<br />
+<code>maf_bgzip</code> [-d dir] --index [--all] <var>maf</var> ...<br /></p>
 
 <h2 id="DESCRIPTION">DESCRIPTION</h2>
 
-<p><strong>maf_index</strong> is part of the bioruby-maf library and creates
-Kyoto Cabinet indexes for Multiple Alignment Format (MAF)
-files. These indexes enable other MAF tools to selectively extract
-alignment blocks of interest.</p>
+<p><strong>maf_bgzip</strong> is part of the bioruby-maf library and compresses
+Multiple Alignment Format (MAF) files in the Blocked GZip Format
+(BGZF), enabling efficient random access. It can optionally index
+these files as well.</p>
 
-<p>In its default mode, <code>maf_index</code> parses the <var>maf</var> file given as an
-argument and creates an index in <var>index</var>.</p>
+<p><code>maf_bgzip</code> can be used as an import tool to prepare MAF files from an
+external source such as UCSC for use by the other bioruby-maf
+tools. Such MAF files are often gzipped; these can be handled
+transparently by <code>maf_bgzip</code>, without a separate <span class="man-ref">gunzip<span class="s">(1)</span></span> step.</p>
 
-<p>The index data is stored in binary form, so with the <code>--dump</code>
-argument, <code>maf_index</code> can dump out the index data in human-readable
-form for debugging.</p>
+<p>This is a MAF-specific replacement for the <span class="man-ref">bgzip<span class="s">(1)</span></span> tool shipped with
+samtools. Unlike the output of <span class="man-ref">bgzip<span class="s">(1)</span></span>, each BGZF block (which can be
+up to 64 KB of uncompressed data) will contain an integer number of
+MAF blocks, except in the case of MAF blocks larger than 64 KB. This
+means that except in unusual cases, a MAF block will be able to be
+read without having to read more than one BGZF block.</p>
 
-<h2 id="FILES">FILES</h2>
+<h2 id="EXAMPLES">EXAMPLES</h2>
 
-<p>The <var>maf</var> input file must be a valid MAF file of any length. It can
-optionally be BGZF-compressed, as produced by <span class="man-ref">bgzip<span class="s">(1)</span></span> from samtools.</p>
+<p>Compress <code>mm8.chrM.maf</code>, creating <code>mm8.chrM.maf.bgz</code> in the current
+directory:</p>
 
-<p>The index created is a Kyoto Cabinet TreeDB (B+ tree) database;
-<var>index</var> must have a <code>.kct</code> extension.</p>
+<pre><code>$ maf_bgzip mm8.chrM.maf
+</code></pre>
+
+<p>Re-compress and index <code>mm8.chrM.maf.gz</code> (on all sequences) into the
+<code>/data/maf/</code> directory, creating <code>/data/maf/mm8.chrM.maf.bgz</code> and
+<code>/data/maf/mm8.chrM.kct</code>:</p>
+
+<pre><code>$ maf_bgzip --dir /data/maf --index --all mm8.chrM.maf.gz
+</code></pre>
+
+<p>As above, but with all <code>.maf.gz</code> files in the current directory:</p>
+
+<pre><code>$ maf_bgzip --dir /data/maf --index --all *.maf.gz
+</code></pre>
 
 <h2 id="OPTIONS">OPTIONS</h2>
 
 <dl>
-<dt><code>-a</code>, <code>--all</code></dt><dd><p>All sequences, not just the reference sequence, will be indexed for
-searching.</p></dd>
-<dt><code>-d</code>, <code>--dump</code></dt><dd><p> Instead of creating an index, dump out the given <var>index</var> in
- human-readable form. Index records will appear like:</p>
-
-<pre><code> 0 [bin 1195] 80082334:80082368
-   offset 16, length 1087
-   text size: 54
-   sequences in block: 10
-   species vector: 00000000000003ff
-</code></pre></dd>
-<dt class="flush"><code>--time</code></dt><dd><p>Print elapsed time for index creation. Mainly useful for measuring
-performance with different Ruby implementations, I/O subsystems,
-etc.</p></dd>
-<dt><code>-q</code>, <code>--quiet</code></dt><dd><p>Run quietly, with warnings suppressed.</p></dd>
-<dt><code>-v</code>, <code>--verbose</code></dt><dd><p>Run verbosely, with additional informational messages.</p></dd>
-<dt class="flush"><code>--debug</code></dt><dd><p>Log debugging information.</p></dd>
+<dt><code>-d</code>, <code>--dir DIR</code></dt><dd><p>The directory to write the compressed MAF files and indexes to.</p></dd>
+<dt><code>-i</code>, <code>--index</code></dt><dd><p>Index the compressed MAF files as by <a class="man-ref" href="maf_index.1.html">maf_index<span class="s">(1)</span></a>.</p></dd>
+<dt><code>-a</code>, <code>--all</code></dt><dd><p>When <code>--index</code> is specified, index all sequences, not just the
+reference sequence.</p></dd>
 </dl>
 
 
-<h2 id="EXAMPLES">EXAMPLES</h2>
+<h2 id="FILES">FILES</h2>
 
-<p>Build an index on a MAF file:</p>
+<p>The MAF files must be valid and have names ending in <code>.maf</code>. They may
+be gzip-compressed, in which case their names should end with <code>.maf.gz</code>.</p>
 
-<pre><code>$ maf_index chr22.maf chr22.kct
-</code></pre>
+<p>The BGZF-compressed MAF files will be optimally compressed for random
+access and named with a <code>.maf.bgz</code> suffix.</p>
 
-<p>Dump out an index:</p>
-
-<pre><code>$ maf_index -d chr22.kct &gt; /tmp/chr22.dump
-</code></pre>
+<p>Indexes created will be Kyoto Cabinet databases as created by
+<a class="man-ref" href="maf_index.1.html">maf_index<span class="s">(1)</span></a> and have the <code>.maf[.gz]</code> suffix replaced with <code>.kct</code>.</p>
 
 <h2 id="ENVIRONMENT">ENVIRONMENT</h2>
 
-<p><code>maf_index</code> is a Ruby program and relies on ordinary Ruby environment
+<p><code>maf_bgzip</code> is a Ruby program and relies on ordinary Ruby environment
 variables.</p>
 
 <h2 id="BUGS">BUGS</h2>
 
-<p><code>maf_index</code> does not currently allow Kyoto Cabinet database parameters
-to be set.</p>
+<p>None known.</p>
 
 <h2 id="COPYRIGHT">COPYRIGHT</h2>
 
@@ -160,19 +162,15 @@ to be set.</p>
 
 <h2 id="SEE-ALSO">SEE ALSO</h2>
 
-<p><span class="man-ref">ruby<span class="s">(1)</span></span>, <span class="man-ref">kctreemgr<span class="s">(1)</span></span>, <span class="man-ref">bgzip<span class="s">(1)</span></span></p>
+<p><span class="man-ref">ruby<span class="s">(1)</span></span>, <a class="man-ref" href="maf_index.1.html">maf_index<span class="s">(1)</span></a>, <span class="man-ref">bgzip<span class="s">(1)</span></span></p>
 
-<ul>
-<li><a href="https://github.com/csw/bioruby-maf/" data-bare-link="true">https://github.com/csw/bioruby-maf/</a></li>
-<li><a href="http://fallabs.com/kyotocabinet/" data-bare-link="true">http://fallabs.com/kyotocabinet/</a></li>
-</ul>
-
+<p>BGZF is specified in the SAM/BAM specification: <a href="http://samtools.sourceforge.net/SAM1.pdf" data-bare-link="true">http://samtools.sourceforge.net/SAM1.pdf</a></p>
 
 
   <ol class='man-decor man-foot man foot'>
     <li class='tl'>BioRuby</li>
     <li class='tc'>August 2012</li>
-    <li class='tr'>maf_index(1)</li>
+    <li class='tr'>maf_bgzip(1)</li>
   </ol>
 
   </div>

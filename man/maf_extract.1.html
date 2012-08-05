@@ -130,6 +130,9 @@ facilitates processing small, transient MAF files. However, on a large
 file this will incur a great deal of overhead; files expected to be
 used more than once should be indexed with <a class="man-ref" href="maf_index.1.html">maf_index<span class="s">(1)</span></a>.</p>
 
+<p>MAF files can optionally be BGZF-compressed, as produced by <span class="man-ref">bgzip<span class="s">(1)</span></span>
+from samtools.</p>
+
 <p>Alternatively, a directory of indexed MAF files can be specified with
 <code>--maf-dir</code>; in this case, they will all be used to satisfy queries.</p>
 
@@ -283,12 +286,12 @@ variables.</p>
 
 <h2 id="SEE-ALSO">SEE ALSO</h2>
 
-<p><span class="man-ref">ruby<span class="s">(1)</span></span>, <a class="man-ref" href="maf_index.1.html">maf_index<span class="s">(1)</span></a>, <a class="man-ref" href="maf_tile.1.html">maf_tile<span class="s">(1)</span></a></p>
+<p><span class="man-ref">ruby<span class="s">(1)</span></span>, <a class="man-ref" href="maf_index.1.html">maf_index<span class="s">(1)</span></a>, <a class="man-ref" href="maf_tile.1.html">maf_tile<span class="s">(1)</span></a>, <span class="man-ref">bgzip<span class="s">(1)</span></span></p>
 
 
   <ol class='man-decor man-foot man foot'>
     <li class='tl'>BioRuby</li>
-    <li class='tc'>July 2012</li>
+    <li class='tc'>August 2012</li>
     <li class='tr'>maf_extract(1)</li>
   </ol>
 

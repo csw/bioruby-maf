@@ -165,6 +165,9 @@ species.</p>
 <p>The <var>maf</var> parameter must specify either a Multiple Alignment Format
 (MAF) file or a directory of such files, with indexes.</p>
 
+<p>MAF files can optionally be BGZF-compressed, as produced by <span class="man-ref">bgzip<span class="s">(1)</span></span>
+from samtools.</p>
+
 <p>The <var>index</var> must be a MAF index built with <a class="man-ref" href="maf_index.1.html">maf_index<span class="s">(1)</span></a>. This
 parameter is ignored if the <var>maf</var> parameter is a directory. It can be
 omitted if a single MAF file is given, but in this case the entire
@@ -186,7 +189,7 @@ variables.</p>
 
 <h2 id="SEE-ALSO">SEE ALSO</h2>
 
-<p><a class="man-ref" href="maf_index.1.html">maf_index<span class="s">(1)</span></a>, <span class="man-ref">ruby<span class="s">(1)</span></span></p>
+<p><a class="man-ref" href="maf_index.1.html">maf_index<span class="s">(1)</span></a>, <span class="man-ref">ruby<span class="s">(1)</span></span>, <span class="man-ref">bgzip<span class="s">(1)</span></span></p>
 
 <ul>
 <li><a href="https://github.com/csw/bioruby-maf/" data-bare-link="true">https://github.com/csw/bioruby-maf/</a></li>
@@ -196,7 +199,7 @@ variables.</p>
 
   <ol class='man-decor man-foot man foot'>
     <li class='tl'>BioRuby</li>
-    <li class='tc'>July 2012</li>
+    <li class='tc'>August 2012</li>
     <li class='tr'>maf_tile(1)</li>
   </ol>
 
