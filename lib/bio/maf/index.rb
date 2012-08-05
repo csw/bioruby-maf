@@ -687,6 +687,7 @@ module Bio
           db[COMPRESSION_KEY] = compression.to_s
         end
         @ref_only = ref_only
+        @seen_first = false
       end
         
       def build(parser, ref_only=true)
@@ -694,12 +695,7 @@ module Bio
              parser.compression,
              ref_only)
 
-        first_block = parser.parse_block
-        self.ref_seq = first_block.sequences.first.source
-        db[REF_SEQ_KEY] = ref_seq
-        index_blocks([first_block])
-
-        n = 1
+        n = 0
         acc = []
         acc_bytes = 0
         parser.each_block do |block|
@@ -718,6 +714,13 @@ module Bio
       end
 
       def index_blocks(blocks)
+        if ! @seen_first
+          # set the reference sequence from the first block
+          first_block = blocks.first
+          self.ref_seq = first_block.sequences.first.source
+          db[REF_SEQ_KEY] = ref_seq
+          @seen_first = true
+        end
         h = blocks.map { |b| entries_for(b) }.reduce(:merge!)
         db.set_bulk(h, false)
       end
