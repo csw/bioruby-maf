@@ -41,19 +41,26 @@ until ARGV.empty?
   p = Bio::MAF::Parser.new(maf_path,
                            :parse_extended => true,
                            :parse_empty => true)
+  if $options.index
+    idx_path = "#{$options.dir}/#{base}.kct"
+    idx = Bio::MAF::KyotoIndex.new(idx_path)
+    idx.prep(bgz_path, :bgzf, $options.ref_only)
+  end
   File.open(bgz_path, 'w') do |out_f|
     Bio::BGZF::Writer.new(out_f) do |bgz_w|
       maf_w = Bio::MAF::Writer.new(bgz_w)
       maf_w.write_header(p.header)
       p.each_block do |block|
         maf_w.write_block(block)
+        if idx
+          block.offset = bgz_w.last_write_pos
+          idx.index_blocks([block])
+        end
       end
     end
   end
   p.close
-  if $options.index
-    p2 = Bio::MAF::Parser.new(bgz_path)
-    idx_path = "#{$options.dir}/#{base}.kct"
-    Bio::MAF::KyotoIndex.build(p2, idx_path, $options.ref_only)
+  if idx
+    idx.db.synchronize(true)
   end
 end

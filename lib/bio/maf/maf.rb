@@ -58,7 +58,7 @@ module Bio
       attr_reader :sequences
       # Offset of the alignment block within the MAF file, in bytes.
       # @return [Integer]
-      attr_reader :offset
+      attr_accessor :offset
       # Size of the alignment block within the MAF file, in bytes.
       # @return [Integer]
       attr_reader :size
