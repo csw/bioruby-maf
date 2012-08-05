@@ -436,6 +436,7 @@ module Bio
       def initialize(path, db_arg=nil)
         @species = {}
         @species_max_id = -1
+        @index_sequences = {}
         @max_sid = -1
         if db_arg || ((path.size > 1) and File.exist?(path))
           mode = KyotoCabinet::DB::OREADER
@@ -677,21 +678,28 @@ module Bio
       end
 
       CHUNK_THRESHOLD_BYTES = 50 * 1024 * 1024
+
+      def prep(file_spec, compression, ref_only)
+        db[FORMAT_VERSION_KEY] = FORMAT_VERSION
+        db[FILE_KEY] = File.basename(file_spec)
+        @maf_file = db[FILE_KEY]
+        if compression
+          db[COMPRESSION_KEY] = compression.to_s
+        end
+        @ref_only = ref_only
+      end
         
       def build(parser, ref_only=true)
-        db[FILE_KEY] = File.basename(parser.file_spec)
-        @maf_file = db[FILE_KEY]
-        if parser.compression
-          db[COMPRESSION_KEY] = parser.compression.to_s
-        end
+        prep(parser.file_spec,
+             parser.compression,
+             ref_only)
+
         first_block = parser.parse_block
         self.ref_seq = first_block.sequences.first.source
-        @ref_only = ref_only
         db[REF_SEQ_KEY] = ref_seq
-        db[FORMAT_VERSION_KEY] = FORMAT_VERSION
-        @index_sequences = {}
         index_blocks([first_block])
-        n = 0
+
+        n = 1
         acc = []
         acc_bytes = 0
         parser.each_block do |block|
