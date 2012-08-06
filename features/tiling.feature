@@ -241,3 +241,18 @@ Feature: Join alignment blocks with reference data
     --------GG
     """
 
+  @no_jruby
+  Scenario: Tile with CLI tool and directory, 1-based
+    Given test files:
+    | mm8_chr7_tiny.maf |
+    | mm8_chr7_tiny.kct |
+    When I run `maf_tile -s mm8 -s rn4 -s hg18 --one-based --interval mm8.chr7:80082335:80082344 .`
+    Then it should pass with:
+    """
+    >mm8
+    GGGCTGAGGG
+    >rn4
+    GGGCTGAGGG
+    >hg18
+    --------GG
+    """
