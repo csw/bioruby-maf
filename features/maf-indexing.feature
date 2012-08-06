@@ -39,6 +39,12 @@ Feature: Indexed access to MAF files
     And sequence mm8.chr7 of block 0 has start 80082368
     And sequence mm8.chr7 of block 1 has start 80082471
 
+  Scenario: Index MAF file with extended bin positions
+    Given a MAF source file "ext-bin.maf"
+    When I open it with a MAF reader
+    And build an index on all sequences
+    Then the index has at least 18 entries
+    
   @no_jruby
   Scenario: Build MAF index with CLI tool
     Given test files:

@@ -88,7 +88,20 @@ module Bio
       end
 
       def self.bin_from_range_extended(bin_start, bin_end)
-        raise NotImplementedError, "Extended bins are not supported yet"
+
+        bin_start >>= BIN_FIRST_SHIFT
+        bin_end -= 1
+        bin_end >>= BIN_FIRST_SHIFT
+
+        BIN_OFFSETS_EXTENDED.each do |offset|
+          if bin_start == bin_end
+            return BIN_OFFSET_OLD_TO_EXTENDED + offset + bin_start
+          end
+          bin_start >>= BIN_NEXT_SHIFT
+          bin_end   >>= BIN_NEXT_SHIFT
+        end
+        raise RangeError, \
+        "start #{bin_start}, end #{bin_end} out of range in findBin (max is 2GbM)"
       end
 
       def self.bin_all_standard(bin_start, bin_end)
