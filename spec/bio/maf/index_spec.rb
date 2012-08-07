@@ -354,9 +354,11 @@ module Bio
 
       describe "#entries_for" do
         before(:each) do
-          @p = Parser.new(TestData + 'mm8_chr7_tiny.maf')
+          fspec = TestData + 'mm8_chr7_tiny.maf'
+          @p = Parser.new(fspec)
           @block = @p.parse_block
           @idx = KyotoIndex.new('%')
+          @idx.prep(fspec, nil, true)
           @idx.ref_seq = 'mm8.chr7'
         end
         context "single ref seq" do
