@@ -678,6 +678,7 @@ module Bio
       end
 
       CHUNK_THRESHOLD_BYTES = 50 * 1024 * 1024
+      CHUNK_THRESHOLD_BLOCKS = 1000
 
       def prep(file_spec, compression, ref_only)
         db[FORMAT_VERSION_KEY] = FORMAT_VERSION
@@ -701,7 +702,8 @@ module Bio
         parser.each_block do |block|
           acc << block
           acc_bytes += block.size
-          if acc_bytes > CHUNK_THRESHOLD_BYTES
+          if acc_bytes > CHUNK_THRESHOLD_BYTES \
+            || acc.size > CHUNK_THRESHOLD_BLOCKS
             index_blocks(acc)
             acc = []
             acc_bytes = 0
