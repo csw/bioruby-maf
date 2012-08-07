@@ -33,11 +33,15 @@ end
 op.parse!(ARGV)
 Bio::Log::CLI.configure('bio-maf')
 
+INTERVAL = 10
+LOG = Bio::MAF::LOG
+
 until ARGV.empty?
   maf_path = ARGV.shift
   maf_base = File.basename(maf_path)
   base = maf_base.gsub(/\.maf.*/, '')
   bgz_path = "#{$options.dir}/#{base}.maf.bgz"
+  LOG.debug { "Processing #{maf_base}." }
   p = Bio::MAF::Parser.new(maf_path,
                            :retain_text => true)
   if $options.index
@@ -45,15 +49,39 @@ until ARGV.empty?
     idx = Bio::MAF::KyotoIndex.new(idx_path)
     idx.prep(bgz_path, :bgzf, $options.ref_only)
   end
+  start_t = Time.now
+  last_t = start_t
+  last_pos = 0
+  maf_size = File.size(maf_path)
   File.open(bgz_path, 'w') do |out_f|
     Bio::BGZF::Writer.new(out_f) do |bgz_w|
       maf_w = Bio::MAF::Writer.new(bgz_w)
       maf_w.write_header(p.header)
+      n = 0
       p.each_block do |block|
         bgz_w.write(block.orig_text)
         if idx
           block.offset = bgz_w.last_write_pos
           idx.index_blocks([block])
+        end
+        n += 1
+        if n % 100 == 0
+          cur_t = Time.now
+          delta_t = cur_t - last_t
+          if delta_t > INTERVAL
+            cur_pos = p.phys_f.tell
+            pos_mb = cur_pos.to_f / 1048576
+            delta_bytes = cur_pos - last_pos
+            rate = delta_bytes.to_f / delta_t
+            mb_rate = rate / 1048576
+            pct = cur_pos.to_f / maf_size * 100
+            LOG.debug { sprintf("Processed %.1f MB, %.1f%% complete, %.2f MB/s",
+                                pos_mb,
+                                pct,
+                                mb_rate) }
+            last_t = cur_t
+            last_pos = cur_pos
+          end
         end
       end
     end
@@ -62,4 +90,5 @@ until ARGV.empty?
   if idx
     idx.db.synchronize(true)
   end
+  LOG.info { "Processed #{maf_base}." }
 end

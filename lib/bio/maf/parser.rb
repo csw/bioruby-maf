@@ -532,8 +532,12 @@ module Bio
       attr_reader :header
       # @return [String] path of MAF file being parsed.
       attr_reader :file_spec
-      # @return [File] file handle for MAF file.
+      # @return [IO] file handle for MAF file.
       attr_reader :f
+      # May be gzip-compressed.
+      # @return [IO] file handle for physical MAF file.
+      # @api private
+      attr_reader :phys_f
       # @return [StringScanner] scanner for parsing.
       attr_reader :s
       # @return [ChunkReader] ChunkReader.
@@ -595,10 +599,12 @@ module Bio
         else
           # a pathname (or Pathname)
           @file_spec = file_spec
+          @phys_f = File.open(file_spec)
           if file_spec.to_s.end_with?(".maf.gz")
-            @f = Zlib::GzipReader.open(file_spec)
+            @f = Zlib::GzipReader.new(@phys_f)
+            @compression = :gzip
           else
-            @f = File.open(file_spec)
+            @f = @phys_f
           end
         end
         if @file_spec.to_s =~ /\.bgzf?$/
