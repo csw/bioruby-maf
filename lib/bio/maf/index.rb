@@ -449,6 +449,10 @@ module Bio
           raise "Could not open DB file!"
         end
         if mode == KyotoCabinet::DB::OREADER
+          version = db[FORMAT_VERSION_KEY].to_i
+          if version != FORMAT_VERSION
+            raise "Index #{path} is version #{version}, expecting version #{FORMAT_VERSION}!"
+          end
           @maf_file = db[FILE_KEY]
           self.ref_seq = db[REF_SEQ_KEY]
           load_index_sequences
