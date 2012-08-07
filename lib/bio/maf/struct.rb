@@ -6,6 +6,9 @@ module Bio
   module MAF
 
     class Struct
+
+      attr_reader :size
+
       def initialize(spec)
         @members = []
         @by_name = {}
@@ -16,6 +19,7 @@ module Bio
           @by_name[m.name] = m
           offset += m.size
         end
+        @size = offset
       end
 
       def fmt
