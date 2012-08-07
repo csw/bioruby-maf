@@ -445,7 +445,8 @@ module Bio
         end
         @db = db_arg || KyotoCabinet::DB.new
         @path = path
-        unless db_arg || db.open(path.to_s, mode)
+        path_str = "#{path.to_s}#opts=ls#dfunit=100000"
+        unless db_arg || db.open(path_str, mode)
           raise "Could not open DB file!"
         end
         if mode == KyotoCabinet::DB::OREADER
