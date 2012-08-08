@@ -133,6 +133,26 @@ directory:</p>
 <dt><code>-i</code>, <code>--index</code></dt><dd><p>Index the compressed MAF files as by <a class="man-ref" href="maf_index.1.html">maf_index<span class="s">(1)</span></a>.</p></dd>
 <dt><code>-a</code>, <code>--all</code></dt><dd><p>When <code>--index</code> is specified, index all sequences, not just the
 reference sequence.</p></dd>
+<dt><code>-l</code>, <code>--level LEVEL</code></dt><dd><p>GZip compression level (1-9) to use for the output BGZF file. Lower
+compression levels give better compression performance but produce
+larger output files. The default level is 2, which gives output
+files roughly twice as large as gzipped MAF files but still much
+smaller than uncompressed MAF files.</p></dd>
+<dt><code>-f</code>, <code>--force</code></dt><dd><p>Overwrite BGZF files and indexes if they already exist. If
+<code>--force</code> is not given, <code>maf_bgzip</code> will exit with an error if any
+output files already exist.</p></dd>
+<dt><code>-j</code>, <code>--jobs N</code></dt><dd><p>Number of concurrent jobs to run, analogous to <code>make -j</code>. This will
+use threads under JRuby, and <span class="man-ref">fork<span class="s">(2)</span></span> otherwise. Note that under
+JRuby, each job already uses multiple threads, so less than one job
+per core may be appropriate depending on your system. The default
+is 1 job.</p></dd>
+<dt><code>-q</code>, <code>--quiet</code></dt><dd><p>Run quietly, with warnings suppressed.</p></dd>
+<dt><code>-v</code>, <code>--verbose</code></dt><dd><p>Run verbosely, with additional informational messages.</p></dd>
+<dt class="flush"><code>--debug</code></dt><dd><p>Log debugging information. This includes progress messages every 10
+seconds showing the processing rate and other information. For
+instance:</p>
+
+<p> DEBUG bio-maf: chr21.maf.gz: processed 94.0 MB (26.6%) in 50s, 2.18 MB/s.</p></dd>
 </dl>
 
 
