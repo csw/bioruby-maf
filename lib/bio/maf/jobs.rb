@@ -94,6 +94,7 @@ module Bio::MAF
           f.get()
         rescue Exception => e
           LOG.error e
+          @exec.shutdownNow()
           raise
         end
         seen += 1
