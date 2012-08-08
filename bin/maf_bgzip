@@ -9,6 +9,8 @@ require 'bio-bgzf'
 $options = OpenStruct.new
 $options.dir = '.'
 $options.ref_only = true
+$options.n_jobs = 1
+$options.force = false
 
 op = OptionParser.new do |opts|
   opts.banner = "Usage: maf_bgzip [options] [<maf> ...]"
@@ -27,6 +29,14 @@ op = OptionParser.new do |opts|
           "(has no effect without --index)") do
     $options.ref_only = false
   end
+  opts.on("-f", "--force",
+          "Replace output files if they already exist") do
+    $options.force = true
+  end
+  opts.on("-j", "--jobs N", Integer,
+          "Run N concurrent jobs (default 1)") do |n|
+    $options.n_jobs = n
+  end
   Bio::MAF::handle_logging_options(opts)
 end
 
@@ -36,16 +46,36 @@ Bio::Log::CLI.configure('bio-maf')
 INTERVAL = 10
 LOG = Bio::MAF::LOG
 
-until ARGV.empty?
-  maf_path = ARGV.shift
-  maf_base = File.basename(maf_path)
+def make_processing_task(maf)
+  maf_base = File.basename(maf)
   base = maf_base.gsub(/\.maf.*/, '')
   bgz_path = "#{$options.dir}/#{base}.maf.bgz"
+  if File.exist?(bgz_path) && ! $options.force
+    LOG.error "#{bgz_path} already exists, refusing to overwrite " \
+    "without --force!"
+    exit 1
+  end
+  idx_path = nil
+  if $options.index
+    idx_path = "#{$options.dir}/#{base}.kct"
+    if File.exist?(idx_path) && ! $options.force
+      LOG.error "#{idx_path} already exists, refusing to overwrite " \
+      "without --force!"
+      exit 1
+    end
+  end
+  lambda { process_maf(maf, bgz_path, idx_path) }
+end
+
+def process_maf(maf_path, bgz_path, idx_path)
+  maf_base = File.basename(maf_path)
   LOG.debug { "Processing #{maf_base}." }
   p = Bio::MAF::Parser.new(maf_path,
                            :retain_text => true)
-  if $options.index
-    idx_path = "#{$options.dir}/#{base}.kct"
+  if idx_path
+    if File.exists?(idx_path)
+      File.unlink(idx_path)
+    end
     idx = Bio::MAF::KyotoIndex.new(idx_path)
     idx.prep(bgz_path, :bgzf, $options.ref_only)
   end
@@ -75,9 +105,12 @@ until ARGV.empty?
             rate = delta_bytes.to_f / delta_t
             mb_rate = rate / 1048576
             pct = cur_pos.to_f / maf_size * 100
-            LOG.debug { sprintf("Processed %.1f MB, %.1f%% complete, %.2f MB/s",
+            elapsed = cur_t - start_t
+            LOG.debug { sprintf("%s: processed %.1f MB (%.1f%%) in %ds, %.2f MB/s.",
+                                maf_base,
                                 pos_mb,
                                 pct,
+                                elapsed,
                                 mb_rate) }
             last_t = cur_t
             last_pos = cur_pos
@@ -92,3 +125,13 @@ until ARGV.empty?
   end
   LOG.info { "Processed #{maf_base}." }
 end
+
+runner = Bio::MAF::JobRunner.create($options.n_jobs)
+LOG.debug "Created #{runner.class} set for #{$options.n_jobs} concurrent jobs."
+ARGV.each do |maf|
+  task = make_processing_task(maf)
+  runner.add(&task)
+end
+LOG.debug "Running jobs."
+runner.run
+LOG.debug "Finished processing."

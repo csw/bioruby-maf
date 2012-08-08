@@ -60,3 +60,48 @@ Feature: BGZF compression
     And a file named "mm8_chr7_tiny.maf.bgz" should exist
     And a file named "mm8.chrM.maf.bgz" should exist
     
+  @no_jruby
+  Scenario: Don't overwrite MAF files
+    Given test files:
+    | mm8.chrM.maf      |
+    | mm8.chrM.maf.bgz  |
+    When I run `maf_bgzip mm8.chrM.maf`
+    Then it should fail with:
+    """
+    exists
+    """
+
+  @no_jruby
+  Scenario: Don't overwrite indexes
+    Given test files:
+    | mm8_chr7_tiny.maf |
+    When I run `maf_bgzip --index mm8_chr7_tiny.maf`
+     And I run `rm mm8_chr7_tiny.maf.bgz`
+     And I run `maf_bgzip --index mm8_chr7_tiny.maf`
+    Then it should fail with:
+    """
+    exists
+    """
+
+  @no_jruby
+  Scenario: Overwrite MAF files with --force
+    Given test files:
+    | mm8.chrM.maf      |
+    | mm8.chrM.maf.bgz  |
+    When I run `maf_bgzip --force mm8.chrM.maf`
+    Then it should pass with:
+    """
+    """
+
+  @no_jruby
+  Scenario: Overwrite indexes with --force
+    Given test files:
+    | mm8_chr7_tiny.maf |
+    When I run `maf_bgzip --index mm8_chr7_tiny.maf`
+     And I run `rm mm8_chr7_tiny.maf.bgz`
+     And I run `maf_bgzip --force --index mm8_chr7_tiny.maf`
+    Then it should pass with:
+    """
+    """
+
+    
