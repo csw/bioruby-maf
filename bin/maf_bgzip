@@ -93,12 +93,12 @@ def process_maf(maf_path, bgz_path, idx_path)
   start_t = Time.now
   last_t = start_t
   last_pos = 0
+  n_blocks = 0
   maf_size = File.size(maf_path)
   File.open(bgz_path, 'w') do |out_f|
     Bio::BGZF::Writer.new(out_f, $options.level) do |bgz_w|
       maf_w = Bio::MAF::Writer.new(bgz_w)
       maf_w.write_header(p.header)
-      n = 0
       p.each_block do |block|
         bgz_w.write(block.orig_text)
         if idx
@@ -107,24 +107,26 @@ def process_maf(maf_path, bgz_path, idx_path)
             idx.index_blocks([block])
           end
         end
-        n += 1
-        if n % 100 == 0
+        n_blocks += 1
+        if n_blocks % 100 == 0
           cur_t = Time.now
           delta_t = cur_t - last_t
           if delta_t > INTERVAL
             cur_pos = p.phys_f.tell
-            pos_mb = cur_pos.to_f / 1048576
-            delta_bytes = cur_pos - last_pos
-            rate = delta_bytes.to_f / delta_t
-            mb_rate = rate / 1048576
-            pct = cur_pos.to_f / maf_size * 100
-            elapsed = cur_t - start_t
-            LOG.debug { sprintf("%s: processed %.1f MB (%.1f%%) in %ds, %.2f MB/s.",
+            LOG.debug {
+              pos_mb = cur_pos.to_f / 1048576
+              delta_bytes = cur_pos - last_pos
+              rate = delta_bytes.to_f / delta_t
+              mb_rate = rate / 1048576
+              pct = cur_pos.to_f / maf_size * 100
+              elapsed = cur_t - start_t
+              sprintf("%s: processed %.1f MB (%.1f%%) in %ds, %.2f MB/s.",
                                 maf_base,
                                 pos_mb,
                                 pct,
                                 elapsed,
-                                mb_rate) }
+                      mb_rate)
+            }
             last_t = cur_t
             last_pos = cur_pos
           end
@@ -132,6 +134,7 @@ def process_maf(maf_path, bgz_path, idx_path)
       end
     end
   end
+  unc = p.f.tell if p.f != p.phys_f
   p.close
   if idx
     exec.shutdown
@@ -145,6 +148,29 @@ def process_maf(maf_path, bgz_path, idx_path)
                      mb,
                      elapsed,
                      mb_rate) }
+  if unc
+    LOG.info {
+      unc_mb = unc / 1048576
+      unc_rate = unc_mb / elapsed
+      sprintf("  Uncompressed: %.1f MB, %.2f MB/s",
+              unc_mb, unc_rate)
+    }
+  end
+  LOG.info {
+    raw_size = unc || maf_size
+    avg_block_kb = raw_size.to_f / n_blocks / 1024
+    sprintf("  %d alignment blocks, average size %.2f KB",
+            n_blocks, avg_block_kb)
+  }
+  LOG.info {
+    orig_size = unc ? unc : maf_size
+    bgzf_size = File.size(bgz_path).to_f
+    ratio = bgzf_size / orig_size
+    sprintf("  Compressed with BGZF (level=%d) to %.1f MB (%.1fx)",
+            $options.level,
+            bgzf_size / 1048576,
+            ratio)
+  }
 end
 
 runner = Bio::MAF::JobRunner.create($options.n_jobs)
