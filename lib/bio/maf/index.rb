@@ -125,7 +125,7 @@ module Bio
       # @param [Enumerable<Bio::GenomicInterval>] intervals genomic
       #  intervals to parse.
       # @yield [block] each {Block} matched, in turn
-      # @return [Enumerable<Block>] each matching {Block}, if no block given
+      # @return [Array<Block>] each matching {Block}, if no block given
       # @api public
       # @see KyotoIndex#find
       def find(intervals, &blk)
@@ -137,13 +137,16 @@ module Bio
             end
           end
           by_chrom.each do |chrom, c_intervals|
-            index = @indices[chrom]
-            with_parser(chrom) do |parser|
-              index.find(c_intervals, parser, block_filter, &blk)
+            with_index(chrom) do |index|
+              with_parser(chrom) do |parser|
+                index.find(c_intervals, parser, block_filter, &blk)
+              end
             end
           end
         else
-          enum_for(:find, intervals)
+          acc = []
+          self.find(intervals) { |block| acc << block }
+          acc
         end
       end
 
@@ -156,13 +159,14 @@ module Bio
       # @yield [tiler] a {Tiler} ready to operate on the given interval
       # @api public
       def tile(interval)
-        index = chrom_index(interval.chrom)
-        with_parser(interval.chrom) do |parser|
-          tiler = Tiler.new
-          tiler.index = index
-          tiler.parser = parser
-          tiler.interval = interval
-          yield tiler
+        with_index(interval.chrom) do |index|
+          with_parser(interval.chrom) do |parser|
+            tiler = Tiler.new
+            tiler.index = index
+            tiler.parser = parser
+            tiler.interval = interval
+            yield tiler
+          end
         end
       end
 
@@ -172,13 +176,15 @@ module Bio
       #
       # @param [Bio::GenomicInterval] interval interval to search
       # @yield [block] each {Block} matched, in turn
-      # @return [Enumerable<Block>] each matching {Block}, if no block given
+      # @return [Array<Block>] each matching {Block}, if no block given
       # @api public
       # @see KyotoIndex#slice
       def slice(interval, &blk)
-        index = chrom_index(interval.chrom)
-        with_parser(interval.chrom) do |parser|
-          index.slice(interval, parser, &blk)
+        with_index(interval.chrom) do |index|
+          with_parser(interval.chrom) do |parser|
+            s = index.slice(interval, parser, block_filter, &blk)
+            block_given? ? s : s.to_a
+          end
         end
       end
 
@@ -250,6 +256,16 @@ module Bio
           raise "No index available for chromosome #{chrom}!"
         end
         @indices[chrom]
+      end
+
+      def with_index(chrom)
+        index = chrom_index(chrom)
+        LOG.debug { "Selected index #{index} for sequence #{chrom}." }
+        begin
+          yield index
+        ensure
+          index.close
+        end
       end
 
       # @api private
@@ -403,7 +419,7 @@ module Bio
       def find(intervals, parser, filter={}, &blk)
         start = Time.now
         fl = fetch_list(intervals, filter)
-        LOG.debug { sprintf("Built fetch list of %d items in %.3fs.\n",
+        LOG.debug { sprintf("Built fetch list of %d items in %.3fs.",
                             fl.size,
                             Time.now - start) }
         if ! fl.empty?
@@ -426,6 +442,7 @@ module Bio
             yield block.slice(interval)
           end
         else
+          LOG.debug { "accumulating results of #slice" }
           enum_for(:slice, interval, parser, filter)
         end
       end
@@ -459,6 +476,10 @@ module Bio
           load_index_sequences
           load_species
         end
+      end
+
+      def to_s
+        "#<KyotoIndex path=#{path}>"
       end
 
       # Reopen the same DB handle read-only. Only useful for unit tests.
@@ -582,6 +603,11 @@ module Bio
       end
 
       def scan_bins_parallel(chrom_id, bin_intervals, filters)
+        LOG.debug {
+          sprintf("Beginning scan of %d bin intervals %s filters.",
+                  bin_intervals.size,
+                  filters.empty? ? "without" : "with")
+        }
         start = Time.now
         n_threads = ENV['profile'] ? 1 : java.lang.Runtime.runtime.availableProcessors
         jobs = java.util.concurrent.ConcurrentLinkedQueue.new(bin_intervals.to_a)
@@ -609,7 +635,7 @@ module Bio
           n_completed += 1
         end
         threads.each { |t| t.join }
-        LOG.debug { sprintf("Matched %d index records with %d threads in %.3f seconds.\n",
+        LOG.debug { sprintf("Matched %d index records with %d threads in %.3f seconds.",
                             to_fetch.size, n_threads, Time.now - start) }
         to_fetch
       end
@@ -900,6 +926,10 @@ module Bio
 
       def initialize(l)
         @l = l
+      end
+
+      def empty?
+        @l.empty?
       end
 
       def match(entry)

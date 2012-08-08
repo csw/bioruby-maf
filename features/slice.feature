@@ -18,6 +18,17 @@ Feature: MAF slicing
     And write all the matched blocks
     Then the output should match, except whitespace, "mm8_chr7_tiny_slice1.maf"
 
+  Scenario: Interval covering two blocks, using directory access, counting
+    Given indexed MAF files in "test/data"
+    When I enable the :remove_gaps parser option
+    And filter for only the species
+      | mm8 |
+      | rn4 |
+    And I extract a slice over the genomic interval
+      | chrom    |    start |      end |
+      | mm8.chr7 | 80082350 | 80082380 |
+    Then 2 blocks are obtained
+
   Scenario: Interval covering two blocks, using directory access
     Given indexed MAF files in "test/data"
     When I enable the :remove_gaps parser option
