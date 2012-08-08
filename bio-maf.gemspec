@@ -6,7 +6,7 @@ Gem::Specification.new do |s|
 
   s.required_rubygems_version = Gem::Requirement.new(">= 0") if s.respond_to? :required_rubygems_version=
   s.authors = ["Clayton Wheeler"]
-  s.date = "2012-08-03"
+  s.date = "2012-08-08"
   s.description = "Multiple Alignment Format parser for BioRuby."
   s.email = "cswh@umich.edu"
   s.extra_rdoc_files = [
