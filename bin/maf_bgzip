@@ -11,6 +11,7 @@ $options.dir = '.'
 $options.ref_only = true
 $options.n_jobs = 1
 $options.force = false
+$options.level = 2
 
 op = OptionParser.new do |opts|
   opts.banner = "Usage: maf_bgzip [options] [<maf> ...]"
@@ -28,6 +29,15 @@ op = OptionParser.new do |opts|
           "Index all sequences, not just reference seq",
           "(has no effect without --index)") do
     $options.ref_only = false
+  end
+  opts.on("-l", "--level LEVEL", Integer,
+          "gzip compression level for BGZF (1-9)") do |level|
+    unless 1 <= level && level <= 9
+      $stderr.puts "Invalid compression level: #{level}"
+      $stderr.puts opts
+      exit 2
+    end
+    $options.level = level
   end
   opts.on("-f", "--force",
           "Replace output files if they already exist") do
@@ -85,7 +95,7 @@ def process_maf(maf_path, bgz_path, idx_path)
   last_pos = 0
   maf_size = File.size(maf_path)
   File.open(bgz_path, 'w') do |out_f|
-    Bio::BGZF::Writer.new(out_f) do |bgz_w|
+    Bio::BGZF::Writer.new(out_f, $options.level) do |bgz_w|
       maf_w = Bio::MAF::Writer.new(bgz_w)
       maf_w.write_header(p.header)
       n = 0
