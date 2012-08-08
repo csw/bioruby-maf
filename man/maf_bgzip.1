@@ -76,6 +76,33 @@ Index the compressed MAF files as by maf_index(1)\.
 \fB\-a\fR, \fB\-\-all\fR
 When \fB\-\-index\fR is specified, index all sequences, not just the reference sequence\.
 .
+.TP
+\fB\-l\fR, \fB\-\-level LEVEL\fR
+GZip compression level (1\-9) to use for the output BGZF file\. Lower compression levels give better compression performance but produce larger output files\. The default level is 2, which gives output files roughly twice as large as gzipped MAF files but still much smaller than uncompressed MAF files\.
+.
+.TP
+\fB\-f\fR, \fB\-\-force\fR
+Overwrite BGZF files and indexes if they already exist\. If \fB\-\-force\fR is not given, \fBmaf_bgzip\fR will exit with an error if any output files already exist\.
+.
+.TP
+\fB\-j\fR, \fB\-\-jobs N\fR
+Number of concurrent jobs to run, analogous to \fBmake \-j\fR\. This will use threads under JRuby, and fork(2) otherwise\. Note that under JRuby, each job already uses multiple threads, so less than one job per core may be appropriate depending on your system\. The default is 1 job\.
+.
+.TP
+\fB\-q\fR, \fB\-\-quiet\fR
+Run quietly, with warnings suppressed\.
+.
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR
+Run verbosely, with additional informational messages\.
+.
+.TP
+\fB\-\-debug\fR
+Log debugging information\. This includes progress messages every 10 seconds showing the processing rate and other information\. For instance:
+.
+.IP
+DEBUG bio\-maf: chr21\.maf\.gz: processed 94\.0 MB (26\.6%) in 50s, 2\.18 MB/s\.
+.
 .SH "FILES"
 The MAF files must be valid and have names ending in \fB\.maf\fR\. They may be gzip\-compressed, in which case their names should end with \fB\.maf\.gz\fR\.
 .

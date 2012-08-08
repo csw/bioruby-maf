@@ -54,6 +54,38 @@ As above, but with all `.maf.gz` files in the current directory:
    When `--index` is specified, index all sequences, not just the
    reference sequence.
    
+ * `-l`, `--level LEVEL`:
+   GZip compression level (1-9) to use for the output BGZF file. Lower
+   compression levels give better compression performance but produce
+   larger output files. The default level is 2, which gives output
+   files roughly twice as large as gzipped MAF files but still much
+   smaller than uncompressed MAF files.
+   
+ * `-f`, `--force`:
+   Overwrite BGZF files and indexes if they already exist. If
+   `--force` is not given, `maf_bgzip` will exit with an error if any
+   output files already exist.
+   
+ * `-j`, `--jobs N`:
+   Number of concurrent jobs to run, analogous to `make -j`. This will
+   use threads under JRuby, and fork(2) otherwise. Note that under
+   JRuby, each job already uses multiple threads, so less than one job
+   per core may be appropriate depending on your system. The default
+   is 1 job.
+
+ * `-q`, `--quiet`:
+   Run quietly, with warnings suppressed.
+
+ * `-v`, `--verbose`:
+   Run verbosely, with additional informational messages.
+   
+ * `--debug`:
+   Log debugging information. This includes progress messages every 10
+   seconds showing the processing rate and other information. For
+   instance:
+   
+    DEBUG bio-maf: chr21.maf.gz: processed 94.0 MB (26.6%) in 50s, 2.18 MB/s.
+
 ## FILES
 
 The MAF files must be valid and have names ending in `.maf`. They may
