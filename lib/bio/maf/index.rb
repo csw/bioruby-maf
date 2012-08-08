@@ -199,12 +199,16 @@ module Bio
           scan_dir(options[:dir])
         elsif options[:maf]
           if options[:index]
-            register_index(KyotoIndex.open(options[:index]),
+            index = KyotoIndex.open(options[:index])
+            register_index(index,
                            options[:maf])
+            index.close
           else
-            idx = find_index_file(options[:maf])
-            if idx
-              register_index(KyotoIndex.open(idx), options[:maf])
+            idx_f = find_index_file(options[:maf])
+            if idx_f
+              index = KyotoIndex.open(idx_f)
+              register_index(index, options[:maf])
+              index.close
             end
           end
         else
@@ -235,7 +239,11 @@ module Bio
         unless index.maf_file == File.basename(maf)
           raise "Index #{index.path} was created for #{index.maf_file}, not #{File.basename(maf)}!"
         end
-        @indices[index.ref_seq] = index
+        if index.path.to_s.start_with? '%'
+          @indices[index.ref_seq] = index
+        else
+          @indices[index.ref_seq] = index.path.to_s
+        end
         @maf_by_chrom[index.ref_seq] = maf
       end
 
@@ -247,6 +255,7 @@ module Bio
           if File.exist? maf
             register_index(index, maf)
           end
+          index.close
         end
       end
 
@@ -255,7 +264,13 @@ module Bio
         unless @indices.has_key? chrom
           raise "No index available for chromosome #{chrom}!"
         end
-        @indices[chrom]
+        index = @indices[chrom]
+        if index.is_a? KyotoIndex
+          # temporary
+          index
+        else
+          KyotoIndex.open(index)
+        end
       end
 
       def with_index(chrom)
@@ -264,7 +279,7 @@ module Bio
         begin
           yield index
         ensure
-          index.close
+          index.close unless index.path.to_s.start_with? '%'
         end
       end
 
