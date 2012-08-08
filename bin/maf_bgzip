@@ -123,7 +123,14 @@ def process_maf(maf_path, bgz_path, idx_path)
   if idx
     idx.db.synchronize(true)
   end
-  LOG.info { "Processed #{maf_base}." }
+  elapsed = Time.now - start_t
+  mb = maf_size.to_f / 1048576
+  mb_rate = mb / elapsed
+  LOG.info { sprintf("Processed %s (%.1f MB) in %ds, %.2f MB/s",
+                     maf_base,
+                     mb,
+                     elapsed,
+                     mb_rate) }
 end
 
 runner = Bio::MAF::JobRunner.create($options.n_jobs)
