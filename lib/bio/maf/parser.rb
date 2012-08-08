@@ -839,7 +839,9 @@ module Bio
           end
         end
         @header = Header.new(vars, align_params)
-        s.skip_until BLOCK_START || parse_error("Cannot find block start!")
+        if ! s.skip_until(BLOCK_START)
+          @at_end = true
+        end
       end
 
       # Parse all alignment blocks until EOF.

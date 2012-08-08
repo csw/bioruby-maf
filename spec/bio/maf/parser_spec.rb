@@ -203,7 +203,12 @@ module Bio
             p.each_block.count.should == 8
           end
         end
-
+        it "is not called with an empty MAF file" do
+          called = false
+          p = described_class.new(TestData + 'empty.maf')
+          p.each_block { called = true }
+          called.should be_false
+        end
       end
 
       describe "sequence_filter" do
@@ -421,7 +426,6 @@ module Bio
           l.first[0].id.should == 'mm8.chr7'
         end
       end
-
 
     end
 
