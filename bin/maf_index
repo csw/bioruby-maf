@@ -14,10 +14,10 @@ PRINTERS = {
 $options = OpenStruct.new
 $options.mode = :build
 $options.ref_only = true
+$options.parser_opts = { :parse_extended => false }
 
 def build_index(maf, index)
-  parser = Bio::MAF::Parser.new(maf,
-                                :parse_extended => false)
+  parser = Bio::MAF::Parser.new(maf, $options.parser_opts)
   idx = Bio::MAF::KyotoIndex.build(parser, index, $options.ref_only)
   idx.close
 end
@@ -35,6 +35,15 @@ op = OptionParser.new do |opts|
   end
   opts.on("-d", "--dump", "Dump contents of given INDEX") do
     $options.mode = :dump
+  end
+  opts.on("-O", "--parser-option OPT") do |opt|
+    if opt =~ /(-?)(.+)/
+      val = ! ($1 == "-")
+      option = $2.to_sym
+      $options.parser_opts[option] = val
+    else
+      raise "malformed parser option #{opt}!"
+    end
   end
   opts.on("--ruby-prof PATH", "Profile with ruby-prof") do |pspec|
     require 'ruby-prof'
