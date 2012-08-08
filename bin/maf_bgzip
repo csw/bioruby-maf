@@ -78,6 +78,7 @@ def process_maf(maf_path, bgz_path, idx_path)
     end
     idx = Bio::MAF::KyotoIndex.new(idx_path)
     idx.prep(bgz_path, :bgzf, $options.ref_only)
+    exec = Bio::MAF::Executor.create
   end
   start_t = Time.now
   last_t = start_t
@@ -92,7 +93,9 @@ def process_maf(maf_path, bgz_path, idx_path)
         bgz_w.write(block.orig_text)
         if idx
           block.offset = bgz_w.last_write_pos
-          idx.index_blocks([block])
+          exec.submit do
+            idx.index_blocks([block])
+          end
         end
         n += 1
         if n % 100 == 0
@@ -121,6 +124,7 @@ def process_maf(maf_path, bgz_path, idx_path)
   end
   p.close
   if idx
+    exec.shutdown
     idx.db.synchronize(true)
   end
   elapsed = Time.now - start_t

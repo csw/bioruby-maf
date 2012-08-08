@@ -491,6 +491,7 @@ module Bio
           load_index_sequences
           load_species
         end
+        @mutex = Mutex.new
       end
 
       def to_s
@@ -762,14 +763,16 @@ module Bio
       end
 
       def index_blocks(blocks)
-        if ! @seen_first
-          # set the reference sequence from the first block
-          first_block = blocks.first
-          self.ref_seq = first_block.sequences.first.source
-          db[REF_SEQ_KEY] = ref_seq
-          @seen_first = true
+        h = @mutex.synchronize do
+          if ! @seen_first
+            # set the reference sequence from the first block
+            first_block = blocks.first
+            self.ref_seq = first_block.sequences.first.source
+            db[REF_SEQ_KEY] = ref_seq
+            @seen_first = true
+          end
+          blocks.map { |b| entries_for(b) }.reduce(:merge!)
         end
-        h = blocks.map { |b| entries_for(b) }.reduce(:merge!)
         db.set_bulk(h, false)
       end
 

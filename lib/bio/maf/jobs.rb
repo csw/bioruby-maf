@@ -1,4 +1,5 @@
 require 'set'
+require 'java' if RUBY_PLATFORM == 'java'
 
 module Bio::MAF
   
@@ -92,13 +93,75 @@ module Bio::MAF
         begin
           f.get()
         rescue Exception => e
-          raise "Job failed: #{e}"
+          LOG.error e
+          raise
         end
         seen += 1
       end
       @exec.shutdown()
     end
 
+  end
+
+  module Executor
+    def Executor.create
+      if RUBY_PLATFORM == 'java'
+        JExecutor.new
+      else
+        DummyExecutor.new
+      end
+    end
+  end
+
+  class JExecutor
+
+    def initialize
+      queue = java.util.concurrent.LinkedBlockingQueue.new(8)
+      policy = java.util.concurrent.ThreadPoolExecutor::CallerRunsPolicy.new
+      @exec = java.util.concurrent.ThreadPoolExecutor.new(1, 1, 1,
+                                                          java.util.concurrent.TimeUnit::MINUTES,
+                                                          queue,
+                                                          policy)
+      @ecs = java.util.concurrent.ExecutorCompletionService.new(@exec)
+      @submitted = 0
+      @completed = 0
+    end
+
+    def submit(&blk)
+      @ecs.submit(&blk)
+      @submitted += 1
+      check_for_errors
+    end
+
+    def check_for_errors
+      while f = @ecs.poll
+        f.get
+        @completed += 1
+      end
+    end
+
+    def shutdown
+      @exec.shutdown
+      until @completed == @submitted
+        f = @ecs.take
+        f.get
+        @completed += 1
+      end
+    end
+  end
+
+  class DummyExecutor
+
+    def initialize
+    end
+
+    def submit
+      yield
+    end
+
+    def shutdown
+    end
+    
   end
 
 end
