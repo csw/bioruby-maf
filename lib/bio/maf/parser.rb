@@ -515,6 +515,8 @@ module Bio
     #  * `:parse_extended`: whether to parse 'i' and 'q' lines
     #  * `:parse_empty`: whether to parse 'e' lines
     #  * `:remove_gaps`: remove gaps left after filtering sequences
+    #  * `:join_blocks`: join blocks where possible
+    #  * `:upcase`: fold sequence data to upper case
     #  * `:chunk_size`: read MAF file in chunks of this many bytes
     #  * `:random_chunk_size`: as above, but for random access ({#fetch_blocks})
     #  * `:merge_max`: merge up to this many bytes of blocks for
@@ -881,7 +883,7 @@ module Bio
         b
       end
 
-      WRAP_OPTS = [:as_bio_alignment, :join_blocks, :remove_gaps]
+      WRAP_OPTS = [:as_bio_alignment, :join_blocks, :remove_gaps, :upcase]
 
       def wrap_block_seq(fun, &blk)
         opts = WRAP_OPTS.find_all { |o| @opts[o] }
@@ -906,6 +908,12 @@ module Bio
           conv_send(options,
                     fun,
                     :to_bio_alignment,
+                    &blk)
+        when :upcase
+          conv_send(options,
+                    fun,
+                    :upcase!,
+                    true,
                     &blk)
         when :remove_gaps
           conv_map(options,
@@ -944,10 +952,14 @@ module Bio
         end
       end
 
-      def conv_send(options, search, sym)
+      def conv_send(options, search, sym, always_yield_block=false)
         _wrap(options, search) do |block|
           v = block.send(sym)
-          yield v if v
+          if always_yield_block
+            yield block
+          else
+            yield v if v
+          end
         end
       end
 

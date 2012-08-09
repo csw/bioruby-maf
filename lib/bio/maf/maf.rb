@@ -94,6 +94,10 @@ module Bio
         sequences.first.text.size
       end
 
+      def upcase!
+        sequences.each { |s| s.upcase! }
+      end
+
       # Whether this block has been modified by a parser filter.
       # @return [Boolean]
       def filtered?
@@ -367,6 +371,10 @@ module Bio
         end
       end
 
+      def upcase!
+        text.upcase!
+      end
+
       def to_bio_alignment
         Bio::BioAlignment::Sequence.new(source, text)
       end
@@ -480,6 +488,10 @@ module Bio
 
       def empty?
         true
+      end
+
+      def upcase!
+        # no-op
       end
 
       def write_fasta(writer)

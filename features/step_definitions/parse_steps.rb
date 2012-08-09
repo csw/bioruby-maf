@@ -30,6 +30,7 @@ end
 Then /^an alignment block can be obtained$/ do
   @block = @parser.parse_block
   @block.should_not be_nil
+  @block.is_a?(Bio::MAF::Block).should be_true
 end
 
 Then /^the alignment block has (\d+) sequences$/ do |n_seq|
