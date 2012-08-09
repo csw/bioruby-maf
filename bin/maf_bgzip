@@ -95,7 +95,7 @@ def process_maf(maf_path, bgz_path, idx_path)
   last_pos = 0
   n_blocks = 0
   maf_size = File.size(maf_path)
-  File.open(bgz_path, 'w') do |out_f|
+  File.open(bgz_path, 'wb') do |out_f|
     Bio::BGZF::Writer.new(out_f, $options.level) do |bgz_w|
       maf_w = Bio::MAF::Writer.new(bgz_w)
       maf_w.write_header(p.header)
