@@ -1040,7 +1040,7 @@ module Bio
 
     def handle_logging_options(opts)
       opts.on("--logger filename", String,
-              "Log to file (default STDOUT)") do |name|
+              "Log to file (default STDERR)") do |name|
         Bio::Log::CLI.logger(name)
       end
       opts.on("--trace options", String,
