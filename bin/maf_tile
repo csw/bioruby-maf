@@ -31,6 +31,16 @@ def apply_options(tiler)
   tiler.reference = $options.ref if $options.ref
   tiler.species = $options.species
   tiler.species_map = $options.species_map
+  tiler.fill_char = $options.fill_char if $options.fill_char
+end
+
+def each_tiler(access, intervals)
+  intervals.each do |int|
+    access.tile(int) do |tiler|
+      apply_options(tiler)
+      yield tiler
+    end
+  end
 end
 
 $options = OpenStruct.new
@@ -70,6 +80,17 @@ o_parser = OptionParser.new do |opts|
       $options.species << sp
     end
   end
+  opts.on("--species-file FILE", "File specifying species and optionally mapped names") do |file|
+    File.open(file) do |f|
+      f.each_line do |line|
+        next if line =~ /^#/
+        parts = line.split
+        next unless parts.size > 0
+        $options.species << parts[0]
+        $options.species_map[parts[0]] = parts[1] if parts[1]
+      end
+    end
+  end
   opts.on("-o", "--output-base BASE", "Base name for output files",
           "Use stdout for a single interval if not given") do |base|
     $options.output_base = base
@@ -81,6 +102,11 @@ o_parser = OptionParser.new do |opts|
   opts.on("--bed-species SPECIES",
           "Species to prepend to BED chromosome specs") do |species|
     $options.bed_species = species
+  end
+  opts.on("--fill-char C",
+          "Fill gaps with character C",
+          "(default is *)") do |char|
+    $options.fill_char = char
   end
   opts.on("--upcase", "Fold all sequence data to upper case") do
     $options.p[:upcase] = true
@@ -112,28 +138,19 @@ unless $options.bed || $options.interval || $options.genomic_interval_spec
   $options.usage = true
 end
 
-if $options.bed && (! $options.output_base)
-  $stderr.puts "Must specify --output-base when specifying --bed!"
+if $options.bed && ! ($options.output_base || $options.concat)
+  $stderr.puts "Must specify --output-base or --concat when specifying --bed!"
   $options.usage = true
 end
 
-if (! $options.output_base) && ! ($options.interval || $options.genomic_interval_spec)
-  $stderr.puts "Must specify --interval if --output-base is not given!"
+if (! $options.output_base) && ! ($options.interval || $options.genomic_interval_spec || ($options.bed && $options.concat))
+  $stderr.puts "Must specify --interval or --bed with --concat if --output-base is not given!"
   $options.usage = true
 end
 
 if $options.usage
   $stderr.puts o_parser
   exit 2
-end
-
-def each_tiler(access, intervals)
-  intervals.each do |int|
-    access.tile(int) do |tiler|
-      apply_options(tiler)
-      yield tiler
-    end
-  end
 end
 
 access = if File.directory? maf_p
