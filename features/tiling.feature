@@ -198,7 +198,10 @@ Feature: Join alignment blocks with reference data
     sp1.chr1 12 36
     """
     When I run `maf_tile -s sp1:mouse -s sp2:nautilus -s sp3:jaguar --output-base selected --bed example.bed --reference gap-sp1.fa.gz gap-1.maf gap-1.kct`
-    Then the file "selected_12-36.fa" should contain exactly:
+    Then it should pass with:
+    """
+    """
+    And the file "selected_12-36.fa" should contain exactly:
     """
     >mouse
     GCTGAGGGC--AGTTGTGTCAGGGCG
