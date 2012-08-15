@@ -71,11 +71,15 @@ o_parser = OptionParser.new do |opts|
           "(even from BED files, contrary to the standard)") do
     $options.one_based = true
   end
-  opts.on("-s", "--species SPECIES[:NAME]", "Species to use (with mapped name)") do |sp|
+  opts.on("-s", "--species SPECIES[:NAME]",
+          "Species to use (mapped name optional)",
+          "(can be a comma-separated list)") do |sp|
     if sp =~ /:/
       species, mapped = sp.split(/:/)
       $options.species << species
       $options.species_map[species] = mapped
+    elsif sp =~ /,/
+      $options.species.concat(sp.split(/,/))
     else
       $options.species << sp
     end
