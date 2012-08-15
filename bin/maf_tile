@@ -175,7 +175,7 @@ if $options.bed
     concat.fill { '' }
     each_tiler(access, intervals) do |tiler|
       concat.zip(tiler.build_bio_alignment) do |buf, seq|
-        buf << seq.to_s.upcase
+        buf << seq.to_s
       end
     end
     fh = $options.output_base ? File.open($options.output_base, 'wb') : $stdout
