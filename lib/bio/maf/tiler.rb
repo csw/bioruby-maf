@@ -30,9 +30,12 @@ module Bio::MAF
     # @return [String]
     attr_reader   :fill_char
 
+    attr_accessor :remove_absent_species
+
     def initialize
       @species_map = {}
       self.fill_char = '*'
+      self.remove_absent_species = true
     end
 
     # Set the character to be used for filling regions with no
@@ -141,7 +144,25 @@ module Bio::MAF
           end
         end
       end
+      if remove_absent_species
+        non_fill = non_fill_re
+        LOG.debug { "searching for non-fill characters with #{non_fill}" }
+        text.each_with_index do |seq, i|
+          unless non_fill.match(seq)
+            text[i] = nil
+          end
+        end
+      end
       text
+    end
+
+    def non_fill_re
+      fill_esc = Regexp.escape(fill_char)
+      Regexp.compile("[^#{fill_esc}]")
+    end
+
+    def output_text
+      species_for_output.zip(tile()).reject { |s, t| t.nil? }
     end
 
     # Tile sequences to build a new {Bio::BioAlignment::Alignment
@@ -154,7 +175,9 @@ module Bio::MAF
     # @return [Bio::BioAlignment::Alignment]
     # @api public
     def build_bio_alignment
-      Bio::BioAlignment::Alignment.new(tile(), species_for_output)
+      out = output_text.to_a
+      Bio::BioAlignment::Alignment.new(out.collect { |e| e[1] },
+                                       out.collect { |e| e[0] })
     end
 
     # Write a FASTA representation of the tiled sequences to the given
@@ -163,7 +186,7 @@ module Bio::MAF
     # @param [#puts] f the output stream to write the FASTA data to.
     # @api public
     def write_fasta(f)
-      species_for_output.zip(tile()) do |sp_out, text|
+      output_text.each do |sp_out, text|
         f.puts ">#{sp_out}"
         f.puts text
       end

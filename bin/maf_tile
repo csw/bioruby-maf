@@ -177,11 +177,15 @@ if $options.bed
       concat.zip(tiler.build_bio_alignment) do |buf, seq|
         buf << seq.to_s
       end
+    non_fill = nil
     end
+      non_fill = tiler.non_fill_re if ! non_fill
     fh = $options.output_base ? File.open($options.output_base, 'wb') : $stdout
     $options.species.zip(concat) do |species, seq|
-      sp_out_name = $options.species_map[species] || species
-      fh.puts ">#{sp_out_name}", seq.scan(/.{1,70}/)
+      if non_fill.match(seq)
+        sp_out_name = $options.species_map[species] || species
+        fh.puts ">#{sp_out_name}", seq.scan(/.{1,70}/)
+      end
     end
   else
     # output each interval separately
