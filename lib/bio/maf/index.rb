@@ -199,6 +199,7 @@ module Bio
           scan_dir(options[:dir])
         elsif options[:maf]
           if options[:index]
+            LOG.debug { "Opening index file #{options[:index]}" }
             index = KyotoIndex.open(options[:index])
             register_index(index,
                            options[:maf])

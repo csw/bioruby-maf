@@ -98,15 +98,19 @@ module Bio::MAF
     def tile
       parser.sequence_filter[:only_species] = species_to_use
       parser.opts[:remove_gaps] = true
+      LOG.debug { "finding blocks covering interval #{interval}." }
       blocks = index.find([interval], parser).sort_by { |b| b.vars[:score] }
       mask = Array.new(interval.length, :ref)
       i_start = interval.zero_start
       i_end = interval.zero_end
       if reference
+        LOG.debug { "using a #{reference.class} reference." }
         ref_region = ref_data(i_start...i_end)
       end
+      LOG.debug "tiling #{blocks.count} blocks."
       blocks.each do |block|
         ref = block.ref_seq
+        LOG.debug { "tiling with block #{ref.start}-#{ref.end}" }
         slice_start = [i_start, ref.start].max
         slice_end = [i_end, ref.end].min
         mask.fill(block,

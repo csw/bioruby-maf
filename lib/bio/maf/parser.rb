@@ -701,15 +701,17 @@ module Bio
       def fetch_blocks_merged(fetch_list, &blk)
         start = Time.now
         total_size = fetch_list.collect { |e| e[1] }.reduce(:+)
+        count = 0
         with_context(@random_access_chunk_size) do |ctx|
           fetch_list.each do |e|
             ctx.fetch_blocks(*e, &blk)
+            count += 1
           end
         end
         elapsed = Time.now - start
         rate = (total_size / 1048576.0) / elapsed
-        LOG.debug { sprintf("Fetched blocks in %.3fs, %.1f MB/s.",
-                            elapsed, rate) }
+        LOG.debug { sprintf("Fetched %d blocks in %.3fs, %.1f MB/s.",
+                            count, elapsed, rate) }
       end
 
       # Fetch and parse the blocks given by the merged fetch list, in
@@ -888,6 +890,7 @@ module Bio
       def wrap_block_seq(fun, &blk)
         opts = WRAP_OPTS.find_all { |o| @opts[o] }
         opts << :sequence_filter if sequence_filter && (! sequence_filter.empty?)
+        LOG.debug { "wrapping #{fun} with #{opts.inspect}" }
         _wrap(opts, fun, &blk)
       end
 
