@@ -56,10 +56,10 @@ o_parser = OptionParser.new do |opts|
   opts.on("-r", "--reference SEQ", "FASTA reference sequence") do |ref|
     $options.ref = ref
   end
-  opts.on("-i", "--interval [CHR:]BEGIN:END", "Genomic interval, zero-based") do |int|
-    if int =~ /(.+):(\d+):(\d+)/
+  opts.on("-i", "--interval [CHR:]BEGIN-END", "Genomic interval, zero-based") do |int|
+    if int =~ /(.+):(\d+)-(\d+)/
       $options.genomic_interval_spec = [$1, $2.to_i, $3.to_i]
-    elsif int =~ /(\d+):(\d+)/
+    elsif int =~ /(\d+)-(\d+)/
       $options.interval = ($1.to_i)...($2.to_i)
     else
       $stderr.puts "Invalid interval specification #{int}!"
