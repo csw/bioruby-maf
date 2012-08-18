@@ -97,7 +97,7 @@ module Bio::MAF
     # @return [Array<String>]
     def tile
       parser.sequence_filter[:only_species] = species_to_use
-      # TODO: remove gaps
+      parser.opts[:remove_gaps] = true
       blocks = index.find([interval], parser).sort_by { |b| b.vars[:score] }
       mask = Array.new(interval.length, :ref)
       i_start = interval.zero_start
