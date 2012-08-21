@@ -35,22 +35,47 @@ output.
    The FASTA reference sequence file given, which may be gzipped, will
    be used to fill in any gaps between alignment blocks.
 
- * `-i`, `--interval BEGIN:END`:
+ * `-i`, `--interval [CHR:]BEGIN-END`:
    The given zero-based genomic interval will be used to select
-   alignment blocks from the MAF file.
+   alignment blocks from the MAF file. If the chromosome is not
+   specified, it will be taken from the first species specified with
+   `--species` or `--species-file`.
 
  * `-s`, `--species SPECIES[:NAME]`:
    The given species will be selected for output. If given as
    `species:name`, it will appear in the FASTA output as <name>.
+   
+ * `--species-file FILE`:
+   Species to select, and optional mapping names, will be read from
+   the given <file>, one species per line. If the species name is
+   followed by whitespace and an additional name, this will be taken
+   as the output name. Lines beginning with `#` will be ignored.
 
  * `-b`, `--bed BED`:
    The given BED file will be used to provide a list of intervals to
    process. If present, `--interval` will be ignored and
    `--output-base` must be given as well.
 
+ * `--bed-species SPECIES`:
+   The given species name will be prepended to the chromosome name
+   indicated in the BED file, separated by a period. This is necessary
+   if the BED file simply indicates `chr12`, but the sequence
+   identifiers in the MAF file are e.g. `hg19.chr12`.
+
+ * `--concat`:
+   The alignments specified in the BED file will be individually tiled
+   and concatenated.
+
  * `-o`, `--output-base BASE`:
    The given path will be used as the base name for output files, as
    described above.
+
+ * `--fill-char C`:
+   Gaps where no aligning sequence data exists will be filled with the
+   given character instead of `*`.
+
+ * `--upcase`:
+   All sequence data will be folded to upper case.
 
  * `-q`, `--quiet`:
    Run quietly, with warnings suppressed.
