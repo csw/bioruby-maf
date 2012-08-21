@@ -160,7 +160,7 @@ Feature: Join alignment blocks with reference data
     | gap-sp1.fa.gz |
     | gap-1.maf     |
     | gap-1.kct     |
-    When I run `maf_tile --reference gap-sp1.fa.gz --interval 0:50 -s sp1:mouse -s sp2:nautilus -s sp3:jaguar gap-1.maf gap-1.kct`
+    When I run `maf_tile --reference gap-sp1.fa.gz --interval 0-50 -s sp1:mouse -s sp2:nautilus -s sp3:jaguar gap-1.maf gap-1.kct`
     Then it should pass with:
     """
     >mouse
@@ -176,7 +176,7 @@ Feature: Join alignment blocks with reference data
     Given test files:
     | gap-1.maf     |
     | gap-1.kct     |
-    When I run `maf_tile --interval 0:50 -s sp1:mouse -s sp2:nautilus -s sp3:jaguar gap-1.maf gap-1.kct`
+    When I run `maf_tile --interval 0-50 -s sp1:mouse -s sp2:nautilus -s sp3:jaguar gap-1.maf gap-1.kct`
     Then it should pass with:
     """
     >mouse
@@ -217,7 +217,7 @@ Feature: Join alignment blocks with reference data
     Given test files:
     | mm8_chr7_tiny.maf |
     | mm8_chr7_tiny.kct |
-    When I run `maf_tile -s mm8 -s rn4 -s hg18 --interval 80082334:80082344 mm8_chr7_tiny.maf`
+    When I run `maf_tile -s mm8 -s rn4 -s hg18 --interval 80082334-80082344 mm8_chr7_tiny.maf`
     Then it should pass with:
     """
     >mm8
@@ -233,7 +233,7 @@ Feature: Join alignment blocks with reference data
     Given test files:
     | mm8_chr7_tiny.maf |
     | mm8_chr7_tiny.kct |
-    When I run `maf_tile -s mm8 -s rn4 -s hg18 --interval mm8.chr7:80082334:80082344 .`
+    When I run `maf_tile -s mm8 -s rn4 -s hg18 --interval mm8.chr7:80082334-80082344 .`
     Then it should pass with:
     """
     >mm8
@@ -249,7 +249,7 @@ Feature: Join alignment blocks with reference data
     Given test files:
     | mm8_chr7_tiny.maf |
     | mm8_chr7_tiny.kct |
-    When I run `maf_tile -s mm8 -s rn4 -s hg18 --one-based --interval mm8.chr7:80082335:80082344 .`
+    When I run `maf_tile -s mm8 -s rn4 -s hg18 --one-based --interval mm8.chr7:80082335-80082344 .`
     Then it should pass with:
     """
     >mm8
