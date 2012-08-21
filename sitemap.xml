@@ -2,66 +2,70 @@
 <urlset xmlns='http://www.sitemaps.org/schemas/sitemap/0.9'>
     <url>
         <loc>http://csw.github.com/bioruby-maf/blog/2012/05/09/hello-world/</loc>
-        <lastmod>2012-05-13T15:13:11-04:00</lastmod>
+        <lastmod>2012-05-13T12:13:11-07:00</lastmod>
     </url>
     <url>
         <loc>http://csw.github.com/bioruby-maf/blog/2012/05/13/progress/</loc>
-        <lastmod>2012-05-14T23:24:55-04:00</lastmod>
+        <lastmod>2012-05-14T20:24:55-07:00</lastmod>
     </url>
     <url>
         <loc>http://csw.github.com/bioruby-maf/blog/2012/05/21/week_2_progress/</loc>
-        <lastmod>2012-05-21T11:49:10-04:00</lastmod>
+        <lastmod>2012-05-21T08:49:10-07:00</lastmod>
     </url>
     <url>
         <loc>http://csw.github.com/bioruby-maf/blog/2012/05/21/basic-maf-parsing/</loc>
-        <lastmod>2012-05-21T13:57:31-04:00</lastmod>
+        <lastmod>2012-05-21T10:57:31-07:00</lastmod>
     </url>
     <url>
         <loc>http://csw.github.com/bioruby-maf/blog/2012/05/25/first_milestone/</loc>
-        <lastmod>2012-05-25T16:34:32-04:00</lastmod>
+        <lastmod>2012-05-25T13:34:32-07:00</lastmod>
     </url>
     <url>
         <loc>http://csw.github.com/bioruby-maf/blog/2012/06/04/indexed_maf_access/</loc>
-        <lastmod>2012-06-04T23:00:01-04:00</lastmod>
+        <lastmod>2012-06-04T20:00:01-07:00</lastmod>
     </url>
     <url>
         <loc>http://csw.github.com/bioruby-maf/blog/2012/06/09/filtering-work/</loc>
-        <lastmod>2012-06-09T14:20:54-04:00</lastmod>
+        <lastmod>2012-06-09T11:20:54-07:00</lastmod>
     </url>
     <url>
         <loc>
             http://csw.github.com/bioruby-maf/blog/2012/06/13/jruby_support_and_performance_work/
         </loc>
-        <lastmod>2012-06-21T00:46:39-04:00</lastmod>
+        <lastmod>2012-06-20T21:46:39-07:00</lastmod>
     </url>
     <url>
         <loc>http://csw.github.com/bioruby-maf/blog/2012/06/21/parallel_io/</loc>
-        <lastmod>2012-06-22T13:24:25-04:00</lastmod>
+        <lastmod>2012-06-22T10:24:25-07:00</lastmod>
     </url>
     <url>
         <loc>
             http://csw.github.com/bioruby-maf/blog/2012/07/02/kyoto_cabinet_support_for_jruby/
         </loc>
-        <lastmod>2012-07-02T17:05:04-04:00</lastmod>
+        <lastmod>2012-07-02T14:05:04-07:00</lastmod>
     </url>
     <url>
         <loc>http://csw.github.com/bioruby-maf/blog/2012/07/09/bio-maf_0.2.0/</loc>
-        <lastmod>2012-07-09T23:16:05-04:00</lastmod>
+        <lastmod>2012-07-09T20:16:05-07:00</lastmod>
     </url>
     <url>
         <loc>http://csw.github.com/bioruby-maf/blog/2012/07/18/bio-maf_0.3.0/</loc>
-        <lastmod>2012-07-18T15:20:41-04:00</lastmod>
+        <lastmod>2012-07-18T12:20:41-07:00</lastmod>
     </url>
     <url>
         <loc>http://csw.github.com/bioruby-maf/blog/2012/08/05/bgzf_and_testing/</loc>
-        <lastmod>2012-08-05T19:07:31-04:00</lastmod>
+        <lastmod>2012-08-05T16:07:31-07:00</lastmod>
+    </url>
+    <url>
+        <loc>http://csw.github.com/bioruby-maf/blog/2012/08/21/bio-maf_1.0.1/</loc>
+        <lastmod>2012-08-21T11:45:59-07:00</lastmod>
     </url>
     <url>
         <loc>http://csw.github.com/bioruby-maf/blog/archives/</loc>
-        <lastmod>2012-08-05T19:07:31-04:00</lastmod>
+        <lastmod>2012-08-21T11:45:59-07:00</lastmod>
     </url>
     <url>
         <loc>http://csw.github.com/bioruby-maf/</loc>
-        <lastmod>2012-08-05T19:07:31-04:00</lastmod>
+        <lastmod>2012-08-21T11:45:59-07:00</lastmod>
     </url>
 </urlset>

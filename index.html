@@ -9,9 +9,9 @@
   <meta name="author" content="Clayton Wheeler">
 
   
-  <meta name="description" content="This post was originally going to be the bio-maf 1.0 release
-announcement. I&#8217;ve added a new command-line maf_extract(1) tool as
-well as support &hellip;">
+  <meta name="description" content="Bio-MAF 1.0.1 is released! As described in my last post, this
+includes support for BGZF-compressed MAF files and a command-line
+maf_extract(1) tool &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -72,6 +72,78 @@ well as support &hellip;">
       
   <header>
     
+      <h1 class="entry-title"><a href="/bioruby-maf/blog/2012/08/21/bio-maf_1.0.1/">Bio-MAF 1.0.1</a></h1>
+    
+    
+      <p class="meta">
+        
+
+
+
+
+
+
+
+
+  
+
+
+<time datetime="2012-08-21T11:00:00-07:00" pubdate data-updated="true">Aug 21<span>st</span>, 2012</time>
+        
+         | <a href="/bioruby-maf/blog/2012/08/21/bio-maf_1.0.1/#disqus_thread">Comments</a>
+        
+      </p>
+    
+  </header>
+
+
+  <div class="entry-content"><p>Bio-MAF 1.0.1 is released! As described in my <a href="http://csw.github.com/bioruby-maf/blog/2012/08/05/bgzf_and_testing/">last post</a>, this
+includes support for BGZF-compressed MAF files and a command-line
+<a href="http://csw.github.com/bioruby-maf/man/maf_extract.1.html">maf_extract(1)</a> tool exposing almost all of the library&#8217;s random
+access functionality in an orthogonal way from the command line. It
+also includes a substantial overhaul of the <a href="http://csw.github.com/bioruby-maf/man/maf_tile.1.html">maf_tile(1)</a> tool,
+adding a <code>--concat</code> option for concatenation of several tiled
+intervals. This supports one of the original motivating use cases for
+this library, enabling alignments corresponding to a set of exons to
+be concatenated and any gaps filled from a reference sequence. The
+resulting output corresponds to their mRNA product.</p>
+
+<p>Several other new maf_tile options support integration into
+<a href="http://usegalaxy.org/">Galaxy</a>.</p>
+
+<p>Since my last post, I have also made substantial performance
+improvements in BGZF compression and exercised the parser and indexing
+functionality on the entire set of UCSC multiz46way MAF files. This
+led to better memory management, handling of extended-range UCSC bins
+in indexing, better logging and warning generation, index version
+validation, index error reporting, and other work to make this library
+more robust and useful.</p>
+
+<p>Sadly, this is the end of the Google Summer of Code. I&#8217;ve enjoyed
+working on Bio-MAF, getting to know the BioRuby community and
+especially my fantastic mentors, and most of all, delivering a useful
+piece of bioinformatics software. Thanks also to Google for organizing
+and funding this!</p>
+
+<p>While the Summer of Code is over, I plan to continue to maintain
+Bio-MAF. While the originally envisioned feature set has been
+implemented, I will at least keep it up to date with
+dependencies. And, of course, if you use this library or are
+considering it, please file Github issues (or, better yet, pull
+requests) for any bugs, problem reports, feature requests, or
+suggestions you may have.</p>
+</div>
+  
+  
+
+
+    </article>
+  
+  
+    <article>
+      
+  <header>
+    
       <h1 class="entry-title"><a href="/bioruby-maf/blog/2012/08/05/bgzf_and_testing/">BGZF and Testing</a></h1>
     
     
@@ -88,7 +160,7 @@ well as support &hellip;">
   
 
 
-<time datetime="2012-08-05T18:16:00-04:00" pubdate data-updated="true">Aug 5<span>th</span>, 2012</time>
+<time datetime="2012-08-05T18:16:00-07:00" pubdate data-updated="true">Aug 5<span>th</span>, 2012</time>
         
          | <a href="/bioruby-maf/blog/2012/08/05/bgzf_and_testing/#disqus_thread">Comments</a>
         
@@ -218,7 +290,7 @@ once I&#8217;ve gotten them integrated with a local Galaxy instance.</p>
   
 
 
-<time datetime="2012-07-18T12:48:00-04:00" pubdate data-updated="true">Jul 18<span>th</span>, 2012</time>
+<time datetime="2012-07-18T12:48:00-07:00" pubdate data-updated="true">Jul 18<span>th</span>, 2012</time>
         
          | <a href="/bioruby-maf/blog/2012/07/18/bio-maf_0.3.0/#disqus_thread">Comments</a>
         
@@ -276,7 +348,7 @@ e.g. <code>Array#each</code>, works.</p>
   
 
 
-<time datetime="2012-07-09T22:59:00-04:00" pubdate data-updated="true">Jul 9<span>th</span>, 2012</time>
+<time datetime="2012-07-09T22:59:00-07:00" pubdate data-updated="true">Jul 9<span>th</span>, 2012</time>
         
          | <a href="/bioruby-maf/blog/2012/07/09/bio-maf_0.2.0/#disqus_thread">Comments</a>
         
@@ -334,7 +406,7 @@ race condition in parallel parsing</li>
   
 
 
-<time datetime="2012-07-02T16:01:00-04:00" pubdate data-updated="true">Jul 2<span>nd</span>, 2012</time>
+<time datetime="2012-07-02T16:01:00-07:00" pubdate data-updated="true">Jul 2<span>nd</span>, 2012</time>
         
          | <a href="/bioruby-maf/blog/2012/07/02/kyoto_cabinet_support_for_jruby/#disqus_thread">Comments</a>
         
@@ -464,7 +536,7 @@ JRuby 2.0, anyway), I highly recommend using it.</p>
   
 
 
-<time datetime="2012-06-21T00:47:00-04:00" pubdate data-updated="true">Jun 21<span>st</span>, 2012</time>
+<time datetime="2012-06-21T00:47:00-07:00" pubdate data-updated="true">Jun 21<span>st</span>, 2012</time>
         
          | <a href="/bioruby-maf/blog/2012/06/21/parallel_io/#disqus_thread">Comments</a>
         
@@ -575,7 +647,7 @@ threads, it was perfectly easy to use these.</p>
   
 
 
-<time datetime="2012-06-13T22:54:00-04:00" pubdate data-updated="true">Jun 13<span>th</span>, 2012</time>
+<time datetime="2012-06-13T22:54:00-07:00" pubdate data-updated="true">Jun 13<span>th</span>, 2012</time>
         
          | <a href="/bioruby-maf/blog/2012/06/13/jruby_support_and_performance_work/#disqus_thread">Comments</a>
         
@@ -678,7 +750,7 @@ separate this out as its own gem.</p>
   
 
 
-<time datetime="2012-06-09T11:46:00-04:00" pubdate data-updated="true">Jun 9<span>th</span>, 2012</time>
+<time datetime="2012-06-09T11:46:00-07:00" pubdate data-updated="true">Jun 9<span>th</span>, 2012</time>
         
          | <a href="/bioruby-maf/blog/2012/06/09/filtering-work/#disqus_thread">Comments</a>
         
@@ -772,7 +844,7 @@ including dashes) alignment block I should be prepared to encounter?
   
 
 
-<time datetime="2012-06-04T16:33:00-04:00" pubdate data-updated="true">Jun 4<span>th</span>, 2012</time>
+<time datetime="2012-06-04T16:33:00-07:00" pubdate data-updated="true">Jun 4<span>th</span>, 2012</time>
         
          | <a href="/bioruby-maf/blog/2012/06/04/indexed_maf_access/#disqus_thread">Comments</a>
         
@@ -953,7 +1025,7 @@ running on JRuby soon.</p>
   
 
 
-<time datetime="2012-05-25T14:13:00-04:00" pubdate data-updated="true">May 25<span>th</span>, 2012</time>
+<time datetime="2012-05-25T14:13:00-07:00" pubdate data-updated="true">May 25<span>th</span>, 2012</time>
         
          | <a href="/bioruby-maf/blog/2012/05/25/first_milestone/#disqus_thread">Comments</a>
         
@@ -1063,81 +1135,6 @@ from the command line.</p>
 
     </article>
   
-  
-    <article>
-      
-  <header>
-    
-      <h1 class="entry-title"><a href="/bioruby-maf/blog/2012/05/21/basic-maf-parsing/">Basic MAF Parsing</a></h1>
-    
-    
-      <p class="meta">
-        
-
-
-
-
-
-
-
-
-  
-
-
-<time datetime="2012-05-21T13:43:00-04:00" pubdate data-updated="true">May 21<span>st</span>, 2012</time>
-        
-         | <a href="/bioruby-maf/blog/2012/05/21/basic-maf-parsing/#disqus_thread">Comments</a>
-        
-      </p>
-    
-  </header>
-
-
-  <div class="entry-content"><p>Today is the official start of coding for GSoC. Following my
-<a href="https://github.com/csw/bioruby-maf/wiki/Original-proposal">initial plan</a>,
-I&#8217;m going to begin by implementing the basics of MAF parsing in
-Ruby. I&#8217;ve already got Cucumber features defined for
-<a href="https://github.com/csw/bioruby-maf/blob/master/features/maf-parsing.feature">basic MAF parsing</a>
-and
-<a href="https://github.com/csw/bioruby-maf/blob/master/features/maf-to-fasta.feature">conversion to FASTA</a>,
-along with
-<a href="https://github.com/csw/bioruby-maf/tree/master/test/data">reference data</a>
-as processed by bx-python.</p>
-
-<p>This should be fairly straightforward to implement, but I&#8217;m going to
-wait until I&#8217;ve got this basic functionality running before I define
-anything else in detail. I&#8217;m still weighing whether it will make sense
-to have a &#8216;raw&#8217; representation of sequences and alignment blocks
-rather than just using (and presumably subclassing) the
-<a href="https://github.com/pjotrp/bioruby-alignment">bio-alignment</a>
-representations.</p>
-
-<p>Once basic MAF parsing works, my next area to focus on will be indexed
-access. Many use cases for MAF involve pulling a few alignments out of
-very large data files, rather than batch-processing the whole
-file. I&#8217;ll be focusing on the indexed-access API at first, and
-building a simple interim indexing scheme similar to that used by
-Biopython, probably using SQLite in a similar way. In developing the
-API, I&#8217;ll study those provided by bx-python and Biopython, the two
-other MAF implementations providing persistent indexing.</p>
-
-<p>Ultimately, I plan to revisit my actual indexing method, and
-potentially implement support for bx-python&#8217;s
-<a href="https://bitbucket.org/james_taylor/bx-python/src/07aca5a9f6fc/lib/bx/interval_index_file.py">interval index files</a>. I&#8217;ll
-also take a careful look at other database alternatives such as
-Berkeley DB and Tokyo Cabinet.</p>
-
-<p>P.S. For my next blog post, I think I will try using Markdown&#8217;s
-<a href="http://daringfireball.net/projects/markdown/syntax#link">reference-style links</a>,
-since the raw source for these posts is getting unwieldy with inline
-links.</p>
-</div>
-  
-  
-
-
-    </article>
-  
   <div class="pagination">
     
       <a class="prev" href="/bioruby-maf/blog/page/2/">&larr; Older</a>
@@ -1153,6 +1150,10 @@ links.</p>
   <ul id="recent_posts">
     
       <li class="post">
+        <a href="/bioruby-maf/blog/2012/08/21/bio-maf_1.0.1/">Bio-MAF 1.0.1</a>
+      </li>
+    
+      <li class="post">
         <a href="/bioruby-maf/blog/2012/08/05/bgzf_and_testing/">BGZF and testing</a>
       </li>
     
@@ -1166,10 +1167,6 @@ links.</p>
     
       <li class="post">
         <a href="/bioruby-maf/blog/2012/07/02/kyoto_cabinet_support_for_jruby/">Kyoto Cabinet support for JRuby</a>
-      </li>
-    
-      <li class="post">
-        <a href="/bioruby-maf/blog/2012/06/21/parallel_io/">Parallel I/O</a>
       </li>
     
   </ul>

@@ -5,13 +5,13 @@
 <!--[if (gt IE 8)|(gt IEMobile 7)|!(IEMobile)|!(IE)]><!--><html class="no-js" lang="en"><!--<![endif]-->
 <head>
   <meta charset="utf-8">
-  <title>GSoC Week 1 - BioRuby MAF blog</title>
+  <title>Bio-MAF 1.0.1 - BioRuby MAF blog</title>
   <meta name="author" content="Clayton Wheeler">
 
   
-  <meta name="description" content="This has been my first half-week of work on my Google Summer of Code
-project, and it&#8217;s off to an exciting start. The first order of
-business &hellip;">
+  <meta name="description" content="Bio-MAF 1.0.1 is released! As described in my last post, this
+includes support for BGZF-compressed MAF files and a command-line
+maf_extract(1) tool &hellip;">
   
 
   <!-- http://t.co/dKP3o1e -->
@@ -20,7 +20,7 @@ business &hellip;">
   <meta name="viewport" content="width=device-width, initial-scale=1">
 
   
-  <link rel="canonical" href="http://csw.github.com/bioruby-maf/blog/2012/05/13/progress">
+  <link rel="canonical" href="http://csw.github.com/bioruby-maf/blog/2012/08/21/bio-maf_1.0.1">
   <link href="/bioruby-maf/favicon.png" rel="icon">
   <link href="/bioruby-maf/stylesheets/screen.css" media="screen, projection" rel="stylesheet" type="text/css">
   <script src="/bioruby-maf/javascripts/modernizr-2.0.js"></script>
@@ -69,7 +69,7 @@ business &hellip;">
   
   <header>
     
-      <h1 class="entry-title">GSoC Week 1</h1>
+      <h1 class="entry-title">Bio-MAF 1.0.1</h1>
     
     
       <p class="meta">
@@ -85,7 +85,7 @@ business &hellip;">
   
 
 
-<time datetime="2012-05-13T18:14:00-07:00" pubdate data-updated="true">May 13<span>th</span>, 2012</time>
+<time datetime="2012-08-21T11:00:00-07:00" pubdate data-updated="true">Aug 21<span>st</span>, 2012</time>
         
          | <a href="#disqus_thread">Comments</a>
         
@@ -94,69 +94,41 @@ business &hellip;">
   </header>
 
 
-<div class="entry-content"><p>This has been my first half-week of work on my Google Summer of Code
-project, and it&#8217;s off to an exciting start. The first order of
-business has been to get my development environment together; since
-I&#8217;ve been a microbiology student instead of a programmer for the last
-year, it&#8217;s taken some work. In that process, I&#8217;ve ended up making a
-few <a href="https://github.com/michaelklishin/cucumber.el/pull/21">open</a>
-<a href="https://github.com/nibrahim/Hyde/pull/6">source</a>
-<a href="https://github.com/nibrahim/Hyde/pull/7">contributions</a> just to get
-my tools working the way I want. I&#8217;m running GNU Emacs 24 and trying
-to take more advantage of it than I have in the past. I&#8217;ll have much
-more to say about this in a future post.</p>
+<div class="entry-content"><p>Bio-MAF 1.0.1 is released! As described in my <a href="http://csw.github.com/bioruby-maf/blog/2012/08/05/bgzf_and_testing/">last post</a>, this
+includes support for BGZF-compressed MAF files and a command-line
+<a href="http://csw.github.com/bioruby-maf/man/maf_extract.1.html">maf_extract(1)</a> tool exposing almost all of the library&#8217;s random
+access functionality in an orthogonal way from the command line. It
+also includes a substantial overhaul of the <a href="http://csw.github.com/bioruby-maf/man/maf_tile.1.html">maf_tile(1)</a> tool,
+adding a <code>--concat</code> option for concatenation of several tiled
+intervals. This supports one of the original motivating use cases for
+this library, enabling alignments corresponding to a set of exons to
+be concatenated and any gaps filled from a reference sequence. The
+resulting output corresponds to their mRNA product.</p>
 
-<p>I&#8217;ve also started working on the BioRuby unit test
-<a href="http://travis-ci.org/#!/bioruby/bioruby/jobs/1296529">failures</a> under
-JRuby, as a way of familiarizing myself with the BioRuby code base as
-well as the community and its development processes. Right now, JRuby
-in 1.8 mode is showing 6 failures and 126 errors, which is hardly
-confidence-inspiring for people considering using JRuby with
-BioRuby. This is too bad, since JRuby has some definite advantages as
-a Ruby implementation. After looking into these failures, I&#8217;ve broken them
-down into a few categories:</p>
+<p>Several other new maf_tile options support integration into
+<a href="http://usegalaxy.org/">Galaxy</a>.</p>
 
-<ul>
-<li>temporary file permissions problems, likely due to some sort of Travis-CI
-environment issue</li>
-<li>a bug in JRuby&#8217;s implementation of
-<a href="http://ruby-doc.org/stdlib-1.8.7/libdoc/open3/rdoc/Open3.html#method-c-popen3">Open3.popen3</a>
-which I&#8217;m working up a bug report for</li>
-<li>an odd autoload problem I&#8217;ve filed
-<a href="https://jira.codehaus.org/browse/JRUBY-6658">JRUBY-6658</a> for and
-sent an accompanying
-<a href="https://github.com/rubyspec/rubyspec/pull/136">RubySpec patch</a>
-for</li>
-<li>a problem with libxml-jruby, which appears unmaintained, for which
-I&#8217;ve submitted a
-<a href="https://github.com/bioruby/bioruby/pull/55">BioRuby patch</a> plus
-<a href="http://jira.codehaus.org/browse/JRUBY-6662">JRUBY-6662</a></li>
-<li>and a small test case bug relating to floating point handling,
-which I&#8217;ve submitted a
-<a href="https://github.com/bioruby/bioruby/pull/54">patch</a> for.</li>
-</ul>
+<p>Since my last post, I have also made substantial performance
+improvements in BGZF compression and exercised the parser and indexing
+functionality on the entire set of UCSC multiz46way MAF files. This
+led to better memory management, handling of extended-range UCSC bins
+in indexing, better logging and warning generation, index version
+validation, index error reporting, and other work to make this library
+more robust and useful.</p>
 
+<p>Sadly, this is the end of the Google Summer of Code. I&#8217;ve enjoyed
+working on Bio-MAF, getting to know the BioRuby community and
+especially my fantastic mentors, and most of all, delivering a useful
+piece of bioinformatics software. Thanks also to Google for organizing
+and funding this!</p>
 
-<p>Once these are resolved, JRuby should be passing the BioRuby unit
-tests in 1.8 mode, and closer to passing in 1.9 mode. (There are a few
-extra failures under 1.9 that I haven&#8217;t sorted through yet.)</p>
-
-<p>I&#8217;ve also gotten a start on my project itself, creating the
-<a href="https://github.com/csw/bioruby-maf">bioruby-maf</a> Github repository
-with a project skeleton and writing my
-<a href="https://github.com/csw/bioruby-maf/blob/79004f9b75c1e33f9b265a1a97241d3c9d382997/features/maf-to-fasta.feature">first Cucumber feature</a>
-for it. This is, in fact, my first Cucumber feature ever. However, I
-did spend a few cross-country flights reading the
-<a href="http://pragprog.com/book/achbd/the-rspec-book">RSpec</a> and
-<a href="http://pragprog.com/book/hwcuc/the-cucumber-book">Cucumber</a> books
-last week; between that and cribbing from
-<a href="https://github.com/pjotrp/bioruby-alignment/tree/master/features">Pjotr&#8217;s code</a>
-I feel like I have some idea what I&#8217;m doing. Just assembling that
-feature has been useful, too, since I&#8217;ve had to get several of the
-existing MAF tools running on my machine. In fact, my test MAF data and
-the FASTA version of it are courtesy of
-<a href="https://bitbucket.org/james_taylor/bx-python/wiki/Home">bx-python</a>,
-which will be my reference implementation in many respects.</p>
+<p>While the Summer of Code is over, I plan to continue to maintain
+Bio-MAF. While the originally envisioned feature set has been
+implemented, I will at least keep it up to date with
+dependencies. And, of course, if you use this library or are
+considering it, please file Github issues (or, better yet, pull
+requests) for any bugs, problem reports, feature requests, or
+suggestions you may have.</p>
 </div>
 
 
@@ -179,7 +151,7 @@ which will be my reference implementation in many respects.</p>
   
 
 
-<time datetime="2012-05-13T18:14:00-07:00" pubdate data-updated="true">May 13<span>th</span>, 2012</time>
+<time datetime="2012-08-21T11:00:00-07:00" pubdate data-updated="true">Aug 21<span>st</span>, 2012</time>
       
 
 
@@ -187,7 +159,7 @@ which will be my reference implementation in many respects.</p>
     
       <div class="sharing">
   
-  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://csw.github.com/bioruby-maf/blog/2012/05/13/progress/" data-via="" data-counturl="http://csw.github.com/bioruby-maf/blog/2012/05/13/progress/" >Tweet</a>
+  <a href="http://twitter.com/share" class="twitter-share-button" data-url="http://csw.github.com/bioruby-maf/blog/2012/08/21/bio-maf_1.0.1/" data-via="" data-counturl="http://csw.github.com/bioruby-maf/blog/2012/08/21/bio-maf_1.0.1/" >Tweet</a>
   
   
   
@@ -196,10 +168,8 @@ which will be my reference implementation in many respects.</p>
     
     <p class="meta">
       
-        <a class="basic-alignment left" href="/bioruby-maf/blog/2012/05/09/hello-world/" title="Previous Post: Hello World">&laquo; Hello World</a>
+        <a class="basic-alignment left" href="/bioruby-maf/blog/2012/08/05/bgzf_and_testing/" title="Previous Post: BGZF and testing">&laquo; BGZF and testing</a>
       
-      
-        <a class="basic-alignment right" href="/bioruby-maf/blog/2012/05/21/week_2_progress/" title="Next Post: GSoC Week 2">GSoC Week 2 &raquo;</a>
       
     </p>
   </footer>
@@ -295,8 +265,8 @@ which will be my reference implementation in many respects.</p>
       
         
         // var disqus_developer = 1;
-        var disqus_identifier = 'http://csw.github.com/bioruby-maf/blog/2012/05/13/progress/';
-        var disqus_url = 'http://csw.github.com/bioruby-maf/blog/2012/05/13/progress/';
+        var disqus_identifier = 'http://csw.github.com/bioruby-maf/blog/2012/08/21/bio-maf_1.0.1/';
+        var disqus_url = 'http://csw.github.com/bioruby-maf/blog/2012/08/21/bio-maf_1.0.1/';
         var disqus_script = 'embed.js';
       
     (function () {

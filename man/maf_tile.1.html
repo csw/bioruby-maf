@@ -114,15 +114,30 @@ output.</p>
 <dl>
 <dt><code>-r</code>, <code>--reference SEQ</code></dt><dd><p>The FASTA reference sequence file given, which may be gzipped, will
 be used to fill in any gaps between alignment blocks.</p></dd>
-<dt><code>-i</code>, <code>--interval BEGIN:END</code></dt><dd><p>The given zero-based genomic interval will be used to select
-alignment blocks from the MAF file.</p></dd>
+<dt><code>-i</code>, <code>--interval [CHR:]BEGIN-END</code></dt><dd><p>The given zero-based genomic interval will be used to select
+alignment blocks from the MAF file. If the chromosome is not
+specified, it will be taken from the first species specified with
+<code>--species</code> or <code>--species-file</code>.</p></dd>
 <dt><code>-s</code>, <code>--species SPECIES[:NAME]</code></dt><dd><p>The given species will be selected for output. If given as
 <code>species:name</code>, it will appear in the FASTA output as <var>name</var>.</p></dd>
+<dt><code>--species-file FILE</code></dt><dd><p>Species to select, and optional mapping names, will be read from
+the given <var>file</var>, one species per line. If the species name is
+followed by whitespace and an additional name, this will be taken
+as the output name. Lines beginning with <code>#</code> will be ignored.</p></dd>
 <dt><code>-b</code>, <code>--bed BED</code></dt><dd><p>The given BED file will be used to provide a list of intervals to
 process. If present, <code>--interval</code> will be ignored and
 <code>--output-base</code> must be given as well.</p></dd>
+<dt><code>--bed-species SPECIES</code></dt><dd><p>The given species name will be prepended to the chromosome name
+indicated in the BED file, separated by a period. This is necessary
+if the BED file simply indicates <code>chr12</code>, but the sequence
+identifiers in the MAF file are e.g. <code>hg19.chr12</code>.</p></dd>
+<dt><code>--concat</code></dt><dd><p>The alignments specified in the BED file will be individually tiled
+and concatenated.</p></dd>
 <dt><code>-o</code>, <code>--output-base BASE</code></dt><dd><p>The given path will be used as the base name for output files, as
 described above.</p></dd>
+<dt><code>--fill-char C</code></dt><dd><p>Gaps where no aligning sequence data exists will be filled with the
+given character instead of <code>*</code>.</p></dd>
+<dt><code>--upcase</code></dt><dd><p>All sequence data will be folded to upper case.</p></dd>
 <dt><code>-q</code>, <code>--quiet</code></dt><dd><p>Run quietly, with warnings suppressed.</p></dd>
 <dt><code>-v</code>, <code>--verbose</code></dt><dd><p>Run verbosely, with additional informational messages.</p></dd>
 <dt class="flush"><code>--debug</code></dt><dd><p>Log debugging information.</p></dd>

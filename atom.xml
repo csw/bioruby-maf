@@ -4,7 +4,7 @@
   <title><![CDATA[BioRuby MAF blog]]></title>
   <link href="http://csw.github.com/bioruby-maf/atom.xml" rel="self"/>
   <link href="http://csw.github.com/bioruby-maf/"/>
-  <updated>2012-08-08T18:06:24-04:00</updated>
+  <updated>2012-08-21T11:47:29-07:00</updated>
   <id>http://csw.github.com/bioruby-maf/</id>
   <author>
     <name><![CDATA[Clayton Wheeler]]></name>
@@ -14,9 +14,52 @@
 
   
   <entry>
+    <title type="html"><![CDATA[Bio-MAF 1.0.1]]></title>
+    <link href="http://csw.github.com/bioruby-maf/blog/2012/08/21/bio-maf_1.0.1/"/>
+    <updated>2012-08-21T11:00:00-07:00</updated>
+    <id>http://csw.github.com/bioruby-maf/blog/2012/08/21/bio-maf_1.0.1</id>
+    <content type="html"><![CDATA[<p>Bio-MAF 1.0.1 is released! As described in my <a href="http://csw.github.com/bioruby-maf/blog/2012/08/05/bgzf_and_testing/">last post</a>, this
+includes support for BGZF-compressed MAF files and a command-line
+<a href="http://csw.github.com/bioruby-maf/man/maf_extract.1.html">maf_extract(1)</a> tool exposing almost all of the library&#8217;s random
+access functionality in an orthogonal way from the command line. It
+also includes a substantial overhaul of the <a href="http://csw.github.com/bioruby-maf/man/maf_tile.1.html">maf_tile(1)</a> tool,
+adding a <code>--concat</code> option for concatenation of several tiled
+intervals. This supports one of the original motivating use cases for
+this library, enabling alignments corresponding to a set of exons to
+be concatenated and any gaps filled from a reference sequence. The
+resulting output corresponds to their mRNA product.</p>
+
+<p>Several other new maf_tile options support integration into
+<a href="http://usegalaxy.org/">Galaxy</a>.</p>
+
+<p>Since my last post, I have also made substantial performance
+improvements in BGZF compression and exercised the parser and indexing
+functionality on the entire set of UCSC multiz46way MAF files. This
+led to better memory management, handling of extended-range UCSC bins
+in indexing, better logging and warning generation, index version
+validation, index error reporting, and other work to make this library
+more robust and useful.</p>
+
+<p>Sadly, this is the end of the Google Summer of Code. I&#8217;ve enjoyed
+working on Bio-MAF, getting to know the BioRuby community and
+especially my fantastic mentors, and most of all, delivering a useful
+piece of bioinformatics software. Thanks also to Google for organizing
+and funding this!</p>
+
+<p>While the Summer of Code is over, I plan to continue to maintain
+Bio-MAF. While the originally envisioned feature set has been
+implemented, I will at least keep it up to date with
+dependencies. And, of course, if you use this library or are
+considering it, please file Github issues (or, better yet, pull
+requests) for any bugs, problem reports, feature requests, or
+suggestions you may have.</p>
+]]></content>
+  </entry>
+  
+  <entry>
     <title type="html"><![CDATA[BGZF and testing]]></title>
     <link href="http://csw.github.com/bioruby-maf/blog/2012/08/05/bgzf_and_testing/"/>
-    <updated>2012-08-05T18:16:00-04:00</updated>
+    <updated>2012-08-05T18:16:00-07:00</updated>
     <id>http://csw.github.com/bioruby-maf/blog/2012/08/05/bgzf_and_testing</id>
     <content type="html"><![CDATA[<p>This post was originally going to be the bio-maf 1.0 release
 announcement. I&#8217;ve added a new command-line <a href="http://csw.github.com/bioruby-maf/man/maf_extract.1.html">maf_extract(1)</a> tool as
@@ -117,7 +160,7 @@ once I&#8217;ve gotten them integrated with a local Galaxy instance.</p>
   <entry>
     <title type="html"><![CDATA[Bio-MAF 0.3.0]]></title>
     <link href="http://csw.github.com/bioruby-maf/blog/2012/07/18/bio-maf_0.3.0/"/>
-    <updated>2012-07-18T12:48:00-04:00</updated>
+    <updated>2012-07-18T12:48:00-07:00</updated>
     <id>http://csw.github.com/bioruby-maf/blog/2012/07/18/bio-maf_0.3.0</id>
     <content type="html"><![CDATA[<p><a href="https://github.com/csw/bioruby-maf">bio-maf</a> version 0.3.0 is released. This version adds features
 including <a href="https://github.com/csw/bioruby-maf#join-blocks-after-filtering-together">joining</a> adjacent MAF blocks when sequences that caused
@@ -146,7 +189,7 @@ e.g. <code>Array#each</code>, works.</p>
   <entry>
     <title type="html"><![CDATA[Bio-MAF 0.2.0]]></title>
     <link href="http://csw.github.com/bioruby-maf/blog/2012/07/09/bio-maf_0.2.0/"/>
-    <updated>2012-07-09T22:59:00-04:00</updated>
+    <updated>2012-07-09T22:59:00-07:00</updated>
     <id>http://csw.github.com/bioruby-maf/blog/2012/07/09/bio-maf_0.2.0</id>
     <content type="html"><![CDATA[<p>I have released <a href="https://github.com/csw/bioruby-maf">bio-maf</a> version 0.2.0 as a Ruby gem. The main new
 feature in this release is MAF &#8216;tiling&#8217;; combining the alignment
@@ -175,7 +218,7 @@ race condition in parallel parsing</li>
   <entry>
     <title type="html"><![CDATA[Kyoto Cabinet support for JRuby]]></title>
     <link href="http://csw.github.com/bioruby-maf/blog/2012/07/02/kyoto_cabinet_support_for_jruby/"/>
-    <updated>2012-07-02T16:01:00-04:00</updated>
+    <updated>2012-07-02T16:01:00-07:00</updated>
     <id>http://csw.github.com/bioruby-maf/blog/2012/07/02/kyoto_cabinet_support_for_jruby</id>
     <content type="html"><![CDATA[<p><a href="http://fallabs.com/kyotocabinet/">Kyoto Cabinet</a> is a useful database, with a convenient
 <a href="http://fallabs.com/kyotocabinet/rubydoc/">Ruby binding</a>; unfortunately, this uses Ruby&#8217;s C extension API and
@@ -276,7 +319,7 @@ JRuby 2.0, anyway), I highly recommend using it.</p>
   <entry>
     <title type="html"><![CDATA[Parallel I/O]]></title>
     <link href="http://csw.github.com/bioruby-maf/blog/2012/06/21/parallel_io/"/>
-    <updated>2012-06-21T00:47:00-04:00</updated>
+    <updated>2012-06-21T00:47:00-07:00</updated>
     <id>http://csw.github.com/bioruby-maf/blog/2012/06/21/parallel_io</id>
     <content type="html"><![CDATA[<p>Some applications of a MAF parser call for sequential processing of an
 entire MAF file, but in many cases random access is necessary. I found
@@ -358,7 +401,7 @@ threads, it was perfectly easy to use these.</p>
   <entry>
     <title type="html"><![CDATA[JRuby support and I/O performance]]></title>
     <link href="http://csw.github.com/bioruby-maf/blog/2012/06/13/jruby_support_and_performance_work/"/>
-    <updated>2012-06-13T22:54:00-04:00</updated>
+    <updated>2012-06-13T22:54:00-07:00</updated>
     <id>http://csw.github.com/bioruby-maf/blog/2012/06/13/jruby_support_and_performance_work</id>
     <content type="html"><![CDATA[<h2>I/O performance and the Magic Number</h2>
 
@@ -432,7 +475,7 @@ separate this out as its own gem.</p>
   <entry>
     <title type="html"><![CDATA[Filtering work]]></title>
     <link href="http://csw.github.com/bioruby-maf/blog/2012/06/09/filtering-work/"/>
-    <updated>2012-06-09T11:46:00-04:00</updated>
+    <updated>2012-06-09T11:46:00-07:00</updated>
     <id>http://csw.github.com/bioruby-maf/blog/2012/06/09/filtering-work</id>
     <content type="html"><![CDATA[<p>I think I made good progress in the end this week, although it was a
 bit frustrating along the way, with a few dead ends and some
@@ -497,7 +540,7 @@ including dashes) alignment block I should be prepared to encounter?
   <entry>
     <title type="html"><![CDATA[Indexed MAF access]]></title>
     <link href="http://csw.github.com/bioruby-maf/blog/2012/06/04/indexed_maf_access/"/>
-    <updated>2012-06-04T16:33:00-04:00</updated>
+    <updated>2012-06-04T16:33:00-07:00</updated>
     <id>http://csw.github.com/bioruby-maf/blog/2012/06/04/indexed_maf_access</id>
     <content type="html"><![CDATA[<p>My second week of working on this MAF library was more of a struggle
 than the first week. I was implementing indexing of MAF files and
@@ -649,7 +692,7 @@ running on JRuby soon.</p>
   <entry>
     <title type="html"><![CDATA[First milestone]]></title>
     <link href="http://csw.github.com/bioruby-maf/blog/2012/05/25/first_milestone/"/>
-    <updated>2012-05-25T14:13:00-04:00</updated>
+    <updated>2012-05-25T14:13:00-07:00</updated>
     <id>http://csw.github.com/bioruby-maf/blog/2012/05/25/first_milestone</id>
     <content type="html"><![CDATA[<p>It&#8217;s the end of my first week of actual development work, and I&#8217;m
 happy with my progress. My <a href="https://github.com/csw/bioruby-maf/issues?milestone=1&amp;state=closed">first milestone</a>, for batch MAF
@@ -751,7 +794,7 @@ from the command line.</p>
   <entry>
     <title type="html"><![CDATA[Basic MAF parsing]]></title>
     <link href="http://csw.github.com/bioruby-maf/blog/2012/05/21/basic-maf-parsing/"/>
-    <updated>2012-05-21T13:43:00-04:00</updated>
+    <updated>2012-05-21T13:43:00-07:00</updated>
     <id>http://csw.github.com/bioruby-maf/blog/2012/05/21/basic-maf-parsing</id>
     <content type="html"><![CDATA[<p>Today is the official start of coding for GSoC. Following my
 <a href="https://github.com/csw/bioruby-maf/wiki/Original-proposal">initial plan</a>,
@@ -797,7 +840,7 @@ links.</p>
   <entry>
     <title type="html"><![CDATA[GSoC Week 2]]></title>
     <link href="http://csw.github.com/bioruby-maf/blog/2012/05/21/week_2_progress/"/>
-    <updated>2012-05-21T11:13:00-04:00</updated>
+    <updated>2012-05-21T11:13:00-07:00</updated>
     <id>http://csw.github.com/bioruby-maf/blog/2012/05/21/week_2_progress</id>
     <content type="html"><![CDATA[<p>This was my second week of work on my GSoC project, and the last week
 of the &#8216;community bonding&#8217; period before the official start of
@@ -857,7 +900,7 @@ batch tasks.</p>
   <entry>
     <title type="html"><![CDATA[GSoC Week 1]]></title>
     <link href="http://csw.github.com/bioruby-maf/blog/2012/05/13/progress/"/>
-    <updated>2012-05-13T18:14:00-04:00</updated>
+    <updated>2012-05-13T18:14:00-07:00</updated>
     <id>http://csw.github.com/bioruby-maf/blog/2012/05/13/progress</id>
     <content type="html"><![CDATA[<p>This has been my first half-week of work on my Google Summer of Code
 project, and it&#8217;s off to an exciting start. The first order of
@@ -928,7 +971,7 @@ which will be my reference implementation in many respects.</p>
   <entry>
     <title type="html"><![CDATA[Hello World]]></title>
     <link href="http://csw.github.com/bioruby-maf/blog/2012/05/09/hello-world/"/>
-    <updated>2012-05-09T19:33:00-04:00</updated>
+    <updated>2012-05-09T19:33:00-07:00</updated>
     <id>http://csw.github.com/bioruby-maf/blog/2012/05/09/hello-world</id>
     <content type="html"><![CDATA[<p>Hello World! This blog will be tracking the development of <a href="https://github.com/csw/bioruby-maf">bio-maf</a>, a <a href="https://cgwb.nci.nih.gov/FAQ/FAQformat.html#format5">Multiple Alignment Format</a> (MAF) parser for the Ruby bioinformatics library <a href="http://bioruby.open-bio.org/">BioRuby</a>, as part of the Google Summer of Code 2012. I&#8217;m Clayton Wheeler, a programmer and a biology student at the University of Michigan. This is exciting for me as my first substantial open source project, and as a way to write hopefully-useful bioinformatics software. And thanks, Google, for making this possible.</p>
 
