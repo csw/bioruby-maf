@@ -4,7 +4,7 @@
   <title><![CDATA[BioRuby MAF blog]]></title>
   <link href="http://csw.github.com/bioruby-maf/atom.xml" rel="self"/>
   <link href="http://csw.github.com/bioruby-maf/"/>
-  <updated>2012-08-21T11:47:29-07:00</updated>
+  <updated>2012-09-26T20:26:44-04:00</updated>
   <id>http://csw.github.com/bioruby-maf/</id>
   <author>
     <name><![CDATA[Clayton Wheeler]]></name>
@@ -14,9 +14,62 @@
 
   
   <entry>
+    <title type="html"><![CDATA[Setting up a Mac for ssh+Kerberos at the University of Michigan]]></title>
+    <link href="http://csw.github.com/bioruby-maf/blog/2012/09/26/ssh_kerberos_umich/"/>
+    <updated>2012-09-26T19:36:00-04:00</updated>
+    <id>http://csw.github.com/bioruby-maf/blog/2012/09/26/ssh_kerberos_umich</id>
+    <content type="html"><![CDATA[<p><em>Note</em>: this is probably irrelevant if you&#8217;re not at the University of
+Michigan. However, if you&#8217;re a Mac user there and tired of having to
+type in your password to ssh into the shell account servers, read on.</p>
+
+<p>This is what I had to do to get passwordless ssh access working to the
+U of M servers (e.g. <code>login.engin.umich.edu</code>) from my machine, running
+Mac OS X 10.8.2. The university doesn&#8217;t allow public-key-based ssh
+access, so I had to set up Kerberos.</p>
+
+<ol>
+<li><p>Get a copy of the <code>krb5.conf</code> file. You can find this at
+<code>/etc/krb5.conf</code> on any of the Linux shell servers such as
+<code>login.engin.umich.edu</code>. You&#8217;ll need to get it to your machine with
+scp/sftp/etc.</p></li>
+<li><p>Install it as <code>/Library/Preferences/edu.mit.Kerberos</code>. You&#8217;ll need
+root privileges to write to this directory, so:</p>
+
+<pre><code> $ sudo cp /path/to/krb5.conf /Library/Preferences/edu.mit.Kerberos
+</code></pre></li>
+<li><p>Open up /Applications/Utilities/Keychain Access.</p></li>
+<li><p>Go to its application menu and select Ticket Viewer.</p></li>
+<li><p>Acquire a Kerberos ticket by choosing Ticket > Add Identity, giving
+<code>&lt;uniqname&gt;@UMICH.EDU</code> as your identity and your usual U of M password
+as your password.</p></li>
+<li><p>Set up ssh to use Kerberos authentication to U of M hosts, by
+adding something like the following to your <code>~/.ssh/config</code>:</p></li>
+</ol>
+
+
+<figure class='code'><div class="highlight"><table><tr><td class="gutter"><pre class="line-numbers"><span class='line-number'>1</span>
+<span class='line-number'>2</span>
+<span class='line-number'>3</span>
+<span class='line-number'>4</span>
+<span class='line-number'>5</span>
+<span class='line-number'>6</span>
+</pre></td><td class='code'><pre><code class=''><span class='line'>Host *.umich.edu
+</span><span class='line'>     User &lt;your uniqname goes here&gt;
+</span><span class='line'>     Compression yes
+</span><span class='line'>     GSSAPIAuthentication yes
+</span><span class='line'>     GSSAPIDelegateCredentials yes
+</span><span class='line'>     GSSAPITrustDNS yes</span></code></pre></td></tr></table></div></figure>
+
+
+<p>You should now be able to ssh to a university machine without being
+prompted for a password.</p>
+]]></content>
+  </entry>
+  
+  <entry>
     <title type="html"><![CDATA[Bio-MAF 1.0.1]]></title>
     <link href="http://csw.github.com/bioruby-maf/blog/2012/08/21/bio-maf_1.0.1/"/>
-    <updated>2012-08-21T11:00:00-07:00</updated>
+    <updated>2012-08-21T11:00:00-04:00</updated>
     <id>http://csw.github.com/bioruby-maf/blog/2012/08/21/bio-maf_1.0.1</id>
     <content type="html"><![CDATA[<p>Bio-MAF 1.0.1 is released! As described in my <a href="http://csw.github.com/bioruby-maf/blog/2012/08/05/bgzf_and_testing/">last post</a>, this
 includes support for BGZF-compressed MAF files and a command-line
@@ -59,7 +112,7 @@ suggestions you may have.</p>
   <entry>
     <title type="html"><![CDATA[BGZF and testing]]></title>
     <link href="http://csw.github.com/bioruby-maf/blog/2012/08/05/bgzf_and_testing/"/>
-    <updated>2012-08-05T18:16:00-07:00</updated>
+    <updated>2012-08-05T18:16:00-04:00</updated>
     <id>http://csw.github.com/bioruby-maf/blog/2012/08/05/bgzf_and_testing</id>
     <content type="html"><![CDATA[<p>This post was originally going to be the bio-maf 1.0 release
 announcement. I&#8217;ve added a new command-line <a href="http://csw.github.com/bioruby-maf/man/maf_extract.1.html">maf_extract(1)</a> tool as
@@ -160,7 +213,7 @@ once I&#8217;ve gotten them integrated with a local Galaxy instance.</p>
   <entry>
     <title type="html"><![CDATA[Bio-MAF 0.3.0]]></title>
     <link href="http://csw.github.com/bioruby-maf/blog/2012/07/18/bio-maf_0.3.0/"/>
-    <updated>2012-07-18T12:48:00-07:00</updated>
+    <updated>2012-07-18T12:48:00-04:00</updated>
     <id>http://csw.github.com/bioruby-maf/blog/2012/07/18/bio-maf_0.3.0</id>
     <content type="html"><![CDATA[<p><a href="https://github.com/csw/bioruby-maf">bio-maf</a> version 0.3.0 is released. This version adds features
 including <a href="https://github.com/csw/bioruby-maf#join-blocks-after-filtering-together">joining</a> adjacent MAF blocks when sequences that caused
@@ -189,7 +242,7 @@ e.g. <code>Array#each</code>, works.</p>
   <entry>
     <title type="html"><![CDATA[Bio-MAF 0.2.0]]></title>
     <link href="http://csw.github.com/bioruby-maf/blog/2012/07/09/bio-maf_0.2.0/"/>
-    <updated>2012-07-09T22:59:00-07:00</updated>
+    <updated>2012-07-09T22:59:00-04:00</updated>
     <id>http://csw.github.com/bioruby-maf/blog/2012/07/09/bio-maf_0.2.0</id>
     <content type="html"><![CDATA[<p>I have released <a href="https://github.com/csw/bioruby-maf">bio-maf</a> version 0.2.0 as a Ruby gem. The main new
 feature in this release is MAF &#8216;tiling&#8217;; combining the alignment
@@ -218,7 +271,7 @@ race condition in parallel parsing</li>
   <entry>
     <title type="html"><![CDATA[Kyoto Cabinet support for JRuby]]></title>
     <link href="http://csw.github.com/bioruby-maf/blog/2012/07/02/kyoto_cabinet_support_for_jruby/"/>
-    <updated>2012-07-02T16:01:00-07:00</updated>
+    <updated>2012-07-02T16:01:00-04:00</updated>
     <id>http://csw.github.com/bioruby-maf/blog/2012/07/02/kyoto_cabinet_support_for_jruby</id>
     <content type="html"><![CDATA[<p><a href="http://fallabs.com/kyotocabinet/">Kyoto Cabinet</a> is a useful database, with a convenient
 <a href="http://fallabs.com/kyotocabinet/rubydoc/">Ruby binding</a>; unfortunately, this uses Ruby&#8217;s C extension API and
@@ -319,7 +372,7 @@ JRuby 2.0, anyway), I highly recommend using it.</p>
   <entry>
     <title type="html"><![CDATA[Parallel I/O]]></title>
     <link href="http://csw.github.com/bioruby-maf/blog/2012/06/21/parallel_io/"/>
-    <updated>2012-06-21T00:47:00-07:00</updated>
+    <updated>2012-06-21T00:47:00-04:00</updated>
     <id>http://csw.github.com/bioruby-maf/blog/2012/06/21/parallel_io</id>
     <content type="html"><![CDATA[<p>Some applications of a MAF parser call for sequential processing of an
 entire MAF file, but in many cases random access is necessary. I found
@@ -401,7 +454,7 @@ threads, it was perfectly easy to use these.</p>
   <entry>
     <title type="html"><![CDATA[JRuby support and I/O performance]]></title>
     <link href="http://csw.github.com/bioruby-maf/blog/2012/06/13/jruby_support_and_performance_work/"/>
-    <updated>2012-06-13T22:54:00-07:00</updated>
+    <updated>2012-06-13T22:54:00-04:00</updated>
     <id>http://csw.github.com/bioruby-maf/blog/2012/06/13/jruby_support_and_performance_work</id>
     <content type="html"><![CDATA[<h2>I/O performance and the Magic Number</h2>
 
@@ -475,7 +528,7 @@ separate this out as its own gem.</p>
   <entry>
     <title type="html"><![CDATA[Filtering work]]></title>
     <link href="http://csw.github.com/bioruby-maf/blog/2012/06/09/filtering-work/"/>
-    <updated>2012-06-09T11:46:00-07:00</updated>
+    <updated>2012-06-09T11:46:00-04:00</updated>
     <id>http://csw.github.com/bioruby-maf/blog/2012/06/09/filtering-work</id>
     <content type="html"><![CDATA[<p>I think I made good progress in the end this week, although it was a
 bit frustrating along the way, with a few dead ends and some
@@ -540,7 +593,7 @@ including dashes) alignment block I should be prepared to encounter?
   <entry>
     <title type="html"><![CDATA[Indexed MAF access]]></title>
     <link href="http://csw.github.com/bioruby-maf/blog/2012/06/04/indexed_maf_access/"/>
-    <updated>2012-06-04T16:33:00-07:00</updated>
+    <updated>2012-06-04T16:33:00-04:00</updated>
     <id>http://csw.github.com/bioruby-maf/blog/2012/06/04/indexed_maf_access</id>
     <content type="html"><![CDATA[<p>My second week of working on this MAF library was more of a struggle
 than the first week. I was implementing indexing of MAF files and
@@ -692,7 +745,7 @@ running on JRuby soon.</p>
   <entry>
     <title type="html"><![CDATA[First milestone]]></title>
     <link href="http://csw.github.com/bioruby-maf/blog/2012/05/25/first_milestone/"/>
-    <updated>2012-05-25T14:13:00-07:00</updated>
+    <updated>2012-05-25T14:13:00-04:00</updated>
     <id>http://csw.github.com/bioruby-maf/blog/2012/05/25/first_milestone</id>
     <content type="html"><![CDATA[<p>It&#8217;s the end of my first week of actual development work, and I&#8217;m
 happy with my progress. My <a href="https://github.com/csw/bioruby-maf/issues?milestone=1&amp;state=closed">first milestone</a>, for batch MAF
@@ -794,7 +847,7 @@ from the command line.</p>
   <entry>
     <title type="html"><![CDATA[Basic MAF parsing]]></title>
     <link href="http://csw.github.com/bioruby-maf/blog/2012/05/21/basic-maf-parsing/"/>
-    <updated>2012-05-21T13:43:00-07:00</updated>
+    <updated>2012-05-21T13:43:00-04:00</updated>
     <id>http://csw.github.com/bioruby-maf/blog/2012/05/21/basic-maf-parsing</id>
     <content type="html"><![CDATA[<p>Today is the official start of coding for GSoC. Following my
 <a href="https://github.com/csw/bioruby-maf/wiki/Original-proposal">initial plan</a>,
@@ -840,7 +893,7 @@ links.</p>
   <entry>
     <title type="html"><![CDATA[GSoC Week 2]]></title>
     <link href="http://csw.github.com/bioruby-maf/blog/2012/05/21/week_2_progress/"/>
-    <updated>2012-05-21T11:13:00-07:00</updated>
+    <updated>2012-05-21T11:13:00-04:00</updated>
     <id>http://csw.github.com/bioruby-maf/blog/2012/05/21/week_2_progress</id>
     <content type="html"><![CDATA[<p>This was my second week of work on my GSoC project, and the last week
 of the &#8216;community bonding&#8217; period before the official start of
@@ -900,7 +953,7 @@ batch tasks.</p>
   <entry>
     <title type="html"><![CDATA[GSoC Week 1]]></title>
     <link href="http://csw.github.com/bioruby-maf/blog/2012/05/13/progress/"/>
-    <updated>2012-05-13T18:14:00-07:00</updated>
+    <updated>2012-05-13T18:14:00-04:00</updated>
     <id>http://csw.github.com/bioruby-maf/blog/2012/05/13/progress</id>
     <content type="html"><![CDATA[<p>This has been my first half-week of work on my Google Summer of Code
 project, and it&#8217;s off to an exciting start. The first order of
@@ -971,7 +1024,7 @@ which will be my reference implementation in many respects.</p>
   <entry>
     <title type="html"><![CDATA[Hello World]]></title>
     <link href="http://csw.github.com/bioruby-maf/blog/2012/05/09/hello-world/"/>
-    <updated>2012-05-09T19:33:00-07:00</updated>
+    <updated>2012-05-09T19:33:00-04:00</updated>
     <id>http://csw.github.com/bioruby-maf/blog/2012/05/09/hello-world</id>
     <content type="html"><![CDATA[<p>Hello World! This blog will be tracking the development of <a href="https://github.com/csw/bioruby-maf">bio-maf</a>, a <a href="https://cgwb.nci.nih.gov/FAQ/FAQformat.html#format5">Multiple Alignment Format</a> (MAF) parser for the Ruby bioinformatics library <a href="http://bioruby.open-bio.org/">BioRuby</a>, as part of the Google Summer of Code 2012. I&#8217;m Clayton Wheeler, a programmer and a biology student at the University of Michigan. This is exciting for me as my first substantial open source project, and as a way to write hopefully-useful bioinformatics software. And thanks, Google, for making this possible.</p>
 
