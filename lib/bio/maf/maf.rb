@@ -58,10 +58,14 @@ module Bio
       attr_reader :sequences
       # Offset of the alignment block within the MAF file, in bytes.
       # @return [Integer]
-      attr_reader :offset
+      attr_accessor :offset
       # Size of the alignment block within the MAF file, in bytes.
       # @return [Integer]
       attr_reader :size
+      # Original text of the MAF block. Only available if the
+      # :retain_text parser option is set.
+      # @return [String]
+      attr_accessor :orig_text
 
       def initialize(vars, sequences, offset, size, filtered)
         @vars = vars
@@ -90,6 +94,10 @@ module Bio
         sequences.first.text.size
       end
 
+      def upcase!
+        sequences.each { |s| s.upcase! }
+      end
+
       # Whether this block has been modified by a parser filter.
       # @return [Boolean]
       def filtered?
@@ -101,10 +109,18 @@ module Bio
         Bio::BioAlignment::Alignment.new(ba_seq)
       end
 
+      def to_s
+        buf = StringIO.new
+        writer = Writer.new(buf)
+        writer.write_block(self)
+        return buf.string
+      end
+
       GAP = /-+/
 
-      # Remove gaps present in all sequences. These would generally
+      # Find gaps present in all sequences. These would generally
       # occur when some sequences have been filtered out.
+      #
       # @see #remove_gaps!
       # @see Parser#sequence_filter
       def find_gaps
@@ -126,6 +142,7 @@ module Bio
 
       # Remove gaps present in all sequences. These would generally
       # occur when some sequences have been filtered out.
+      #
       # @see #find_gaps
       # @see Parser#sequence_filter
       def remove_gaps!
@@ -354,6 +371,10 @@ module Bio
         end
       end
 
+      def upcase!
+        text.upcase!
+      end
+
       def to_bio_alignment
         Bio::BioAlignment::Sequence.new(source, text)
       end
@@ -467,6 +488,10 @@ module Bio
 
       def empty?
         true
+      end
+
+      def upcase!
+        # no-op
       end
 
       def write_fasta(writer)

@@ -1,0 +1,128 @@
+.\" generated with Ronn/v0.7.3
+.\" http://github.com/rtomayko/ronn/tree/0.7.3
+.
+.TH "MAF_BGZIP" "1" "August 2012" "BioRuby" "BioRuby Manual"
+.
+.SH "NAME"
+\fBmaf_bgzip\fR \- optimally BGZF\-compresses and indexes MAF files
+.
+.SH "SYNOPSIS"
+\fBmaf_bgzip\fR [\-d dir] \fImaf\fR \.\.\.
+.
+.br
+\fBmaf_bgzip\fR [\-d dir] \-\-index [\-\-all] \fImaf\fR \.\.\.
+.
+.br
+.
+.SH "DESCRIPTION"
+\fBmaf_bgzip\fR is part of the bioruby\-maf library and compresses Multiple Alignment Format (MAF) files in the Blocked GZip Format (BGZF), enabling efficient random access\. It can optionally index these files as well\.
+.
+.P
+\fBmaf_bgzip\fR can be used as an import tool to prepare MAF files from an external source such as UCSC for use by the other bioruby\-maf tools\. Such MAF files are often gzipped; these can be handled transparently by \fBmaf_bgzip\fR, without a separate gunzip(1) step\.
+.
+.P
+This is a MAF\-specific replacement for the bgzip(1) tool shipped with samtools\. Unlike the output of bgzip(1), each BGZF block (which can be up to 64 KB of uncompressed data) will contain an integer number of MAF blocks, except in the case of MAF blocks larger than 64 KB\. This means that except in unusual cases, a MAF block will be able to be read without having to read more than one BGZF block\.
+.
+.SH "EXAMPLES"
+Compress \fBmm8\.chrM\.maf\fR, creating \fBmm8\.chrM\.maf\.bgz\fR in the current directory:
+.
+.IP "" 4
+.
+.nf
+
+$ maf_bgzip mm8\.chrM\.maf
+.
+.fi
+.
+.IP "" 0
+.
+.P
+Re\-compress and index \fBmm8\.chrM\.maf\.gz\fR (on all sequences) into the \fB/data/maf/\fR directory, creating \fB/data/maf/mm8\.chrM\.maf\.bgz\fR and \fB/data/maf/mm8\.chrM\.kct\fR:
+.
+.IP "" 4
+.
+.nf
+
+$ maf_bgzip \-\-dir /data/maf \-\-index \-\-all mm8\.chrM\.maf\.gz
+.
+.fi
+.
+.IP "" 0
+.
+.P
+As above, but with all \fB\.maf\.gz\fR files in the current directory:
+.
+.IP "" 4
+.
+.nf
+
+$ maf_bgzip \-\-dir /data/maf \-\-index \-\-all *\.maf\.gz
+.
+.fi
+.
+.IP "" 0
+.
+.SH "OPTIONS"
+.
+.TP
+\fB\-d\fR, \fB\-\-dir DIR\fR
+The directory to write the compressed MAF files and indexes to\.
+.
+.TP
+\fB\-i\fR, \fB\-\-index\fR
+Index the compressed MAF files as by maf_index(1)\.
+.
+.TP
+\fB\-a\fR, \fB\-\-all\fR
+When \fB\-\-index\fR is specified, index all sequences, not just the reference sequence\.
+.
+.TP
+\fB\-l\fR, \fB\-\-level LEVEL\fR
+GZip compression level (1\-9) to use for the output BGZF file\. Lower compression levels give better compression performance but produce larger output files\. The default level is 2, which gives output files roughly twice as large as gzipped MAF files but still much smaller than uncompressed MAF files\.
+.
+.TP
+\fB\-f\fR, \fB\-\-force\fR
+Overwrite BGZF files and indexes if they already exist\. If \fB\-\-force\fR is not given, \fBmaf_bgzip\fR will exit with an error if any output files already exist\.
+.
+.TP
+\fB\-j\fR, \fB\-\-jobs N\fR
+Number of concurrent jobs to run, analogous to \fBmake \-j\fR\. This will use threads under JRuby, and fork(2) otherwise\. Note that under JRuby, each job already uses multiple threads, so less than one job per core may be appropriate depending on your system\. The default is 1 job\.
+.
+.TP
+\fB\-q\fR, \fB\-\-quiet\fR
+Run quietly, with warnings suppressed\.
+.
+.TP
+\fB\-v\fR, \fB\-\-verbose\fR
+Run verbosely, with additional informational messages\.
+.
+.TP
+\fB\-\-debug\fR
+Log debugging information\. This includes progress messages every 10 seconds showing the processing rate and other information\. For instance:
+.
+.IP
+DEBUG bio\-maf: chr21\.maf\.gz: processed 94\.0 MB (26\.6%) in 50s, 2\.18 MB/s\.
+.
+.SH "FILES"
+The MAF files must be valid and have names ending in \fB\.maf\fR\. They may be gzip\-compressed, in which case their names should end with \fB\.maf\.gz\fR\.
+.
+.P
+The BGZF\-compressed MAF files will be optimally compressed for random access and named with a \fB\.maf\.bgz\fR suffix\.
+.
+.P
+Indexes created will be Kyoto Cabinet databases as created by maf_index(1) and have the \fB\.maf[\.gz]\fR suffix replaced with \fB\.kct\fR\.
+.
+.SH "ENVIRONMENT"
+\fBmaf_bgzip\fR is a Ruby program and relies on ordinary Ruby environment variables\.
+.
+.SH "BUGS"
+None known\.
+.
+.SH "COPYRIGHT"
+\fBmaf_index\fR is copyright (C) 2012 Clayton Wheeler\.
+.
+.SH "SEE ALSO"
+ruby(1), maf_index(1), bgzip(1)
+.
+.P
+BGZF is specified in the SAM/BAM specification: \fIhttp://samtools\.sourceforge\.net/SAM1\.pdf\fR

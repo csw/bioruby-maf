@@ -42,3 +42,20 @@ Feature: Parse MAF files
     And sequence 0 has text "ACA-TTACT"
     And sequence 1 has strand :-
 
+  Scenario: Read alignment block, folded to upper case
+    Given MAF data:
+    """
+    ##maf version=1 scoring=humor.v4
+    # humor.v4 R=30 M=10 /cluster/data/hg15/bed/blastz.mm3/axtNet300/chr1.maf
+    # /cluster/data/hg15/bed/blastz.rn3/axtNet300/chr1.maf
+
+    a score=0.128
+    s human_hoxa 100  8 + 100257 aca-ttact
+    s horse_hoxa 120  9 -  98892 acaattgct
+    s fugu_hoxa   88  7  + 90788 aca--tgct
+    """
+    When I enable the :upcase parser option
+    And I open it with a MAF reader
+    Then an alignment block can be obtained
+    And the alignment block has 3 sequences
+    And sequence 0 has text "ACA-TTACT"

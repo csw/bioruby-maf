@@ -115,6 +115,13 @@ module Bio
             @idx.close
           }.not_to raise_error
         end
+        it "works from a pipe" do
+          IO.popen("cat #{TestData + 'mm8_chr7_tiny.maf'}") do |pipe|
+            @p = Parser.new(TestData + 'mm8_chr7_tiny.maf')
+            @idx = KyotoIndex.build(@p, '%')
+            @idx.db.count.should > 10
+          end
+        end
         it "accepts .kct paths"
         it "rejects other paths"
         context "mm8_chr7" do
@@ -347,9 +354,11 @@ module Bio
 
       describe "#entries_for" do
         before(:each) do
-          @p = Parser.new(TestData + 'mm8_chr7_tiny.maf')
+          fspec = TestData + 'mm8_chr7_tiny.maf'
+          @p = Parser.new(fspec)
           @block = @p.parse_block
           @idx = KyotoIndex.new('%')
+          @idx.prep(fspec, nil, true)
           @idx.ref_seq = 'mm8.chr7'
         end
         context "single ref seq" do

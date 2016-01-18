@@ -125,7 +125,7 @@ module Bio
       # @param [Enumerable<Bio::GenomicInterval>] intervals genomic
       #  intervals to parse.
       # @yield [block] each {Block} matched, in turn
-      # @return [Enumerable<Block>] each matching {Block}, if no block given
+      # @return [Array<Block>] each matching {Block}, if no block given
       # @api public
       # @see KyotoIndex#find
       def find(intervals, &blk)
@@ -137,13 +137,16 @@ module Bio
             end
           end
           by_chrom.each do |chrom, c_intervals|
-            index = @indices[chrom]
-            with_parser(chrom) do |parser|
-              index.find(c_intervals, parser, block_filter, &blk)
+            with_index(chrom) do |index|
+              with_parser(chrom) do |parser|
+                index.find(c_intervals, parser, block_filter, &blk)
+              end
             end
           end
         else
-          enum_for(:find, intervals)
+          acc = []
+          self.find(intervals) { |block| acc << block }
+          acc
         end
       end
 
@@ -156,13 +159,14 @@ module Bio
       # @yield [tiler] a {Tiler} ready to operate on the given interval
       # @api public
       def tile(interval)
-        index = chrom_index(interval.chrom)
-        with_parser(interval.chrom) do |parser|
-          tiler = Tiler.new
-          tiler.index = index
-          tiler.parser = parser
-          tiler.interval = interval
-          yield tiler
+        with_index(interval.chrom) do |index|
+          with_parser(interval.chrom) do |parser|
+            tiler = Tiler.new
+            tiler.index = index
+            tiler.parser = parser
+            tiler.interval = interval
+            yield tiler
+          end
         end
       end
 
@@ -172,13 +176,15 @@ module Bio
       #
       # @param [Bio::GenomicInterval] interval interval to search
       # @yield [block] each {Block} matched, in turn
-      # @return [Enumerable<Block>] each matching {Block}, if no block given
+      # @return [Array<Block>] each matching {Block}, if no block given
       # @api public
       # @see KyotoIndex#slice
       def slice(interval, &blk)
-        index = chrom_index(interval.chrom)
-        with_parser(interval.chrom) do |parser|
-          index.slice(interval, parser, &blk)
+        with_index(interval.chrom) do |index|
+          with_parser(interval.chrom) do |parser|
+            s = index.slice(interval, parser, block_filter, &blk)
+            block_given? ? s : s.to_a
+          end
         end
       end
 
@@ -193,12 +199,17 @@ module Bio
           scan_dir(options[:dir])
         elsif options[:maf]
           if options[:index]
-            register_index(KyotoIndex.open(options[:index]),
+            LOG.debug { "Opening index file #{options[:index]}" }
+            index = KyotoIndex.open(options[:index])
+            register_index(index,
                            options[:maf])
+            index.close
           else
-            idx = find_index_file(options[:maf])
-            if idx
-              register_index(KyotoIndex.open(idx), options[:maf])
+            idx_f = find_index_file(options[:maf])
+            if idx_f
+              index = KyotoIndex.open(idx_f)
+              register_index(index, options[:maf])
+              index.close
             end
           end
         else
@@ -229,7 +240,11 @@ module Bio
         unless index.maf_file == File.basename(maf)
           raise "Index #{index.path} was created for #{index.maf_file}, not #{File.basename(maf)}!"
         end
-        @indices[index.ref_seq] = index
+        if index.path.to_s.start_with? '%'
+          @indices[index.ref_seq] = index
+        else
+          @indices[index.ref_seq] = index.path.to_s
+        end
         @maf_by_chrom[index.ref_seq] = maf
       end
 
@@ -241,6 +256,7 @@ module Bio
           if File.exist? maf
             register_index(index, maf)
           end
+          index.close
         end
       end
 
@@ -249,7 +265,23 @@ module Bio
         unless @indices.has_key? chrom
           raise "No index available for chromosome #{chrom}!"
         end
-        @indices[chrom]
+        index = @indices[chrom]
+        if index.is_a? KyotoIndex
+          # temporary
+          index
+        else
+          KyotoIndex.open(index)
+        end
+      end
+
+      def with_index(chrom)
+        index = chrom_index(chrom)
+        LOG.debug { "Selected index #{index} for sequence #{chrom}." }
+        begin
+          yield index
+        ensure
+          index.close unless index.path.to_s.start_with? '%'
+        end
       end
 
       # @api private
@@ -403,7 +435,7 @@ module Bio
       def find(intervals, parser, filter={}, &blk)
         start = Time.now
         fl = fetch_list(intervals, filter)
-        LOG.debug { sprintf("Built fetch list of %d items in %.3fs.\n",
+        LOG.debug { sprintf("Built fetch list of %d items in %.3fs.",
                             fl.size,
                             Time.now - start) }
         if ! fl.empty?
@@ -426,6 +458,7 @@ module Bio
             yield block.slice(interval)
           end
         else
+          LOG.debug { "accumulating results of #slice" }
           enum_for(:slice, interval, parser, filter)
         end
       end
@@ -436,6 +469,7 @@ module Bio
       def initialize(path, db_arg=nil)
         @species = {}
         @species_max_id = -1
+        @index_sequences = {}
         @max_sid = -1
         if db_arg || ((path.size > 1) and File.exist?(path))
           mode = KyotoCabinet::DB::OREADER
@@ -444,15 +478,25 @@ module Bio
         end
         @db = db_arg || KyotoCabinet::DB.new
         @path = path
-        unless db_arg || db.open(path.to_s, mode)
+        path_str = "#{path.to_s}#opts=ls#dfunit=100000"
+        unless db_arg || db.open(path_str, mode)
           raise "Could not open DB file!"
         end
         if mode == KyotoCabinet::DB::OREADER
+          version = db[FORMAT_VERSION_KEY].to_i
+          if version != FORMAT_VERSION
+            raise "Index #{path} is version #{version}, expecting version #{FORMAT_VERSION}!"
+          end
           @maf_file = db[FILE_KEY]
           self.ref_seq = db[REF_SEQ_KEY]
           load_index_sequences
           load_species
         end
+        @mutex = Mutex.new
+      end
+
+      def to_s
+        "#<KyotoIndex path=#{path}>"
       end
 
       # Reopen the same DB handle read-only. Only useful for unit tests.
@@ -487,8 +531,8 @@ module Bio
             stream.puts "#{chr} [bin #{bin}] #{s_start}:#{s_end}"
             stream.puts "  offset #{offset}, length #{len}"
             if bgzf
-              block = BioBgzf.vo_block_offset(offset)
-              data = BioBgzf.vo_data_offset(offset)
+              block = Bio::BGZF.vo_block_offset(offset)
+              data = Bio::BGZF.vo_data_offset(offset)
               stream.puts "  BGZF block offset #{block}, data offset #{data}"
             end
             stream.puts "  text size: #{text_size}"
@@ -576,6 +620,11 @@ module Bio
       end
 
       def scan_bins_parallel(chrom_id, bin_intervals, filters)
+        LOG.debug {
+          sprintf("Beginning scan of %d bin intervals %s filters.",
+                  bin_intervals.size,
+                  filters.empty? ? "without" : "with")
+        }
         start = Time.now
         n_threads = ENV['profile'] ? 1 : java.lang.Runtime.runtime.availableProcessors
         jobs = java.util.concurrent.ConcurrentLinkedQueue.new(bin_intervals.to_a)
@@ -603,7 +652,7 @@ module Bio
           n_completed += 1
         end
         threads.each { |t| t.join }
-        LOG.debug { sprintf("Matched %d index records with %d threads in %.3f seconds.\n",
+        LOG.debug { sprintf("Matched %d index records with %d threads in %.3f seconds.",
                             to_fetch.size, n_threads, Time.now - start) }
         to_fetch
       end
@@ -676,30 +725,55 @@ module Bio
          || gi.include?(i_start)
       end
 
-      def build(parser, ref_only=true)
-        db[FILE_KEY] = File.basename(parser.file_spec)
-        @maf_file = db[FILE_KEY]
-        if parser.compression
-          db[COMPRESSION_KEY] = parser.compression.to_s
-        end
-        first_block = parser.parse_block
-        self.ref_seq = first_block.sequences.first.source
-        @ref_only = ref_only
-        db[REF_SEQ_KEY] = ref_seq
+      CHUNK_THRESHOLD_BYTES = 50 * 1024 * 1024
+      CHUNK_THRESHOLD_BLOCKS = 1000
+
+      def prep(file_spec, compression, ref_only)
         db[FORMAT_VERSION_KEY] = FORMAT_VERSION
-        @index_sequences = {}
-        index_blocks([first_block])
-        n = 0
-        parser.each_block.each_slice(1000).each do |blocks|
-          index_blocks(blocks)
-          n += blocks.size
+        db[FILE_KEY] = File.basename(file_spec)
+        @maf_file = db[FILE_KEY]
+        if compression
+          db[COMPRESSION_KEY] = compression.to_s
         end
+        @ref_only = ref_only
+        @seen_first = false
+      end
+        
+      def build(parser, ref_only=true)
+        prep(parser.file_spec,
+             parser.compression,
+             ref_only)
+
+        n = 0
+        acc = []
+        acc_bytes = 0
+        parser.each_block do |block|
+          acc << block
+          acc_bytes += block.size
+          if acc_bytes > CHUNK_THRESHOLD_BYTES \
+            || acc.size > CHUNK_THRESHOLD_BLOCKS
+            index_blocks(acc)
+            acc = []
+            acc_bytes = 0
+          end
+          n += 1
+        end
+        index_blocks(acc)
         LOG.debug { "Created index for #{n} blocks and #{@index_sequences.size} sequences." }
         db.synchronize(true)
       end
 
       def index_blocks(blocks)
-        h = blocks.map { |b| entries_for(b) }.reduce(:merge!)
+        h = @mutex.synchronize do
+          if ! @seen_first
+            # set the reference sequence from the first block
+            first_block = blocks.first
+            self.ref_seq = first_block.sequences.first.source
+            db[REF_SEQ_KEY] = ref_seq
+            @seen_first = true
+          end
+          blocks.map { |b| entries_for(b) }.reduce(:merge!)
+        end
         db.set_bulk(h, false)
       end
 
@@ -719,8 +793,11 @@ module Bio
         if ! sid
           @max_sid += 1
           sid = @max_sid
-          db.set("sequence:#{name}", sid.to_s)
-          index_sequences[name] = sid
+          # "" << foo is hideous but apparently what it takes to get a
+          # non-shared copy of a string on JRuby...
+          name_copy = "" << name
+          db.set("sequence:#{name_copy}", sid.to_s)
+          index_sequences[name_copy] = sid
         end
         return sid
       end
@@ -739,22 +816,24 @@ module Bio
         # example: otoGar1.scaffold_104707.1-93001
         parts = seq.split('.', 2)
         if parts.size == 2
-          species_name = parts[0]
-          if species.has_key? species_name
-            return species[species_name]
-          else
-            species_id = @species_max_id + 1
-            if species_id >= MAX_SPECIES
-              raise "cannot index MAF file with more than #{MAX_SPECIES} species"
-            end
-            species[species_name] = species_id
-            db["species:#{species_name}"] = species_id
-            @species_max_id = species_id
-            return species_id
-          end
+          # "" << foo is hideous but apparently what it takes to get a
+          # non-shared copy of a string on JRuby...
+          species_name = "" << parts[0]
         else
           # not in species.sequence format, apparently
-          return nil
+          species_name = "" << seq
+        end
+        if species.has_key? species_name
+          return species[species_name]
+        else
+          species_id = @species_max_id + 1
+          if species_id >= MAX_SPECIES
+            raise "cannot index MAF file with more than #{MAX_SPECIES} species"
+          end
+          species[species_name] = species_id
+          db["species:#{species_name}"] = species_id
+          @species_max_id = species_id
+          return species_id
         end
       end
 
@@ -769,20 +848,27 @@ module Bio
       end
 
       def entries_for(block)
-        unless block.ref_seq.source == @ref_seq
-          raise "Inconsistent reference sequence: expected #{@ref_seq}, got #{block.ref_seq.source}"
+        begin
+          unless block.ref_seq.source == @ref_seq
+            raise "Inconsistent reference sequence: expected #{@ref_seq}, got #{block.ref_seq.source}"
+          end
+          h = {}
+          val = build_block_value(block)
+          to_index = ref_only ? [block.sequences.first] : block.sequences
+          to_index.each do |seq|
+            seq_id = seq_id_for(seq.source)
+            # size 0 occurs in e.g. upstream1000.maf.gz
+            next if seq.size == 0
+            seq_end = seq.start + seq.size
+            bin = Bio::Ucsc::UcscBin.bin_from_range(seq.start, seq_end)
+            key = [255, seq_id, bin, seq.start, seq_end].pack(KEY_FMT)
+            h[key] = val
+          end
+          return h
+        rescue Exception => e
+          LOG.error "Failed to index block at offset #{block.offset}:\n#{block}"
+          raise e
         end
-        h = {}
-        val = build_block_value(block)
-        to_index = ref_only ? [block.sequences.first] : block.sequences
-        to_index.each do |seq|
-          seq_id = seq_id_for(seq.source)
-          seq_end = seq.start + seq.size
-          bin = Bio::Ucsc::UcscBin.bin_from_range(seq.start, seq_end)
-          key = [255, seq_id, bin, seq.start, seq_end].pack(KEY_FMT)
-          h[key] = val
-        end
-        return h
       end
     end # class KyotoIndex
 
@@ -859,6 +945,10 @@ module Bio
 
       def initialize(l)
         @l = l
+      end
+
+      def empty?
+        @l.empty?
       end
 
       def match(entry)

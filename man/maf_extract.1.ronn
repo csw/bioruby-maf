@@ -49,6 +49,9 @@ facilitates processing small, transient MAF files. However, on a large
 file this will incur a great deal of overhead; files expected to be
 used more than once should be indexed with maf_index(1).
 
+MAF files can optionally be BGZF-compressed, as produced by bgzip(1)
+from samtools.
+
 Alternatively, a directory of indexed MAF files can be specified with
 `--maf-dir`; in this case, they will all be used to satisfy queries.
 
@@ -210,4 +213,4 @@ FASTA description lines are always in the format `>source:start-end`.
 
 ## SEE ALSO
 
-ruby(1), maf_index(1), maf_tile(1)
+ruby(1), maf_index(1), maf_tile(1), bgzip(1)

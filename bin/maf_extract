@@ -6,12 +6,13 @@ require 'ostruct'
 
 include Bio::MAF
 
-options = OpenStruct.new
-options.mode = :intersect
-options.format = :maf
-options.seq_filter = {}
-options.block_filter = {}
-options.parse_options = {}
+$options = OpenStruct.new
+$options.mode = :intersect
+$options.format = :maf
+$options.one_based = false
+$options.seq_filter = {}
+$options.block_filter = {}
+$options.parse_options = {}
 
 def handle_list_spec(spec)
   if spec =~ /^@(.+)/
@@ -23,7 +24,11 @@ end
 
 def handle_interval_spec(int)
   if int =~ /(.+):(\d+)-(\d+)/
-    Bio::GenomicInterval.zero_based($1, $2.to_i, $3.to_i)
+    if $options.one_based
+      Bio::GenomicInterval.new($1, $2.to_i, $3.to_i)
+    else
+      Bio::GenomicInterval.zero_based($1, $2.to_i, $3.to_i)
+    end
   else
     raise "Invalid interval specification: #{int}"
   end
@@ -34,13 +39,13 @@ $op = OptionParser.new do |opts|
   opts.separator ""
   opts.separator "MAF source options (either --maf or --maf-dir must be given):"
   opts.on("-m", "--maf MAF", "MAF file") do |maf|
-    options.maf = maf
+    $options.maf = maf
   end
   opts.on("-i", "--index INDEX", "MAF index") do |idx|
-    options.idx = idx
+    $options.idx = idx
   end
   opts.on("-d", "--maf-dir DIR", "MAF directory") do |dir|
-    options.maf_dir = dir
+    $options.maf_dir = dir
   end
   opts.separator ""
   opts.separator "Extraction options:"
@@ -49,21 +54,26 @@ $op = OptionParser.new do |opts|
           "blocks intersecting the given region,",
           "or 'slice' to extract subsets covering ",
           "given regions") do |mode|
-    options.mode = mode
+    $options.mode = mode
   end
   opts.on("--bed BED", "Use intervals from the given BED file") do |bed|
-    options.bed = bed
+    $options.bed = bed
   end
   opts.on("--interval SEQ:START:END", "Zero-based genomic interval to match") do |int|
-    options.interval = handle_interval_spec(int)
+    $options.interval = handle_interval_spec(int)
+  end
+  opts.on("--one-based",
+          "Treat all intervals as one-based",
+          "(even from BED files, contrary to the standard)") do
+    $options.one_based = true
   end
   opts.separator ""
   opts.separator "Output options:"
   opts.on("-f", "--format FMT", [:maf, :fasta], "Output format") do |fmt|
-    options.format = fmt
+    $options.format = fmt
   end
   opts.on("-o", "--output OUT", "Write output to file OUT") do |out|
-    options.out_path = out
+    $options.out_path = out
   end
   opts.separator ""
   opts.separator "Filtering options:"
@@ -71,41 +81,41 @@ $op = OptionParser.new do |opts|
           "Filter out all but the species in the",
           "given comma-separated list",
           "(or @FILE to read from a file)") do |spec|
-    options.seq_filter[:only_species] = handle_list_spec(spec)
+    $options.seq_filter[:only_species] = handle_list_spec(spec)
   end
   opts.on("--with-all-species SPECIES",
           "Only match blocks with all the given",
           "species, comma-separated",
           "(or @FILE to read from a file)") do |spec|
-    options.block_filter[:with_all_species] = handle_list_spec(spec)
+    $options.block_filter[:with_all_species] = handle_list_spec(spec)
   end
   opts.on("--min-sequences N", Integer,
           "Match only blocks with at least N sequences") do |n|
-    options.block_filter[:at_least_n_sequences] = n
+    $options.block_filter[:at_least_n_sequences] = n
   end
   opts.on("--min-text-size N", Integer,
           "Match only blocks with minimum text size N") do |n|
-    options.block_filter[:min_size] = n
+    $options.block_filter[:min_size] = n
   end
   opts.on("--max-text-size N", Integer,
           "Match only blocks with maximum text size N") do |n|
-    options.block_filter[:max_size] = n
+    $options.block_filter[:max_size] = n
   end
   opts.separator ""
   opts.separator "Block processing options:"
   opts.on("--join-blocks",
           "Join blocks if appropriate after filtering",
           "out sequences") do
-    options.parse_options[:join_blocks] = true
+    $options.parse_options[:join_blocks] = true
   end
   opts.on("--remove-gaps", "Remove gaps after filtering out sequences") do
-    options.parse_options[:remove_gaps] = true
+    $options.parse_options[:remove_gaps] = true
   end
   opts.on("--parse-extended", "Parse 'extended' MAF data (i, q lines)") do
-    options.parse_options[:parse_extended] = true
+    $options.parse_options[:parse_extended] = true
   end
   opts.on("--parse-empty", "Parse empty (e) lines of MAF data") do
-    options.parse_options[:parse_empty] = true
+    $options.parse_options[:parse_empty] = true
   end
   opts.separator ""
   opts.separator "Logging options:"
@@ -120,24 +130,24 @@ def usage(msg)
   exit 2
 end
 
-if options.maf
-  access = Access.file(options.maf, options.idx, options.parse_options)
-elsif options.maf_dir
-  access = Access.maf_dir(options.maf_dir, options.parse_options)
+if $options.maf
+  access = Access.file($options.maf, $options.idx, $options.parse_options)
+elsif $options.maf_dir
+  access = Access.maf_dir($options.maf_dir, $options.parse_options)
 else
   usage "Must supply --maf or --maf-dir!"
 end
 
 begin
-  access.sequence_filter = options.seq_filter unless options.seq_filter.empty?
-  access.block_filter = options.block_filter unless options.block_filter.empty?
-  if options.out_path
-    outf = File.open(options.out_path, 'w')
+  access.sequence_filter = $options.seq_filter unless $options.seq_filter.empty?
+  access.block_filter = $options.block_filter unless $options.block_filter.empty?
+  if $options.out_path
+    outf = File.open($options.out_path, 'w')
   else
     outf = $stdout
   end
 
-  case options.format
+  case $options.format
   when :maf
     writer = Writer.new(outf)
   when :fasta
@@ -146,20 +156,20 @@ begin
     raise "unsupported output format #{format}!"
   end
 
-  if options.bed
-    intervals = read_bed_intervals(options.bed)
-  elsif options.interval
-    intervals = [options.interval]
+  if $options.bed
+    intervals = read_bed_intervals($options.bed)
+  elsif $options.interval
+    intervals = [$options.interval]
   else
     usage "Must supply --interval or --bed!"
   end
 
   # TODO: provide access to original MAF header?
-  if options.format == :maf
+  if $options.format == :maf
     writer.write_header(Header.default)
   end
 
-  case options.mode
+  case $options.mode
   when :intersect
     access.find(intervals) do |block|
       writer.write_block(block)
@@ -172,7 +182,7 @@ begin
       end
     end
   else
-    raise "Unsupported mode #{options.mode}!"
+    raise "Unsupported mode #{$options.mode}!"
   end
   
 ensure

@@ -10,7 +10,16 @@ def parse_interval(line)
   src, r_start_s, r_end_s, _ = line.split(nil, 4)
   r_start = r_start_s.to_i
   r_end = r_end_s.to_i
-  return Bio::GenomicInterval.zero_based(src, r_start, r_end)
+  i_src = if $options.bed_species
+            "#{$options.bed_species}.#{src}"
+          else
+            src
+          end
+  if $options.one_based
+    Bio::GenomicInterval.new(i_src, r_start, r_end)
+  else
+    Bio::GenomicInterval.zero_based(i_src, r_start, r_end)
+  end
 end
 
 def target_for(base, interval, &blk)
@@ -18,52 +27,96 @@ def target_for(base, interval, &blk)
   File.open(path, 'w', &blk)
 end
 
-def apply_options(options, tiler)
-  tiler.reference = options.ref if options.ref
-  tiler.species = options.species
-  tiler.species_map = options.species_map
+def apply_options(tiler)
+  tiler.reference = $options.ref if $options.ref
+  tiler.species = $options.species
+  tiler.species_map = $options.species_map
+  tiler.fill_char = $options.fill_char if $options.fill_char
 end
 
-options = OpenStruct.new
-options.p = { :threads => 1 }
-options.species = []
-options.species_map = {}
-options.usage = false
+def each_tiler(access, intervals)
+  intervals.each do |int|
+    access.tile(int) do |tiler|
+      apply_options(tiler)
+      yield tiler
+    end
+  end
+end
+
+$options = OpenStruct.new
+$options.p = { :threads => 1 }
+$options.species = []
+$options.species_map = {}
+$options.usage = false
 
 o_parser = OptionParser.new do |opts|
   opts.banner = "Usage: maf_tile [options] <maf> [index]"
   opts.separator ""
   opts.separator "Options:"
   opts.on("-r", "--reference SEQ", "FASTA reference sequence") do |ref|
-    options.ref = ref
+    $options.ref = ref
   end
-  opts.on("-i", "--interval [CHR:]BEGIN:END", "Genomic interval, zero-based") do |int|
-    if int =~ /(.+):(\d+):(\d+)/
-      gi = Bio::GenomicInterval.zero_based($1, ($2.to_i), ($3.to_i))
-      options.genomic_interval = gi
-    elsif int =~ /(\d+):(\d+)/
-      options.interval = ($1.to_i)...($2.to_i)
+  opts.on("-i", "--interval [CHR:]BEGIN-END", "Genomic interval, zero-based") do |int|
+    if int =~ /(.+):(\d+)-(\d+)/
+      $options.genomic_interval_spec = [$1, $2.to_i, $3.to_i]
+    elsif int =~ /(\d+)-(\d+)/
+      $options.interval = ($1.to_i)...($2.to_i)
     else
       $stderr.puts "Invalid interval specification #{int}!"
-      options.usage = true
+      $options.usage = true
     end
   end
-  opts.on("-s", "--species SPECIES[:NAME]", "Species to use (with mapped name)") do |sp|
+  opts.on("--one-based",
+          "Treat all intervals as one-based",
+          "(even from BED files, contrary to the standard)") do
+    $options.one_based = true
+  end
+  opts.on("-s", "--species SPECIES[:NAME]",
+          "Species to use (mapped name optional)",
+          "(can be a comma-separated list)") do |sp|
     if sp =~ /:/
       species, mapped = sp.split(/:/)
-      options.species << species
-      options.species_map[species] = mapped
+      $options.species << species
+      $options.species_map[species] = mapped
+    elsif sp =~ /,/
+      $options.species.concat(sp.split(/,/))
     else
-      options.species << sp
+      $options.species << sp
+    end
+  end
+  opts.on("--species-file FILE", "File specifying species and optionally mapped names") do |file|
+    File.open(file) do |f|
+      f.each_line do |line|
+        next if line =~ /^#/
+        parts = line.split
+        next unless parts.size > 0
+        $options.species << parts[0]
+        $options.species_map[parts[0]] = parts[1] if parts[1]
+      end
     end
   end
   opts.on("-o", "--output-base BASE", "Base name for output files",
           "Use stdout for a single interval if not given") do |base|
-    options.output_base = base
+    $options.output_base = base
   end
   opts.on("--bed BED", "BED file specifying intervals",
           "(requires --output-base)") do |bed|
-    options.bed = bed
+    $options.bed = bed
+  end
+  opts.on("--bed-species SPECIES",
+          "Species to prepend to BED chromosome specs") do |species|
+    $options.bed_species = species
+  end
+  opts.on("--fill-char C",
+          "Fill gaps with character C",
+          "(default is *)") do |char|
+    $options.fill_char = char
+  end
+  opts.on("--upcase", "Fold all sequence data to upper case") do
+    $options.p[:upcase] = true
+  end
+  opts.on("--concat", "Concatenate result blocks") do
+    $options.concat = true
   end
   Bio::MAF::handle_logging_options(opts)
 end
@@ -74,52 +127,96 @@ Bio::Log::CLI.configure('bio-maf')
 maf_p = ARGV.shift
 index_p = ARGV.shift
 
-unless (! options.usage) \
-  && maf_p && (! options.species.empty?) \
-  && (options.output_base \
-      ? options.bed \
-      : options.interval || options.genomic_interval)
+unless maf_p
+  $stderr.puts "Must specify MAF file to process!"
+  $options.usage = true
+end
+
+if $options.species.empty?
+  $stderr.puts "Must specify species to tile with --species!"
+  $options.usage = true
+end
+
+unless $options.bed || $options.interval || $options.genomic_interval_spec
+  $stderr.puts "Must specify --bed or --interval!"
+  $options.usage = true
+end
+
+if $options.bed && ! ($options.output_base || $options.concat)
+  $stderr.puts "Must specify --output-base or --concat when specifying --bed!"
+  $options.usage = true
+end
+
+if (! $options.output_base) && ! ($options.interval || $options.genomic_interval_spec || ($options.bed && $options.concat))
+  $stderr.puts "Must specify --interval or --bed with --concat if --output-base is not given!"
+  $options.usage = true
+end
+
+if $options.usage
   $stderr.puts o_parser
   exit 2
 end
 
 access = if File.directory? maf_p
-           Bio::MAF::Access.maf_dir(maf_p, options.p)
+           Bio::MAF::Access.maf_dir(maf_p, $options.p)
          else
-           Bio::MAF::Access.file(maf_p, index_p, options.p)
+           Bio::MAF::Access.file(maf_p, index_p, $options.p)
          end
 
-if options.bed
+if $options.bed
   intervals = []
-  File.open(options.bed) do |bed_f|
+  File.open($options.bed) do |bed_f|
     bed_f.each_line { |line| intervals << parse_interval(line) }
   end
-  intervals.sort_by! { |int| int.zero_start }
-  intervals.each do |int|
-    access.tile(int) do |tiler|
-      apply_options(options, tiler)
-      target_for(options.output_base, int) do |target|
+  #intervals.sort_by! { |int| int.zero_start }
+  if $options.concat
+    # concatenate, as with exons
+    concat = Array.new($options.species.size)
+    concat.fill { '' }
+    non_fill = nil
+    each_tiler(access, intervals) do |tiler|
+      non_fill = tiler.non_fill_re if ! non_fill
+      concat.zip(tiler.build_bio_alignment) do |buf, seq|
+        buf << seq.to_s
+      end
+    end
+    fh = $options.output_base ? File.open($options.output_base, 'wb') : $stdout
+    $options.species.zip(concat) do |species, seq|
+      if non_fill.match(seq)
+        sp_out_name = $options.species_map[species] || species
+        fh.puts ">#{sp_out_name}", seq.scan(/.{1,70}/)
+      end
+    end
+  else
+    # output each interval separately
+    each_tiler(access, intervals) do |tiler|
+      target_for($options.output_base, tiler.interval) do |target|
         tiler.write_fasta(target)
       end
     end
   end
 else
   # single interval
-  if options.genomic_interval
-    interval = options.genomic_interval
+  if $options.genomic_interval_spec
+    spec = $options.genomic_interval_spec
+    if $options.one_based
+      interval = Bio::GenomicInterval.new(*spec)
+    else
+      interval = Bio::GenomicInterval.zero_based(*spec)
+    end
   else
     if access.indices.size != 1
       raise "Must explicitly specify sequence in --interval argument with multiple candidate MAF files!"
     end
     ref_seq = access.indices.keys.first
     interval = Bio::GenomicInterval.zero_based(ref_seq,
-                                               options.interval.begin,
-                                               options.interval.end)
+                                               $options.interval.begin,
+                                               $options.interval.end)
   end
   access.tile(interval) do |tiler|
-    apply_options(options, tiler)
-    if options.output_base
-      target = target_for(options.output_base, tiler.interval)
+    apply_options(tiler)
+    if $options.output_base
+      target = target_for($options.output_base, tiler.interval)
     else
       target = $stdout
     end

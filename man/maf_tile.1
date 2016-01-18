@@ -1,7 +1,7 @@
 .\" generated with Ronn/v0.7.3
 .\" http://github.com/rtomayko/ronn/tree/0.7.3
 .
-.TH "MAF_TILE" "1" "July 2012" "BioRuby" "BioRuby Manual"
+.TH "MAF_TILE" "1" "August 2012" "BioRuby" "BioRuby Manual"
 .
 .SH "NAME"
 \fBmaf_tile\fR \- synthesize an alignment for a given region
@@ -99,6 +99,9 @@ The output is generated in FASTA format, with one sequence per species\.
 The \fImaf\fR parameter must specify either a Multiple Alignment Format (MAF) file or a directory of such files, with indexes\.
 .
 .P
+MAF files can optionally be BGZF\-compressed, as produced by bgzip(1) from samtools\.
+.
+.P
 The \fIindex\fR must be a MAF index built with maf_index(1)\. This parameter is ignored if the \fImaf\fR parameter is a directory\. It can be omitted if a single MAF file is given, but in this case the entire file will be parsed to build a temporary index\. For large files which will be reused, this is not advisable\.
 .
 .P
@@ -111,7 +114,7 @@ If \fB\-\-bed\fR \fIbed\fR is specified, its argument must be a BED file\. Only 
 \fBmaf_tile\fR is copyright (C) 2012 Clayton Wheeler\.
 .
 .SH "SEE ALSO"
-maf_index(1), ruby(1)
+maf_index(1), ruby(1), bgzip(1)
 .
 .IP "\(bu" 4
 \fIhttps://github\.com/csw/bioruby\-maf/\fR

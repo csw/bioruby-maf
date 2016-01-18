@@ -181,6 +181,12 @@ module Bio
           end
           it_behaves_like "any chunk size"
         end
+        it "handles a skipped block in a BGZF file" do
+          @p = described_class.new(TestData + 'mm8.chrM.maf.bgz')
+          blocks = @p.fetch_blocks([[5141084112, 2100],
+                                    [5141087379, 2006]])
+          blocks.collect { |b| b.offset }.should == [5141084112, 5141087379]
+        end
         after(:each) do
           @p.f.close
         end
@@ -190,6 +196,18 @@ module Bio
         it "returns an Enumerator when called without a block" do
           p = described_class.new(TestData + 'mm8_chr7_tiny.maf')
           p.each_block.count.should == 8
+        end
+        it "works when parsing from a pipe" do
+          IO.popen("cat #{TestData + 'mm8_chr7_tiny.maf'}") do |pipe|
+            p = described_class.new(pipe)
+            p.each_block.count.should == 8
+          end
+        end
+        it "is not called with an empty MAF file" do
+          called = false
+          p = described_class.new(TestData + 'empty.maf')
+          p.each_block { called = true }
+          called.should be_false
         end
       end
 
@@ -408,7 +426,6 @@ module Bio
           l.first[0].id.should == 'mm8.chr7'
         end
       end
-
 
     end
 

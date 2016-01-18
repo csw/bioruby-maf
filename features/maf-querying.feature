@@ -76,9 +76,20 @@ Feature: Filter results from MAF files
   @no_jruby
   Scenario: Parse blocks from a BGZF-compressed file
     Given test files:
-    | mm8.chrM.maf    |
-    | mm8.chrM.maf.gz |
+    | mm8.chrM.maf     |
+    | mm8.chrM.maf.bgz |
     When I run `maf_extract -m mm8.chrM.maf --interval mm8.chrM:6938-13030 -o m1.maf`
-    And I run `maf_extract -m mm8.chrM.maf.gz --interval mm8.chrM:6938-13030 -o m2.maf`
+    And I run `maf_extract -m mm8.chrM.maf.bgz --interval mm8.chrM:6938-13030 -o m2.maf`
     And I run `diff m1.maf m2.maf`
     Then the exit status should be 0
+
+  @no_jruby
+  Scenario: One-based indexing with maf_extract
+    Given test files:
+    | mm8_chr7_tiny.maf |
+    | mm8_chr7_tiny.kct |
+    When I run `sh -c 'maf_extract -d . --one-based --interval mm8.chr7:80082592-80082713 | grep "^a" | wc -l'`
+    Then it should pass with:
+    """
+    2
+    """

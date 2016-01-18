@@ -22,7 +22,8 @@ form for debugging.
 
 ## FILES
 
-The <maf> input file must be a valid MAF file of any length.
+The <maf> input file must be a valid MAF file of any length. It can
+optionally be BGZF-compressed, as produced by bgzip(1) from samtools.
 
 The index created is a Kyoto Cabinet TreeDB (B+ tree) database;
 <index> must have a `.kct` extension.
@@ -83,7 +84,7 @@ to be set.
 
 ## SEE ALSO
 
-ruby(1), kctreemgr(1)
+ruby(1), kctreemgr(1), bgzip(1)
 
  * <https://github.com/csw/bioruby-maf/>
  * <http://fallabs.com/kyotocabinet/>

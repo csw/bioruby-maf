@@ -1,4 +1,5 @@
 require 'strscan'
+require 'zlib'
 require 'java' if RUBY_PLATFORM == 'java'
 require 'bio-bgzf'
 
@@ -57,8 +58,7 @@ module Bio
 
       # Reads a chunk of the file.
       #
-      # Currently always reads size_hint bytes but this may change
-      # with BGZF support.
+      # Currently always reads size_hint bytes.
       #
       # @param [Integer] offset file offset to read from.
       # @param [Integer] size_hint desired size of chunk.
@@ -105,6 +105,7 @@ module Bio
       
       # Spawn a read-ahead thread. Called from {#initialize}.
       def start_read_ahead
+        LOG.debug { "Starting read-ahead thread." }
         @read_thread = Thread.new { read_ahead }
       end
 
@@ -170,6 +171,7 @@ module Bio
       BLOCK_START = /^(?=a)/
       BLOCK_START_OR_EOS = /(?:^(?=a))|\z/
       EOL_OR_EOF = /\n|\z/
+      JRUBY_P = (RUBY_PLATFORM == 'java')
 
       def set_last_block_pos!
         @last_block_pos = s.string.rindex(BLOCK_START)
@@ -334,14 +336,22 @@ module Bio
           elsif [I, E, Q, COMMENT, nil].include? first
             next
           else
-            parse_error "unexpected line: '#{line}'"
+            if opts[:strict]
+              parse_error "unexpected line: '#{line}'"
+            else
+              LOG.warn "Ignoring invalid MAF line: '#{line}'"
+            end
           end
         end
-        Block.new(block_vars,
-                  seqs,
-                  block_offset,
-                  s.pos - block_start_pos,
-                  filtered)
+        b = Block.new(block_vars,
+                      seqs,
+                      block_offset,
+                      s.pos - block_start_pos,
+                      filtered)
+        if opts[:retain_text]
+          b.orig_text = s.string.slice(block_start_pos...(s.pos))
+        end
+        return b
       end
 
       # Parse an 's' line.
@@ -452,6 +462,7 @@ module Bio
       # @return [Array<Block>]
       def fetch_blocks(offset, len, block_offsets)
         if block_given?
+          LOG.debug { "fetching blocks from #{offset} (length #{len}): #{block_offsets.inspect}" }
           start_chunk_read_if_needed(offset, len)
           # read chunks until we have the entire merged set of
           # blocks ready to parse
@@ -459,6 +470,13 @@ module Bio
           append_chunks_to(len)
           # parse the blocks
           block_offsets.each do |expected_offset|
+            # skip ahead, in case there is a gap resulting from a
+            # block that is not being parsed
+            rel_offset = expected_offset - offset
+            if s.pos < rel_offset
+              s.pos = rel_offset
+            end
+            # now actually parse the block data
             block = _parse_block
             parse_error("expected a block at offset #{expected_offset} but could not parse one!") unless block
             parse_error("got block with offset #{block.offset}, expected #{expected_offset}!") unless block.offset == expected_offset
@@ -483,7 +501,6 @@ module Bio
       end
 
       def append_chunks_to(len)
-        # XXX: need to rethink this for BGZF; prefetching ChunkReader
         while s.string.size < len
           s.string << cr.read_chunk()
         end
@@ -498,12 +515,16 @@ module Bio
     #  * `:parse_extended`: whether to parse 'i' and 'q' lines
     #  * `:parse_empty`: whether to parse 'e' lines
     #  * `:remove_gaps`: remove gaps left after filtering sequences
+    #  * `:join_blocks`: join blocks where possible
+    #  * `:upcase`: fold sequence data to upper case
     #  * `:chunk_size`: read MAF file in chunks of this many bytes
     #  * `:random_chunk_size`: as above, but for random access ({#fetch_blocks})
     #  * `:merge_max`: merge up to this many bytes of blocks for
     #    random access
     #  * `:threads`: number of threads to use for parallel
     #    parsing. Only useful under JRuby.
+    #  * `:strict`: abort on un-parseable lines instead of continuing with
+    #    a warning.
     # @api public
     
     class Parser
@@ -513,8 +534,12 @@ module Bio
       attr_reader :header
       # @return [String] path of MAF file being parsed.
       attr_reader :file_spec
-      # @return [File] file handle for MAF file.
+      # @return [IO] file handle for MAF file.
       attr_reader :f
+      # May be gzip-compressed.
+      # @return [IO] file handle for physical MAF file.
+      # @api private
+      attr_reader :phys_f
       # @return [StringScanner] scanner for parsing.
       attr_reader :s
       # @return [ChunkReader] ChunkReader.
@@ -541,32 +566,58 @@ module Bio
       RANDOM_CHUNK_SIZE = 4096
       MERGE_MAX = SEQ_CHUNK_SIZE
 
+      DEFAULT_OPTS = {
+        :chunk_size => SEQ_CHUNK_SIZE,
+        :random_chunk_size => RANDOM_CHUNK_SIZE,
+        :merge_max => MERGE_MAX,
+        :parse_extended => false,
+        :parse_empty => false,
+        :readahead_thread => true,
+        :seq_parse_thread => true
+      }
+      if JRUBY_P
+        DEFAULT_OPTS[:threads] = java.lang.Runtime.runtime.availableProcessors
+      end
+
       # Create a new parser instance.
       #
       # @param [String] file_spec path of file to parse.
-      # @param [Hash] opts parser options.
+      # @param [Hash] parse_opts parser options.
       # @api public
-      def initialize(file_spec, opts={})
+      def initialize(file_spec, parse_opts={})
+        opts = DEFAULT_OPTS.merge(parse_opts)
         @opts = opts
-        if RUBY_PLATFORM == 'java'
-          opts[:threads] ||= java.lang.Runtime.runtime.availableProcessors
-        end
-        chunk_size = opts[:chunk_size] || SEQ_CHUNK_SIZE
-        @random_access_chunk_size = opts[:random_chunk_size] || RANDOM_CHUNK_SIZE
-        @merge_max = opts[:merge_max] || MERGE_MAX
-        @parse_extended = opts[:parse_extended] || false
-        @parse_empty = opts[:parse_empty] || false
+        @random_access_chunk_size = opts[:random_chunk_size]
+        @merge_max = opts[:merge_max]
+        @parse_extended = opts[:parse_extended]
+        @parse_empty = opts[:parse_empty]
         @chunk_start = 0
-        @file_spec = file_spec
-        @f = File.open(file_spec)
-        if file_spec.to_s =~ /\.b?gzf?$/
+        if file_spec.respond_to? :flush
+          # an IO object
+          # guess what, Pathnames respond to :read...
+          @f = file_spec
+          @file_spec = @f.path if @f.respond_to?(:path)
+          # TODO: test for gzip?
+        else
+          # a pathname (or Pathname)
+          @file_spec = file_spec
+          @phys_f = File.open(file_spec)
+          if file_spec.to_s.end_with?(".maf.gz")
+            @f = Zlib::GzipReader.new(@phys_f)
+            @compression = :gzip
+          else
+            @f = @phys_f
+          end
+        end
+        if @file_spec.to_s =~ /\.bgzf?$/
           @base_reader = BGZFChunkReader
           @compression = :bgzf
         else
           @base_reader = ChunkReader
         end
-        @cr = base_reader.new(@f, chunk_size)
-        if RUBY_PLATFORM == 'java'
+        @cr = base_reader.new(@f, opts[:chunk_size])
+        if JRUBY_P && opts[:readahead_thread]
+          LOG.debug "Using ThreadedChunkReaderWrapper."
           @cr = ThreadedChunkReaderWrapper.new(@cr)
         end
         @s = StringScanner.new(cr.read_chunk())
@@ -586,7 +637,11 @@ module Bio
       # @api private
       def context(chunk_size)
         # IO#dup calls dup(2) internally, but seems broken on JRuby...
-        fd = File.open(file_spec)
+        if file_spec
+          fd = File.open(file_spec)
+        else
+          fd = f.dup
+        end
         ParseContext.new(fd, chunk_size, self)
       end
 
@@ -628,7 +683,7 @@ module Bio
       def fetch_blocks(fetch_list, &blk)
         if blk
           merged = merge_fetch_list(fetch_list)
-          if RUBY_PLATFORM == 'java' && @opts.fetch(:threads, 1) > 1
+          if JRUBY_P && @opts.fetch(:threads, 1) > 1
             fun = lambda { |&b2| fetch_blocks_merged_parallel(merged, &b2) }
           else
             fun = lambda { |&b2| fetch_blocks_merged(merged, &b2) }
@@ -646,15 +701,17 @@ module Bio
       def fetch_blocks_merged(fetch_list, &blk)
         start = Time.now
         total_size = fetch_list.collect { |e| e[1] }.reduce(:+)
+        count = 0
         with_context(@random_access_chunk_size) do |ctx|
           fetch_list.each do |e|
             ctx.fetch_blocks(*e, &blk)
+            count += 1
           end
         end
         elapsed = Time.now - start
         rate = (total_size / 1048576.0) / elapsed
-        LOG.debug { sprintf("Fetched blocks in %.3fs, %.1f MB/s.",
-                            elapsed, rate) }
+        LOG.debug { sprintf("Fetched %d blocks in %.3fs, %.1f MB/s.",
+                            count, elapsed, rate) }
       end
 
       # Fetch and parse the blocks given by the merged fetch list, in
@@ -729,6 +786,15 @@ module Bio
       #
       # Returns `[offset, size, [offset1, offset2, ...]]` tuples.
       def merge_fetch_list(orig_fl)
+        case compression
+        when nil
+          _merge_fetch_list(orig_fl)
+        when :bgzf
+          _merge_bgzf_fetch_list(orig_fl)
+        end
+      end
+
+      def _merge_fetch_list(orig_fl)
         fl = orig_fl.dup
         r = []
         until fl.empty? do
@@ -748,6 +814,22 @@ module Bio
         return r
       end
 
+      # Build a merged fetch list in a BGZF-aware way.  This will
+      # group together all MAF blocks from a single BGZF block. These
+      # MAF blocks may not be consecutive.
+      def _merge_bgzf_fetch_list(orig_fl)
+        block_e = orig_fl.chunk { |entry|
+          Bio::BGZF::vo_block_offset(entry[0])
+        }
+        block_e.collect do |bgzf_block, fl|
+          # text size to read from disk, from the start of the first
+          # block to the end of the last block
+          text_size = fl.last[0] + fl.last[1] - fl.first[0]
+          offsets = fl.collect { |e| e[0] }
+          [fl.first[0], text_size, offsets]
+        end
+      end
+
       # Parse the header of the MAF file.
       def _parse_header
         parse_error("not a MAF file") unless s.scan(/##maf\s*/)
@@ -761,7 +843,9 @@ module Bio
           end
         end
         @header = Header.new(vars, align_params)
-        s.skip_until BLOCK_START || parse_error("Cannot find block start!")
+        if ! s.skip_until(BLOCK_START)
+          @at_end = true
+        end
       end
 
       # Parse all alignment blocks until EOF.
@@ -774,7 +858,7 @@ module Bio
       # @api public
       def each_block(&blk)
         if block_given?
-          if RUBY_PLATFORM == 'java' && @opts.has_key?(:threads)
+          if JRUBY_P && opts[:seq_parse_thread]
             fun = method(:parse_blocks_parallel)
           else
             fun = method(:each_block_seq)
@@ -801,11 +885,12 @@ module Bio
         b
       end
 
-      WRAP_OPTS = [:as_bio_alignment, :join_blocks, :remove_gaps]
+      WRAP_OPTS = [:as_bio_alignment, :join_blocks, :remove_gaps, :upcase]
 
       def wrap_block_seq(fun, &blk)
         opts = WRAP_OPTS.find_all { |o| @opts[o] }
         opts << :sequence_filter if sequence_filter && (! sequence_filter.empty?)
+        LOG.debug { "wrapping #{fun} with #{opts.inspect}" }
         _wrap(opts, fun, &blk)
       end
 
@@ -826,6 +911,12 @@ module Bio
           conv_send(options,
                     fun,
                     :to_bio_alignment,
+                    &blk)
+        when :upcase
+          conv_send(options,
+                    fun,
+                    :upcase!,
+                    true,
                     &blk)
         when :remove_gaps
           conv_map(options,
@@ -864,10 +955,14 @@ module Bio
         end
       end
 
-      def conv_send(options, search, sym)
+      def conv_send(options, search, sym, always_yield_block=false)
         _wrap(options, search) do |block|
           v = block.send(sym)
-          yield v if v
+          if always_yield_block
+            yield block
+          else
+            yield v if v
+          end
         end
       end
 
@@ -879,14 +974,17 @@ module Bio
         queue = java.util.concurrent.LinkedBlockingQueue.new(128)
         worker = Thread.new do
           begin
+            LOG.debug "Starting parse worker."
             until at_end
               block = _parse_block()
               queue.put(block) if block
             end
             queue.put(:eof)
-          rescue
-            LOG.error "worker exiting: #{$!.class}: #{$!}"
+            LOG.debug { "Parse worker reached EOF." }
+          rescue Exception
             LOG.error $!
+            Thread.current[:exception] = $!
+            raise
           end
         end
         saw_eof = false
@@ -900,12 +998,15 @@ module Bio
             yield block
           else
             # timed out
-            n_final_poll += 1 unless worker.alive?
+            unless worker.alive?
+              LOG.debug "Worker has exited."
+              n_final_poll += 1
+            end
           end
           break if n_final_poll > 1
         end
         unless saw_eof
-          raise "worker exited unexpectedly!"
+          raise "worker exited unexpectedly from #{worker[:exception]}!"
         end
       end
 
@@ -954,7 +1055,7 @@ module Bio
 
     def handle_logging_options(opts)
       opts.on("--logger filename", String,
-              "Log to file (default STDOUT)") do |name|
+              "Log to file (default STDERR)") do |name|
         Bio::Log::CLI.logger(name)
       end
       opts.on("--trace options", String,

@@ -1,0 +1,117 @@
+maf_bgzip(1) -- optimally BGZF-compresses and indexes MAF files
+===============================================================
+
+## SYNOPSIS
+
+`maf_bgzip` [-d dir] <maf> ...<br>
+`maf_bgzip` [-d dir] --index [--all] <maf> ...<br>
+
+## DESCRIPTION
+
+**maf_bgzip** is part of the bioruby-maf library and compresses
+Multiple Alignment Format (MAF) files in the Blocked GZip Format
+(BGZF), enabling efficient random access. It can optionally index
+these files as well.
+
+`maf_bgzip` can be used as an import tool to prepare MAF files from an
+external source such as UCSC for use by the other bioruby-maf
+tools. Such MAF files are often gzipped; these can be handled
+transparently by `maf_bgzip`, without a separate gunzip(1) step.
+
+This is a MAF-specific replacement for the bgzip(1) tool shipped with
+samtools. Unlike the output of bgzip(1), each BGZF block (which can be
+up to 64 KB of uncompressed data) will contain an integer number of
+MAF blocks, except in the case of MAF blocks larger than 64 KB. This
+means that except in unusual cases, a MAF block will be able to be
+read without having to read more than one BGZF block.
+
+## EXAMPLES
+
+Compress `mm8.chrM.maf`, creating `mm8.chrM.maf.bgz` in the current
+directory:
+
+    $ maf_bgzip mm8.chrM.maf
+
+Re-compress and index `mm8.chrM.maf.gz` (on all sequences) into the
+`/data/maf/` directory, creating `/data/maf/mm8.chrM.maf.bgz` and
+`/data/maf/mm8.chrM.kct`:
+
+    $ maf_bgzip --dir /data/maf --index --all mm8.chrM.maf.gz
+
+As above, but with all `.maf.gz` files in the current directory:
+
+    $ maf_bgzip --dir /data/maf --index --all *.maf.gz
+
+## OPTIONS
+
+ * `-d`, `--dir DIR`:
+   The directory to write the compressed MAF files and indexes to.
+
+ * `-i`, `--index`:
+   Index the compressed MAF files as by maf_index(1).
+   
+ * `-a`, `--all`:
+   When `--index` is specified, index all sequences, not just the
+   reference sequence.
+   
+ * `-l`, `--level LEVEL`:
+   GZip compression level (1-9) to use for the output BGZF file. Lower
+   compression levels give better compression performance but produce
+   larger output files. The default level is 2, which gives output
+   files roughly twice as large as gzipped MAF files but still much
+   smaller than uncompressed MAF files.
+   
+ * `-f`, `--force`:
+   Overwrite BGZF files and indexes if they already exist. If
+   `--force` is not given, `maf_bgzip` will exit with an error if any
+   output files already exist.
+   
+ * `-j`, `--jobs N`:
+   Number of concurrent jobs to run, analogous to `make -j`. This will
+   use threads under JRuby, and fork(2) otherwise. Note that under
+   JRuby, each job already uses multiple threads, so less than one job
+   per core may be appropriate depending on your system. The default
+   is 1 job.
+
+ * `-q`, `--quiet`:
+   Run quietly, with warnings suppressed.
+
+ * `-v`, `--verbose`:
+   Run verbosely, with additional informational messages.
+   
+ * `--debug`:
+   Log debugging information. This includes progress messages every 10
+   seconds showing the processing rate and other information. For
+   instance:
+   
+    DEBUG bio-maf: chr21.maf.gz: processed 94.0 MB (26.6%) in 50s, 2.18 MB/s.
+
+## FILES
+
+The MAF files must be valid and have names ending in `.maf`. They may
+be gzip-compressed, in which case their names should end with `.maf.gz`.
+
+The BGZF-compressed MAF files will be optimally compressed for random
+access and named with a `.maf.bgz` suffix. 
+
+Indexes created will be Kyoto Cabinet databases as created by
+maf_index(1) and have the `.maf[.gz]` suffix replaced with `.kct`.
+
+## ENVIRONMENT
+
+`maf_bgzip` is a Ruby program and relies on ordinary Ruby environment
+variables.
+
+## BUGS
+
+None known.
+
+## COPYRIGHT
+
+`maf_index` is copyright (C) 2012 Clayton Wheeler.
+
+## SEE ALSO
+
+ruby(1), maf_index(1), bgzip(1)
+
+BGZF is specified in the SAM/BAM specification: <http://samtools.sourceforge.net/SAM1.pdf>
